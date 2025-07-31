@@ -38,56 +38,54 @@
         <ScrollViewer>
             <StackPanel Margin="48,0,48,24" Spacing="32">
 
-                <!-- Card 1: Cloud Provider Settings -->
+                <!-- Card 1: Cloud Provider Fallback Chain -->
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Classes="LucideIcon h3" Text="" />
-                            <StackPanel>
-                                <shadui:CardTitle>Cloud Provider</shadui:CardTitle>
-                                <shadui:CardDescription>Connect to services like OpenAI, Groq, etc.</shadui:CardDescription>
+                        <DockPanel>
+                            <Button Classes="Primary" DockPanel.Dock="Right" VerticalAlignment="Top" Command="{Binding AddProviderCommand}">
+                                <shadui:ButtonAssist.Icon>
+                                    <TextBlock Classes="LucideIcon" Text="" />
+                                </shadui:ButtonAssist.Icon>
+                                Add Provider
+                            </Button>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock Classes="LucideIcon h3" Text="" />
+                                <StackPanel>
+                                    <shadui:CardTitle>Cloud Provider Fallback Chain</shadui:CardTitle>
+                                    <shadui:CardDescription>Add and reorder providers. They will be tried from top to bottom.</shadui:CardDescription>
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
+                        </DockPanel>
                     </shadui:Card.Header>
-                    <StackPanel Spacing="16">
-                        <TextBox
-                            shadui:ControlAssist.Label="Base Cloud Endpoint"
-                            Text="{Binding Settings.BaseUrl, FallbackValue=''}"
-                            Watermark="https://api.openai.com/v1" />
-                        <TextBox
-                            shadui:ControlAssist.Label="API Key"
-                            Classes="PasswordReveal"
-                            Text="{Binding Settings.CloudApiKey, FallbackValue=''}"
-                            Watermark="sk-..." />
-                        <TextBox
-                            shadui:ControlAssist.Label="Model Name"
-                            Text="{Binding Settings.CloudModel, FallbackValue=''}"
-                            Watermark="e.g., gpt-4o" />
-
-                        <Border>
-                            <StackPanel>
-                                <TextBlock Text="Temperature" FontSize="16" />
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                    <Slider
-                                        Grid.Column="0"
-                                        VerticalAlignment="Center"
-                                        Maximum="2"
-                                        Minimum="0"
-                                        TickFrequency="0.1"
-                                        Value="{Binding Settings.CloudTemperature, FallbackValue={x:Null}}" />
-                                    <NumericUpDown
-                                        Grid.Column="1"
-                                        FormatString="0.0"
-                                        Increment="0.1"
-                                        Maximum="2"
-                                        Minimum="0"
-                                        Value="{Binding Settings.CloudTemperature, FallbackValue={x:Null}}" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                    <DataGrid
+                        AutoGenerateColumns="False"
+                        CanUserReorderColumns="False" CanUserResizeColumns="True" CanUserSortColumns="False"
+                        GridLinesVisibility="Horizontal" IsReadOnly="True"
+                        ItemsSource="{Binding CloudProviders}">
+                        <!-- TODO: Add Drag and Drop for reordering -->
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Configuration Name" />
+                            <DataGridTextColumn Width="150" Binding="{Binding IsEnabled}" Header="Enabled" />
+                            <DataGridTextColumn Width="150" Binding="{Binding ProviderType}" Header="Provider" />
+                            <DataGridTextColumn Width="200" Binding="{Binding Model}" Header="Model" />
+                            <DataGridTemplateColumn Width="100" Header="Actions">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                            <Button Classes="Icon Ghost" ToolTip.Tip="Edit Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).EditProviderCommand}" CommandParameter="{Binding .}">
+                                                <TextBlock Classes="LucideIcon" Text=""/>
+                                            </Button>
+                                            <Button Classes="Icon Ghost Destructive" ToolTip.Tip="Delete Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).DeleteProviderCommand}" CommandParameter="{Binding .}">
+                                                <TextBlock Classes="LucideIcon" Text=""/>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </shadui:Card>
-
+                
                 <!-- Local Provider Settings -->
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
@@ -130,32 +128,31 @@
                         </StackPanel>
                     </StackPanel>
                 </shadui:Card>
-
+                
                 <!-- Provider Switching Logic -->
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Classes="LucideIcon h3" Text="" />
                             <StackPanel>
-                                <shadui:CardTitle>Provider Logic</shadui:CardTitle>
-                                <shadui:CardDescription>Configure how ProseFlow selects and falls back between providers.</shadui:CardDescription>
+                                <shadui:CardTitle>Service Type Logic</shadui:CardTitle>
+                                <shadui:CardDescription>Configure the high-level fallback between Cloud and Local services.</shadui:CardDescription>
                             </StackPanel>
                         </StackPanel>
                     </shadui:Card.Header>
                     <StackPanel Spacing="16">
                         <ComboBox
-                            shadui:ControlAssist.Label="Primary Provider"
-                            shadui:ControlAssist.Hint="The default provider to use for all actions."
-                            ItemsSource="{Binding AvailableProviders}"
-                            SelectedItem="{Binding Settings.PrimaryProvider, FallbackValue=''}" />
+                            shadui:ControlAssist.Label="Primary Service Type"
+                            shadui:ControlAssist.Hint="The default service to use for all actions."
+                            ItemsSource="{Binding AvailableServiceTypes}"
+                            SelectedItem="{Binding Settings.PrimaryServiceType, FallbackValue=''}" />
                         <ComboBox
-                            shadui:ControlAssist.Label="Fallback Provider"
-                            shadui:ControlAssist.Hint="Used if the primary provider fails."
-                            ItemsSource="{Binding AvailableFallbackProviders}"
-                            SelectedItem="{Binding Settings.FallbackProvider, FallbackValue=''}" />
+                            shadui:ControlAssist.Label="Fallback Service Type"
+                            shadui:ControlAssist.Hint="Used if the primary service type is unavailable."
+                            ItemsSource="{Binding AvailableFallbackServiceTypes}"
+                            SelectedItem="{Binding Settings.FallbackServiceType, FallbackValue=''}" />
                     </StackPanel>
                 </shadui:Card>
-
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

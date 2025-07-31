@@ -7,7 +7,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
-using ProseFlow.Core.Enums;
 using ProseFlow.UI.ViewModels.Actions;
 using Action = ProseFlow.Core.Models.Action;
 
@@ -24,7 +23,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     private ActionItemViewModel? _selectedAction;
 
     [ObservableProperty]
-    private string _currentProviderName = nameof(ProviderType.Cloud);
+    private string _currentServiceTypeName = "Cloud"; // Default to "Cloud"
     
     public ObservableCollection<ActionItemViewModel> AllActions { get; } = [];
     public ObservableCollection<ActionItemViewModel> FilteredActions { get; } = [];
@@ -74,7 +73,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         var request = new ActionExecutionRequest(
             ActionToExecute: SelectedAction.Action,
             ForceOpenInWindow: SelectedAction.IsForcedOpenInWindow,
-            ProviderOverride: CurrentProviderName
+            ProviderOverride: CurrentServiceTypeName 
         );
         if (!_selectionTcs.Task.IsCompleted)
             _selectionTcs.SetResult(request);
@@ -84,23 +83,19 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     private void CancelSelection() => _selectionTcs.SetResult(null);
     
     [RelayCommand]
-    private void ToggleProvider()
+    private void ToggleServiceType()
     {
-        CurrentProviderName = CurrentProviderName == nameof(ProviderType.Cloud)
-            ? nameof(ProviderType.Local)
-            : nameof(ProviderType.Cloud);
+        CurrentServiceTypeName = CurrentServiceTypeName == "Cloud"
+            ? "Local"
+            : "Cloud";
     }
     
     [RelayCommand]
     private void SelectAction(ActionItemViewModel? item)
     {
-        Console.WriteLine($"1 - Selected action: {item?.Action.Name}");
-        
         if (item is null) return;
         SelectedAction = item;
         ConfirmSelection();
-        
-        Console.WriteLine($"2 -Selected action: {item.Action.Name}");
     }
 
     [RelayCommand]
@@ -138,7 +133,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         {
             mainWindow.Show();
             mainWindow.Activate();
-            mainWindowViewModel.Navigate(mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == "Settings"));
+            mainWindowViewModel.Navigate(mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == "Providers"));
         }
         
         CancelSelection();

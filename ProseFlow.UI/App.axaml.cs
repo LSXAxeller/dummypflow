@@ -22,6 +22,7 @@ using ProseFlow.UI.Views.Windows;
 using System;
 using System.IO;
 using Avalonia.Threading;
+using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
 using ShadUI;
 
@@ -131,7 +132,7 @@ public partial class App : Avalonia.Application
 
         services.AddSingleton<ApiKeyProtector>();
         services.AddSingleton<IAiProvider, CloudProvider>();
-        services.AddSingleton<IAiProvider, LocalLlmProvider>();
+        services.AddSingleton<IAiProvider, LocalProvider>();
         services.AddSingleton<IOsService, OsService>();
 
         // Add Application Services
@@ -139,6 +140,7 @@ public partial class App : Avalonia.Application
         services.AddScoped<ActionManagementService>();
         services.AddScoped<SettingsService>();
         services.AddScoped<HistoryService>();
+        services.AddScoped<CloudProviderManagementService>();
 
         // Add UI Services
         services.AddSingleton<NotificationService>();
@@ -151,6 +153,7 @@ public partial class App : Avalonia.Application
         services.AddTransient<ActionsViewModel>();
         services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<ProvidersViewModel>();
+        services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<HistoryViewModel>();
 

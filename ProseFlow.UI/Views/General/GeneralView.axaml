@@ -52,14 +52,14 @@
                         <TextBox
                             x:Name="ActionMenuHotkeyBox"
                             shadui:ControlAssist.Label="Action Menu Hotkey"
-                            Text="{Binding Settings.ActionMenuHotkey, FallbackValue=''}"
+                            Text="{Binding Settings.ActionMenuHotkey, FallbackValue='', Mode=OneWay}"
                             KeyDown="HotkeyBox_OnKeyDown"
                             GotFocus="HotkeyBox_OnGotFocus"
                             LostFocus="HotkeyBox_OnLostFocus" />
                         <TextBox
                             x:Name="SmartPasteHotkeyBox"
                             shadui:ControlAssist.Label="Smart Paste Hotkey"
-                            Text="{Binding Settings.SmartPasteHotkey, FallbackValue=''}"
+                            Text="{Binding Settings.SmartPasteHotkey, FallbackValue='', Mode=OneWay}"
                             KeyDown="HotkeyBox_OnKeyDown"
                             GotFocus="HotkeyBox_OnGotFocus"
                             LostFocus="HotkeyBox_OnLostFocus" />

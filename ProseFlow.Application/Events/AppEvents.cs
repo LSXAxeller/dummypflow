@@ -1,5 +1,4 @@
 ﻿using ProseFlow.Application.DTOs;
-using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.Application.Events;

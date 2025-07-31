@@ -1,18 +1,20 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ProseFlow.Application.Events;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Data;
-using ProseFlow.Infrastructure.Security;
 
 namespace ProseFlow.Application.Services;
 
-public class SettingsService(IDbContextFactory<AppDbContext> dbFactory, ApiKeyProtector protector)
+/// <summary>
+/// Manages loading and saving of global application settings.
+/// This service handles the GeneralSettings and the top-level ProviderSettings entities.
+/// </summary>
+public class SettingsService(IDbContextFactory<AppDbContext> dbFactory)
 {
     public async Task<GeneralSettings> GetGeneralSettingsAsync()
     {
         await using var dbContext = await dbFactory.CreateDbContextAsync();
         return await dbContext.GeneralSettings.FindAsync(1)
-               ?? throw new InvalidOperationException("General settings not found.");
+               ?? throw new InvalidOperationException("General settings not found in the database.");
     }
 
     public async Task SaveGeneralSettingsAsync(GeneralSettings settings)
@@ -22,37 +24,25 @@ public class SettingsService(IDbContextFactory<AppDbContext> dbFactory, ApiKeyPr
         await dbContext.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Gets the top-level provider settings, which include local model configuration
+    /// and the primary/fallback service type choice.
+    /// </summary>
+    /// <returns>The ProviderSettings entity.</returns>
     public async Task<ProviderSettings> GetProviderSettingsAsync()
     {
         await using var dbContext = await dbFactory.CreateDbContextAsync();
-        var settings = await dbContext.ProviderSettings.FindAsync(1)
-                       ?? throw new InvalidOperationException("Provider settings not found.");
-
-        // Decrypt the key for display in the UI
-        if (!string.IsNullOrWhiteSpace(settings.CloudApiKey))
-        {
-            try
-            {
-                settings.CloudApiKey = protector.Unprotect(settings.CloudApiKey);
-            }
-            catch
-            {
-                // If unprotection fails (e.g., key corruption), return an empty string
-                settings.CloudApiKey = string.Empty;
-                AppEvents.RequestNotification("Could not decrypt Cloud API key. Please re-enter it.", NotificationType.Error);
-            }
-        }
-        return settings;
+        return await dbContext.ProviderSettings.FindAsync(1)
+                       ?? throw new InvalidOperationException("Provider settings not found in the database.");
     }
 
+    /// <summary>
+    /// Saves the top-level provider settings.
+    /// </summary>
+    /// <param name="settings">The ProviderSettings entity to save.</param>
     public async Task SaveProviderSettingsAsync(ProviderSettings settings)
     {
         await using var dbContext = await dbFactory.CreateDbContextAsync();
-
-        // Encrypt the key before saving
-        if (!string.IsNullOrWhiteSpace(settings.CloudApiKey)) 
-            settings.CloudApiKey = protector.Protect(settings.CloudApiKey);
-
         dbContext.ProviderSettings.Update(settings);
         await dbContext.SaveChangesAsync();
     }

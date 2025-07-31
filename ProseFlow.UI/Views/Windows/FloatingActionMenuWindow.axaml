@@ -52,12 +52,12 @@
                     <Button
                         DockPanel.Dock="Left"
                         Classes="Ghost"
-                        Command="{Binding ToggleProviderCommand}"
-                        ToolTip.Tip="Toggle AI Provider for this run">
+                        Command="{Binding ToggleServiceTypeCommand}"
+                        ToolTip.Tip="Toggle AI Service Type for this run">
                         <shadui:ButtonAssist.Icon>
                             <TextBlock Classes="LucideIcon" Text="" />
                         </shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="Small" Text="{Binding CurrentProviderName}" />
+                        <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" />
                     </Button>
                     <Button
                         HorizontalAlignment="Right"

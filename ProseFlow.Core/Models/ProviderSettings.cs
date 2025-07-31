@@ -1,35 +1,11 @@
 ﻿namespace ProseFlow.Core.Models;
 
 /// <summary>
-/// Stores settings related to AI providers, intended to be a single record in the database.
+/// Stores settings related to AI providers, handling Local LLM settings and the global service type choice.
 /// </summary>
 public class ProviderSettings
 {
     public int Id { get; set; }
-
-    #region Cloud Settings
-    
-    /// <summary>
-    /// The user's API key for the Cloud service.
-    /// </summary>
-    public string CloudApiKey { get; set; } = string.Empty;
-    
-    /// <summary>
-    /// The base URL for the Cloud service.
-    /// </summary>
-    public string BaseUrl { get; set; } = "https://api.openai.com/v1";
-
-    /// <summary>
-    /// The specific Cloud model to use (e.g., "gpt-4o", "gpt-3.5-turbo").
-    /// </summary>
-    public string CloudModel { get; set; } = "gpt-4o";
-
-    /// <summary>
-    /// The temperature setting for Cloud, controlling randomness (0.0 to 2.0).
-    /// </summary>
-    public float CloudTemperature { get; set; } = 0.7f;
-    
-    #endregion
     
     #region Local Model Settings
     
@@ -53,14 +29,14 @@ public class ProviderSettings
     #region Provider Switching Logic
 
     /// <summary>
-    /// The name of the primary provider to use for requests ("Cloud" or "Local").
+    /// The primary service type to use for requests ("Cloud" or "Local").
     /// </summary>
-    public string PrimaryProvider { get; set; } = nameof(Enums.ProviderType.Cloud);
+    public string PrimaryServiceType { get; set; } = "Cloud";
 
     /// <summary>
-    /// The name of the fallback provider to use if the primary one fails ("Cloud", "Local", or "None").
+    /// The fallback service type to use if the primary one fails ("Cloud", "Local", or "None").
     /// </summary>
-    public string FallbackProvider { get; set; } = nameof(Enums.ProviderType.None);
+    public string FallbackServiceType { get; set; } = "None";
     
     #endregion
 }

@@ -5,7 +5,18 @@
 /// </summary>
 public enum ProviderType
 {
-    None,
-    Cloud,
+    OpenAI,
+    Anthropic,
+    Cohere,
+    DeepInfra,
+    DeepSeek,
+    Google,
+    Groq,
+    Mistral,
+    OpenRouter,
+    Perplexity,
+    Voyage,
+    XAi,
+    Custom, // For generic OpenAI-compatible endpoints
     Local
 }

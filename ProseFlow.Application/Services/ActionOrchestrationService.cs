@@ -149,15 +149,18 @@ public class ActionOrchestrationService : IDisposable
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var settings = await dbContext.ProviderSettings.AsNoTracking().FirstAsync();
 
+        // 1. Handle runtime user override from the Floating Action Menu
         if (!string.IsNullOrWhiteSpace(providerOverride) && _providers.TryGetValue(providerOverride, out var overriddenProvider))
             return overriddenProvider;
 
-        if (_providers.TryGetValue(settings.PrimaryProvider, out var primaryProvider))
+        // 2. Use the primary service type from settings
+        if (_providers.TryGetValue(settings.PrimaryServiceType, out var primaryProvider))
             return primaryProvider;
-
-        if (_providers.TryGetValue(settings.FallbackProvider, out var fallbackProvider))
+            
+        // 3. Use the fallback service type if primary fails (note: the primary *provider* itself has internal fallbacks)
+        if (_providers.TryGetValue(settings.FallbackServiceType, out var fallbackProvider))
         {
-            AppEvents.RequestNotification($"Primary provider '{settings.PrimaryProvider}' not available. Using fallback.", NotificationType.Warning);
+            AppEvents.RequestNotification($"Primary service type '{settings.PrimaryServiceType}' not available. Using fallback.", NotificationType.Warning);
             return fallbackProvider;
         }
 
@@ -182,5 +185,6 @@ public class ActionOrchestrationService : IDisposable
     public void Dispose()
     {
         _osService.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

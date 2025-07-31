@@ -7,7 +7,7 @@ namespace ProseFlow.Infrastructure.Services.AiProviders;
 /// Placeholder implementation for a local Large Language Model provider.
 /// This class simulates the behavior of a local model for development and testing purposes.
 /// </summary>
-public class LocalLlmProvider : IAiProvider
+public class LocalProvider : IAiProvider
 {
     public string Name => "Local";
 

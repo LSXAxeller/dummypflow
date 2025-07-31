@@ -1,76 +1,94 @@
 ﻿using LlmTornado;
 using LlmTornado.Chat;
 using LlmTornado.Code;
-using Microsoft.EntityFrameworkCore;
-using ProseFlow.Core.Enums;
 using ProseFlow.Core.Interfaces;
-using ProseFlow.Infrastructure.Data;
-using ProseFlow.Infrastructure.Security;
+using System.Diagnostics;
+using ProseFlow.Core.Enums;
+using ProseFlow.Infrastructure.Services.Database;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
 
 /// <summary>
-/// A unified AI provider implementation using the LlmTornado library.
-/// This single provider can handle various cloud APIs (OpenAI, Anthropic, etc.)
-/// and local servers (like Ollama) by configuring it based on user settings.
+/// A provider that orchestrates requests across a user-defined, ordered chain of cloud services.
+/// It leverages LlmTornado to handle different APIs seamlessly.
 /// </summary>
-public class CloudProvider(IDbContextFactory<AppDbContext> dbContextFactory, ApiKeyProtector apiKeyProtector) : IAiProvider
+public class CloudProvider(CloudProviderManagementService providerService) : IAiProvider
 {
     public string Name => "Cloud";
 
     public async Task<string> GenerateResponseAsync(string instruction, string input, CancellationToken cancellationToken)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var settings = await dbContext.ProviderSettings.FindAsync([1], cancellationToken: cancellationToken)
-                       ?? throw new InvalidOperationException("Provider settings not found in the database.");
-        
-        // LlmTornado can be initialized with multiple keys. It will automatically
-        // select the correct key based on the requested model.
-        var authentications = new List<ProviderAuthentication>();
+        var enabledConfigs = (await providerService.GetConfigurationsAsync())
+            .Where(c => c.IsEnabled)
+            .ToList();
 
-        // Add Cloud key if it exists
-        if (!string.IsNullOrWhiteSpace(settings.CloudApiKey))
+        if (enabledConfigs.Count == 0)
+            throw new InvalidOperationException("No enabled cloud providers are configured. Please add and enable one in settings.");
+
+        var authentications = enabledConfigs.Select(config =>
         {
-            var decryptedApiKey = apiKeyProtector.Unprotect(settings.CloudApiKey);
-            authentications.Add(new ProviderAuthentication(LLmProviders.OpenAi, decryptedApiKey));
-        }
-            
-        // TODO: Add support for more providers
+            var provider = MapToLlmTornadoProvider(config.ProviderType);
+            return new ProviderAuthentication(provider, config.ApiKey);
+        }).ToList();
         
-        // NOTE: To support more providers, simply add their keys here.
-        // For example:
-        // if (!string.IsNullOrWhiteSpace(settings.AnthropicApiKey))
-        // {
-        //     var decryptedKey = apiKeyProtector.Unprotect(settings.AnthropicApiKey);
-        //     authentications.Add(new ProviderAuthentication(LLmProviders.Anthropic, decryptedKey));
-        // }
+        var api = new TornadoApi(authentications);
 
-        if (authentications.Count == 0 && string.IsNullOrEmpty(settings.BaseUrl))
-            throw new InvalidOperationException("No cloud API keys are configured. Please add one in settings.");
-            
-        var api = string.IsNullOrEmpty(settings.BaseUrl) ? new TornadoApi(authentications) : new TornadoApi(new Uri(settings.BaseUrl), settings.CloudApiKey);
-        var model = settings.CloudModel;
-
-        try
+        foreach (var config in enabledConfigs)
         {
-            var conversation = api.Chat.CreateConversation(new ChatRequest
+            try
             {
-                Model = model,
-                Temperature = settings.CloudTemperature,
-            });
-
-            conversation.AppendSystemMessage(instruction);
-            conversation.AppendUserInput(input);
-
-            var response = await conversation.GetResponse(cancellationToken);
-            
-            return response ?? string.Empty;
+                var request = new ChatRequest
+                {
+                    Model = config.Model,
+                    Temperature = config.Temperature,
+                };
+                
+                // If a custom BaseUrl is provided, override the TornadoApi instance for this specific call.
+                var conversationApi = !string.IsNullOrWhiteSpace(config.BaseUrl)
+                    ? new TornadoApi(new Uri(config.BaseUrl), config.ApiKey)
+                    : api;
+                
+                var conversation = conversationApi.Chat.CreateConversation(request);
+                conversation.AppendSystemMessage(instruction);
+                conversation.AppendUserInput(input);
+                
+                var response = await conversation.GetResponse(cancellationToken);
+                
+                if (!string.IsNullOrWhiteSpace(response))
+                    return response;
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = $"Provider '{config.Name}' failed: {ex.Message}. Trying next provider...";
+                Debug.WriteLine($"[ERROR] {errorMessage}");
+                // TODO: Inform the user about the provider failure
+                // AppEvents.RequestNotification(errorMessage, NotificationType.Warning);
+                // Continue to the next provider in the chain
+            }
         }
-        catch (Exception ex)
+        
+        throw new InvalidOperationException("All configured cloud providers failed to return a valid response.");
+    }
+    
+    private LLmProviders MapToLlmTornadoProvider(ProviderType providerType)
+    {
+        return providerType switch
         {
-            // LlmTornado may throw its own specific exceptions, but a general catch
-            // provides a good fallback for any provider communication errors.
-            throw new InvalidOperationException($"Failed to get response from provider for model '{model}'. Reason: {ex.Message}", ex);
-        }
+            ProviderType.OpenAI => LLmProviders.OpenAi,
+            ProviderType.Groq => LLmProviders.Groq,
+            ProviderType.Anthropic => LLmProviders.Anthropic,
+            ProviderType.Google => LLmProviders.Google,
+            ProviderType.Mistral => LLmProviders.Mistral,
+            ProviderType.Perplexity => LLmProviders.Perplexity,
+            ProviderType.OpenRouter => LLmProviders.OpenRouter,
+            ProviderType.Custom => LLmProviders.Custom,
+            ProviderType.Cohere => LLmProviders.Cohere,
+            ProviderType.DeepInfra => LLmProviders.DeepInfra,
+            ProviderType.DeepSeek => LLmProviders.DeepSeek,
+            ProviderType.Voyage => LLmProviders.Voyage,
+            ProviderType.XAi => LLmProviders.XAi,
+            ProviderType.Local => throw new InvalidOperationException($"Local LLMs are not supported in {nameof(CloudProvider)}, Use {nameof(LocalProvider)}."),
+            _ => throw new ArgumentOutOfRangeException(nameof(providerType), $"Unsupported provider type: {providerType}")
+        };
     }
 }

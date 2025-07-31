@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Action> Actions { get; set; }
     public DbSet<GeneralSettings> GeneralSettings { get; set; }
     public DbSet<ProviderSettings> ProviderSettings { get; set; }
+    public DbSet<CloudProviderConfiguration> CloudProviderConfigurations { get; set; }
     public DbSet<HistoryEntry> History { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -19,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // Configure singleton settings tables by seeding them with a default entity.
         // This ensures we can always query for the single settings row using Id = 1.
         modelBuilder.Entity<GeneralSettings>().HasData(new GeneralSettings { Id = 1 });
+        // The seed data for ProviderSettings is now simpler.
         modelBuilder.Entity<ProviderSettings>().HasData(new ProviderSettings { Id = 1 });
 
         // Configure the List<string> to be stored as a JSON string in the database.

@@ -60,12 +60,17 @@ public partial class GeneralView : UserControl
 
         var key = e.Key;
         var modifiers = e.KeyModifiers;
+        
+        // Escape key exits recording mode
+        if (key == Key.Escape)
+        {
+            HotkeyBox_OnLostFocus(sender, e);
+            return;
+        }
 
         // Ignore presses of only modifier keys (e.g., just pressing Ctrl)
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin)
-        {
             return;
-        }
 
         var parts = new List<string>();
         if (modifiers.HasFlag(KeyModifiers.Control)) parts.Add("Ctrl");
@@ -78,7 +83,7 @@ public partial class GeneralView : UserControl
         var hotkeyString = string.Join("+", parts);
 
         // Update the view model directly
-        if (DataContext is GeneralViewModel { Settings: not null } vm)
+        if (DataContext is GeneralViewModel { Settings: not null } vm && vm.Settings.ActionMenuHotkey != RecordingPrompt && vm.Settings.SmartPasteHotkey != RecordingPrompt)
         {
             switch (textBox.Name)
             {
