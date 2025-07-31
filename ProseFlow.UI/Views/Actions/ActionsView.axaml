@@ -1,0 +1,102 @@
+﻿<UserControl
+    x:Class="ProseFlow.UI.Views.Actions.ActionsView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:ProseFlow.UI.Converters"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
+    x:DataType="vm:ActionsViewModel">
+
+    <UserControl.Resources>
+        <c:BoolToOutputTargetConverter x:Key="BoolToOutputTargetConverter" />
+    </UserControl.Resources>
+
+    <DockPanel LastChildFill="True">
+        <!-- Page Header -->
+        <StackPanel
+            Margin="48,24"
+            DockPanel.Dock="Top"
+            Spacing="4">
+            <TextBlock Classes="h2" Text="Manage Actions" />
+            <TextBlock
+                Classes="p"
+                Text="Create, edit, and organize the AI actions that power ProseFlow."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Main Content -->
+        <ScrollViewer>
+            <StackPanel Margin="48,0,48,24" Spacing="16">
+                <!-- Action Buttons -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="Primary" Command="{Binding AddActionCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="LucideIcon" Text="" />
+                            <TextBlock Text="New Action" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="Outline" Command="{Binding ImportActionsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="LucideIcon" Text="" />
+                            <TextBlock Text="Import from JSON" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="Outline" Command="{Binding ExportActionsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Classes="LucideIcon" Text="" />
+                            <TextBlock Text="Export to JSON" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <shadui:Card HasShadow="True">
+                    <DataGrid
+                        AutoGenerateColumns="False"
+                        CanUserReorderColumns="False"
+                        CanUserResizeColumns="True"
+                        CanUserSortColumns="False"
+                        GridLinesVisibility="Horizontal"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding Actions}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Name" />
+                            <DataGridTextColumn
+                                Width="150"
+                                Binding="{Binding OpenInWindow, Converter={StaticResource BoolToOutputTargetConverter}}"
+                                Header="Default Output" />
+                            <DataGridTemplateColumn Width="150" Header="Actions">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <shadui:SimpleDropdown
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Classes="Icon Grid"
+                                            PopupPlacement="BottomEdgeAlignedLeft"
+                                            PopupWidth="150">
+                                            <shadui:SimpleDropdown.TriggerContent>
+                                                <TextBlock Classes="LucideIcon" Text="&#xE09E;" />
+                                            </shadui:SimpleDropdown.TriggerContent>
+                                            <Button Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                                <shadui:ButtonAssist.Icon>
+                                                    <TextBlock Classes="LucideIcon" Text=""/>
+                                                </shadui:ButtonAssist.Icon>
+                                                Edit
+                                            </Button>
+                                            <Separator />
+                                            <Button Classes="DestructiveMenu" Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                                <shadui:ButtonAssist.Icon>
+                                                    <TextBlock Classes="LucideIcon" Text=""/>
+                                                </shadui:ButtonAssist.Icon>
+                                                Delete
+                                            </Button>
+                                        </shadui:SimpleDropdown>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </shadui:Card>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

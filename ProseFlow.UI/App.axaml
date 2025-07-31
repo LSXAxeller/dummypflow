@@ -1,0 +1,41 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ProseFlow.UI.App"
+             xmlns:local="using:ProseFlow.UI"
+             xmlns:converters="clr-namespace:ProseFlow.UI.Converters"
+             xmlns:themes="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:md="https://github.com/whistyun/Markdown.Avalonia.Tight/Styles"
+             RequestedThemeVariant="Default">
+    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <SolidColorBrush x:Key="SystemControlTransparentBrush">Transparent</SolidColorBrush>
+            <FontFamily x:Key="JetbrainsFont">avares://ProseFlow.UI/Assets/Fonts#Jetbrains</FontFamily>
+            <FontFamily x:Key="ManropeFont">avares://ProseFlow.UI/Assets/Fonts#Manrope</FontFamily>
+            <FontFamily x:Key="LucideIconFont">avares://ProseFlow.UI/Assets/Fonts#lucide</FontFamily>
+            <FontFamily x:Key="ShadUiIconFont">avares://ProseFlow.UI/Assets/Fonts#shadui</FontFamily>
+            
+            <converters:StringListConverter x:Key="StringListConverter"/>
+
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceInclude x:Key="Light" Source="Styles/Themes/Light.axaml" />
+                <ResourceInclude x:Key="Dark" Source="Styles/Themes/Dark.axaml" />
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <themes:ShadTheme />
+
+        <!-- Markdown Styles -->
+        <md:MarkdownStyleGithubLike />
+        
+        <!-- ShadUI Styles -->
+        <StyleInclude Source="avares://ProseFlow.UI/Styles/Index.axaml" />
+    </Application.Styles>
+</Application>

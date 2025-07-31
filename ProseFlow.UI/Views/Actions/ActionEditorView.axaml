@@ -1,0 +1,102 @@
+﻿<shadui:Window
+    x:Class="ProseFlow.UI.Views.Actions.ActionEditorView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
+    x:DataType="vm:ActionEditorViewModel"
+
+    Title="Action Editor"
+    Icon="/Assets/avalonia-logo.ico"
+    Width="600" Height="650"
+    WindowStartupLocation="CenterOwner"
+    CanResize="False"
+    ShowInTaskbar="False"
+    SaveWindowState="True"
+    IsTitleBarVisible="False"
+    Background="Transparent"
+    ShowBottomBorder="False"
+    BorderBrush="Transparent"
+    BorderThickness="0"
+    SystemDecorations="None">
+    <shadui:Card HasShadow="False">
+        <shadui:Card.Header>
+            <shadui:CardTitle>Action Details</shadui:CardTitle>
+        </shadui:Card.Header>
+
+        <ScrollViewer Margin="20">
+
+            <!-- Main Form Content -->
+            <StackPanel Spacing="16">
+                <TextBox
+                    shadui:ControlAssist.Label="Action Name"
+                    Text="{Binding Action.Name}"
+                    Watermark="e.g., Make More Formal" />
+
+                <TextBox
+                    shadui:ControlAssist.Label="Prefix (Optional)"
+                    Text="{Binding Action.Prefix}"
+                    Watermark="e.g., Proofread this text:" />
+
+                <TextBox
+                    shadui:ControlAssist.Label="Instruction (System Prompt)"
+                    shadui:ControlAssist.Height="150"
+                    AcceptsReturn="True"
+                    Text="{Binding Action.Instruction}"
+                    TextWrapping="Wrap"
+                    Watermark="You are a helpful assistant that..." />
+
+                <TextBox
+                    shadui:ControlAssist.Label="Icon Path"
+                    Text="{Binding Action.Icon}"
+                    Watermark="avares://ProseFlow.UI/Assets/Icons/..." />
+
+                <TextBox
+                    shadui:ControlAssist.Label="Application Context (Optional)"
+                    shadui:ControlAssist.Hint="Comma-separated process names (e.g., Code.exe). Leave empty for global."
+                    Text="{Binding Action.ApplicationContext, Converter={StaticResource StringListConverter}}"
+                    Watermark="e.g., Code.exe, chrome.exe" />
+
+                <Separator />
+
+                <ToggleSwitch IsChecked="{Binding Action.OpenInWindow}" Margin="10,0,0,0">
+                    Show result in a new window by default
+                </ToggleSwitch>
+
+                <ToggleSwitch IsChecked="{Binding Action.ExplainChanges}" Margin="10,0,0,0">
+                    Ask AI to explain changes (may increase token usage)
+                </ToggleSwitch>
+            </StackPanel>
+
+
+        </ScrollViewer>
+        <!-- Action Buttons -->
+        <shadui:Card.Footer>
+            <StackPanel
+                HorizontalAlignment="Right"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Classes="Outline"
+                    Command="{Binding CancelCommand}"
+                    CommandParameter="{Binding $parent[Window]}"
+                    IsCancel="True">
+                    <shadui:ButtonAssist.Icon>
+                        <TextBlock Classes="LucideIcon" Text="" />
+                    </shadui:ButtonAssist.Icon>
+                    Cancel
+                </Button>
+                <Button
+                    Classes="Primary"
+                    Command="{Binding SaveCommand}"
+                    CommandParameter="{Binding $parent[Window]}"
+                    IsDefault="True">
+                    <shadui:ButtonAssist.Icon>
+                        <TextBlock Classes="LucideIcon" Text="" />
+                    </shadui:ButtonAssist.Icon>
+                    Save
+                </Button>
+            </StackPanel>
+        </shadui:Card.Footer>
+    </shadui:Card>
+</shadui:Window>

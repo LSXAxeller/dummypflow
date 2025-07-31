@@ -1,0 +1,124 @@
+﻿<UserControl
+    x:Class="ProseFlow.UI.Views.General.GeneralView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.General"
+    x:DataType="vm:GeneralViewModel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Page Header-->
+        <StackPanel Margin="48,24" DockPanel.Dock="Top" Spacing="4">
+            <TextBlock Classes="h2" Text="General Settings" />
+            <TextBlock
+                Classes="p"
+                Text="Customize application behavior, hotkeys, and appearance."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Footer with Save Button -->
+        <Border
+            DockPanel.Dock="Bottom"
+            Padding="16"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="0,1,0,0">
+            <Button
+                Classes="Primary"
+                Command="{Binding SaveCommand}"
+                HorizontalAlignment="Right">
+                <shadui:ButtonAssist.Icon>
+                    <TextBlock Classes="LucideIcon" Text="" />
+                </shadui:ButtonAssist.Icon>
+                Save Changes
+            </Button>
+        </Border>
+
+        <!-- Scrollable Main Content -->
+        <ScrollViewer>
+            <StackPanel x:Name="MainContent" Margin="48,0,48,24" Spacing="32">
+                <!-- Hotkeys Settings Card -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Hotkeys</shadui:CardTitle>
+                                <shadui:CardDescription>Configure global shortcuts for key actions.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel Spacing="16">
+                        <TextBox
+                            x:Name="ActionMenuHotkeyBox"
+                            shadui:ControlAssist.Label="Action Menu Hotkey"
+                            Text="{Binding Settings.ActionMenuHotkey, FallbackValue=''}"
+                            KeyDown="HotkeyBox_OnKeyDown"
+                            GotFocus="HotkeyBox_OnGotFocus"
+                            LostFocus="HotkeyBox_OnLostFocus" />
+                        <TextBox
+                            x:Name="SmartPasteHotkeyBox"
+                            shadui:ControlAssist.Label="Smart Paste Hotkey"
+                            Text="{Binding Settings.SmartPasteHotkey, FallbackValue=''}"
+                            KeyDown="HotkeyBox_OnKeyDown"
+                            GotFocus="HotkeyBox_OnGotFocus"
+                            LostFocus="HotkeyBox_OnLostFocus" />
+                    </StackPanel>
+                    
+                    <shadui:Card.Footer>
+                        <StackPanel Spacing="16">
+                            
+                            <TextBlock Text="Requires a restart to take effect." />
+                        </StackPanel>
+                    </shadui:Card.Footer>
+                </shadui:Card>
+
+                <!-- Behavior Settings Card -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Behavior</shadui:CardTitle>
+                                <shadui:CardDescription>Adjust how ProseFlow works and integrates.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel Spacing="16">
+                        <ComboBox
+                            shadui:ControlAssist.Label="Smart Paste Action"
+                            shadui:ControlAssist.Hint="The default action when using the Smart Paste hotkey."
+                            DisplayMemberBinding="{Binding Name}"
+                            ItemsSource="{Binding AvailableActions}"
+                            PlaceholderText="Select an action..."
+                            SelectedItem="{Binding SelectedSmartPasteAction}" />
+                        <Separator />
+                        <ToggleSwitch IsChecked="{Binding Settings.LaunchAtLogin, FallbackValue={x:False}}" Margin="10,0,0,0">
+                            Launch ProseFlow automatically on login
+                        </ToggleSwitch>
+                    </StackPanel>
+                </shadui:Card>
+
+                <!-- Appearance Settings Card -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Appearance</shadui:CardTitle>
+                                <shadui:CardDescription>Change the look and feel of the application.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel>
+                        <ComboBox
+                            shadui:ControlAssist.Label="Theme"
+                            ItemsSource="{Binding AvailableThemes}"
+                            SelectedItem="{Binding SelectedTheme}" />
+                    </StackPanel>
+                </shadui:Card>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

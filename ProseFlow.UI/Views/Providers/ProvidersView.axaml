@@ -1,0 +1,162 @@
+﻿<UserControl
+    x:Class="ProseFlow.UI.Views.Providers.ProvidersView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.Providers"
+    x:DataType="vm:ProvidersViewModel">
+
+    <DockPanel LastChildFill="True">
+
+        <!-- Page Header -->
+        <StackPanel Margin="48,24" DockPanel.Dock="Top" Spacing="4">
+            <TextBlock Classes="h2" Text="AI Providers" />
+            <TextBlock
+                Classes="p"
+                Text="Configure your AI models, both cloud-based and local."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Footer with Save Button -->
+        <Border
+            DockPanel.Dock="Bottom"
+            Padding="16"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="0,1,0,0">
+            <Button
+                Classes="Primary"
+                Command="{Binding SaveCommand}"
+                HorizontalAlignment="Right">
+                <shadui:ButtonAssist.Icon>
+                    <TextBlock Classes="LucideIcon" Text="" />
+                </shadui:ButtonAssist.Icon>
+                Save Provider Settings
+            </Button>
+        </Border>
+
+        <!-- Scrollable Main Content -->
+        <ScrollViewer>
+            <StackPanel Margin="48,0,48,24" Spacing="32">
+
+                <!-- Card 1: Cloud Provider Settings -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Cloud Provider</shadui:CardTitle>
+                                <shadui:CardDescription>Connect to services like OpenAI, Groq, etc.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel Spacing="16">
+                        <TextBox
+                            shadui:ControlAssist.Label="Base Cloud Endpoint"
+                            Text="{Binding Settings.BaseUrl, FallbackValue=''}"
+                            Watermark="https://api.openai.com/v1" />
+                        <TextBox
+                            shadui:ControlAssist.Label="API Key"
+                            Classes="PasswordReveal"
+                            Text="{Binding Settings.CloudApiKey, FallbackValue=''}"
+                            Watermark="sk-..." />
+                        <TextBox
+                            shadui:ControlAssist.Label="Model Name"
+                            Text="{Binding Settings.CloudModel, FallbackValue=''}"
+                            Watermark="e.g., gpt-4o" />
+
+                        <Border>
+                            <StackPanel>
+                                <TextBlock Text="Temperature" FontSize="16" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                    <Slider
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Maximum="2"
+                                        Minimum="0"
+                                        TickFrequency="0.1"
+                                        Value="{Binding Settings.CloudTemperature, FallbackValue={x:Null}}" />
+                                    <NumericUpDown
+                                        Grid.Column="1"
+                                        FormatString="0.0"
+                                        Increment="0.1"
+                                        Maximum="2"
+                                        Minimum="0"
+                                        Value="{Binding Settings.CloudTemperature, FallbackValue={x:Null}}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </shadui:Card>
+
+                <!-- Local Provider Settings -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Local Provider</shadui:CardTitle>
+                                <shadui:CardDescription>Run models locally on your machine (via LlamaEdge).</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel>
+                        <!-- A banner to indicate placeholder status -->
+                        <Border
+                            Margin="0,0,0,16"
+                            Padding="12"
+                            Background="{DynamicResource InfoColor10}"
+                            BorderBrush="{DynamicResource InfoColor20}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource LgCornerRadius}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Classes="LucideIcon" Text="" Foreground="{DynamicResource InfoColor}" />
+                                <TextBlock Classes="Small Muted" VerticalAlignment="Center"
+                                           Text="Local model support is coming soon." />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Spacing="16" IsEnabled="False">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                <TextBox
+                                    shadui:ControlAssist.Label="Model Path (.gguf)"
+                                    Text="{Binding Settings.LocalModelPath, FallbackValue=''}" />
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Content="Browse..." />
+                            </Grid>
+                            <ToggleSwitch IsChecked="{Binding Settings.PreferGpu, FallbackValue={x:False}}" Margin="10,0,0,0">
+                                Prefer GPU acceleration (if available)
+                            </ToggleSwitch>
+                        </StackPanel>
+                    </StackPanel>
+                </shadui:Card>
+
+                <!-- Provider Switching Logic -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <StackPanel>
+                                <shadui:CardTitle>Provider Logic</shadui:CardTitle>
+                                <shadui:CardDescription>Configure how ProseFlow selects and falls back between providers.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <StackPanel Spacing="16">
+                        <ComboBox
+                            shadui:ControlAssist.Label="Primary Provider"
+                            shadui:ControlAssist.Hint="The default provider to use for all actions."
+                            ItemsSource="{Binding AvailableProviders}"
+                            SelectedItem="{Binding Settings.PrimaryProvider, FallbackValue=''}" />
+                        <ComboBox
+                            shadui:ControlAssist.Label="Fallback Provider"
+                            shadui:ControlAssist.Hint="Used if the primary provider fails."
+                            ItemsSource="{Binding AvailableFallbackProviders}"
+                            SelectedItem="{Binding Settings.FallbackProvider, FallbackValue=''}" />
+                    </StackPanel>
+                </shadui:Card>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

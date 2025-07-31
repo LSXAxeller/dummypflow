@@ -1,0 +1,262 @@
+﻿using ProseFlow.Core.Interfaces;
+using SharpHook;
+using TextCopy;
+using EventMask = SharpHook.Data.EventMask;
+using KeyCode = SharpHook.Data.KeyCode;
+#if LINUX
+using X11;
+#endif
+#if OSX
+using MonoMac.AppKit;
+#endif
+
+namespace ProseFlow.Infrastructure.Services.Os;
+
+/// <summary>
+/// Implements OS-level interactions using SharpHook for cross-platform global hotkeys
+/// and platform-specific code for other features.
+/// </summary>
+public sealed class OsService : IOsService
+{
+    private readonly IGlobalHook _hook = new TaskPoolGlobalHook();
+    private readonly IEventSimulator _simulator = new EventSimulator();
+
+    private (KeyCode key, EventMask modifiers) _actionMenuCombination;
+    private (KeyCode key, EventMask modifiers) _smartPasteCombination;
+
+    public event Action? ActionMenuHotkeyPressed;
+    public event Action? SmartPasteHotkeyPressed;
+
+    public Task StartHook(string actionMenuHotkey, string smartPasteHotkey)
+    {
+        _actionMenuCombination = ParseHotkeyStringToSharpHook(actionMenuHotkey);
+        _smartPasteCombination = ParseHotkeyStringToSharpHook(smartPasteHotkey);
+
+        _hook.KeyPressed += OnKeyPressed;
+        return _hook.RunAsync();
+    }
+
+    private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
+    {
+        var currentKey = e.Data.KeyCode;
+        var rawModifiers = e.RawEvent.Mask;
+
+        // Normalize the pressed modifiers to their generic equivalents.
+        var normalizedModifiers = EventMask.None;
+        if (rawModifiers.HasFlag(EventMask.LeftCtrl) || rawModifiers.HasFlag(EventMask.RightCtrl)) normalizedModifiers |= EventMask.Ctrl;
+        if (rawModifiers.HasFlag(EventMask.LeftShift) || rawModifiers.HasFlag(EventMask.RightShift)) normalizedModifiers |= EventMask.Shift;
+        if (rawModifiers.HasFlag(EventMask.LeftAlt) || rawModifiers.HasFlag(EventMask.RightAlt)) normalizedModifiers |= EventMask.Alt;
+        if (rawModifiers.HasFlag(EventMask.LeftMeta) || rawModifiers.HasFlag(EventMask.RightMeta)) normalizedModifiers |= EventMask.Meta;
+
+        // Now compare the normalized modifiers with the parsed configuration.
+        
+        // Check for Action Menu Hotkey
+        if (currentKey == _actionMenuCombination.key && normalizedModifiers == _actionMenuCombination.modifiers)
+            ActionMenuHotkeyPressed?.Invoke();
+
+        // Check for Smart Paste Hotkey
+        if (currentKey == _smartPasteCombination.key && normalizedModifiers == _smartPasteCombination.modifiers)
+            SmartPasteHotkeyPressed?.Invoke();
+    }
+
+    public async Task<string?> GetSelectedTextAsync()
+    {
+        var originalClipboardText = await ClipboardService.GetTextAsync();
+
+        // Clear clipboard temporarily to reliably detect if copy worked
+        await ClipboardService.SetTextAsync(string.Empty);
+        
+        await SimulateCopyKeyPressAsync();
+
+        // Give the OS and target application a moment to process the copy command.
+        // 150ms is a reasonable starting point.
+        await Task.Delay(150);
+
+        var selectedText = await ClipboardService.GetTextAsync();
+
+        // Restore original clipboard content if it existed
+        if (originalClipboardText != null)
+        {
+            await ClipboardService.SetTextAsync(originalClipboardText);
+        }
+
+        // If the clipboard has new, non-empty content, it's our selected text.
+        return !string.IsNullOrEmpty(selectedText) ? selectedText : null;
+    }
+
+    public async Task PasteTextAsync(string text)
+    {
+        var originalClipboardText = await ClipboardService.GetTextAsync();
+        
+        await ClipboardService.SetTextAsync(text);
+        await SimulatePasteKeyPressAsync();
+        
+        // Give the OS a moment to process the paste, then restore the clipboard.
+        await Task.Delay(150);
+        if (originalClipboardText != null)
+        {
+            await ClipboardService.SetTextAsync(originalClipboardText);
+        }
+    }
+
+    public Task<string> GetActiveWindowProcessNameAsync()
+    {
+#if WINDOWS
+        return Task.FromResult(GetActiveWindowProcessName_Windows());
+#elif LINUX
+        return Task.FromResult(GetActiveWindowProcessName_Linux());
+#elif OSX
+        return Task.FromResult(GetActiveWindowProcessName_MacOS());
+#else
+        return Task.FromResult("unknown");
+#endif
+    }
+
+    public void Dispose()
+    {
+        _hook.KeyPressed -= OnKeyPressed;
+        _hook.Dispose();
+    }
+
+    #region Simulation and Parsing Helpers
+
+    private Task SimulateCopyKeyPressAsync()
+    {
+        var modifier = OperatingSystem.IsMacOS() ? KeyCode.VcLeftMeta : KeyCode.VcLeftControl;
+        _simulator.SimulateKeyPress(modifier);
+        _simulator.SimulateKeyPress(KeyCode.VcC);
+        _simulator.SimulateKeyRelease(KeyCode.VcC);
+        _simulator.SimulateKeyRelease(modifier);
+        return Task.CompletedTask;
+    }
+
+    private Task SimulatePasteKeyPressAsync()
+    {
+        var modifier = OperatingSystem.IsMacOS() ? KeyCode.VcLeftMeta : KeyCode.VcLeftControl;
+        _simulator.SimulateKeyPress(modifier);
+        _simulator.SimulateKeyPress(KeyCode.VcV);
+        _simulator.SimulateKeyRelease(KeyCode.VcV);
+        _simulator.SimulateKeyRelease(modifier);
+        return Task.CompletedTask;
+    }
+
+    private (KeyCode key, EventMask modifiers) ParseHotkeyStringToSharpHook(string hotkey)
+    {
+        if (string.IsNullOrWhiteSpace(hotkey)) return (KeyCode.VcUndefined, EventMask.None);
+
+        var modifiers = EventMask.None;
+        var key = KeyCode.VcUndefined;
+
+        var parts = hotkey.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var part in parts)
+        {
+            // Use a case-insensitive switch for better readability and to handle modifiers.
+            switch (part.ToUpperInvariant())
+            {
+                case "CTRL":
+                    modifiers |= EventMask.Ctrl;
+                    break;
+                case "SHIFT":
+                    modifiers |= EventMask.Shift;
+                    break;
+                case "ALT":
+                    modifiers |= EventMask.Alt;
+                    break;
+                case "CMD":
+                case "WIN":
+                case "META":
+                    modifiers |= EventMask.Meta;
+                    break;
+                default:
+                    // The last non-modifier part is assumed to be the key.
+                    // SharpHook uses "Vc" prefix for keycodes (e.g., VcJ for 'J').
+                    if (!Enum.TryParse<KeyCode>($"Vc{part}", true, out key))
+                    {
+                        key = KeyCode.VcUndefined;
+                    }
+                    break;
+            }
+        }
+        return (key, modifiers);
+    }
+
+    #endregion
+
+    #region Platform-Specific Active Window Detection
+
+#if WINDOWS
+    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
+    
+    private string GetActiveWindowProcessName_Windows()
+    {
+        try
+        {
+            nint hwnd = GetForegroundWindow();
+            _ = GetWindowThreadProcessId(hwnd, out uint pid);
+            var process = Process.GetProcessById((int)pid);
+            return process.MainModule?.ModuleName ?? process.ProcessName;
+        }
+        catch { return "unknown.exe"; }
+    }
+#endif
+
+#if LINUX
+    /// <summary>
+    /// Gets the active window's TITLE on Linux using X11.
+    /// </summary>
+    /// <remarks>
+    /// This implementation is limited by the `X11` NuGet package (v1.0.6), which does not expose
+    /// functions like `XGetWindowProperty` or `XGetClassHint`. Therefore, we cannot get the
+    /// actual process name or WM_CLASS. Instead, we retrieve the window title (`WM_NAME`)
+    /// using `XFetchName`, which is a reasonable fallback.
+    /// This method requires the `X11` NuGet package.
+    /// </remarks>
+    private string GetActiveWindowProcessName_Linux()
+    {
+        var display = Xlib.XOpenDisplay(null);
+        if (display == IntPtr.Zero)
+        {
+            Debug.WriteLine("ERROR: Could not open X Display.");
+            return "unknown";
+        }
+
+        try
+        {
+            var focus = Window.None;
+            var revert = RevertFocus.RevertToNone;
+            _ = Xlib.XGetInputFocus(display, ref focus, ref revert);
+
+            if (focus == Window.None)
+                return "unknown";
+            
+            var windowName = string.Empty;
+            // XFetchName returns Status.Success (1) on success.
+            if (Xlib.XFetchName(display, focus, ref windowName) != 0 && !string.IsNullOrEmpty(windowName))
+                return windowName;
+
+            return "unknown";
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error getting active window title on Linux: {ex.Message}");
+            return "unknown";
+        }
+        finally
+        {
+            if (display != IntPtr.Zero) _ = Xlib.XCloseDisplay(display);
+        }
+    }
+#endif
+
+#if OSX
+    private string GetActiveWindowProcessName_MacOS()
+    {
+        var foregroundApp = NSWorkspace.SharedWorkspace.FrontmostApplication;
+        return foregroundApp.LocalizedName;
+    }
+#endif
+
+    #endregion
+}

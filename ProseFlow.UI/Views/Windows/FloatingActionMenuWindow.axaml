@@ -1,0 +1,134 @@
+<shadui:Window
+    x:Class="ProseFlow.UI.Views.Windows.FloatingActionMenuWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:ProseFlow.UI.Converters"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.Windows"
+    x:DataType="vm:FloatingActionMenuViewModel"
+
+    Width="450" SizeToContent="Height"
+    SystemDecorations="None" CanResize="False" ShowInTaskbar="False" Topmost="True"
+    WindowStartupLocation="Manual"
+    IsTitleBarVisible="False"
+    Background="Transparent"
+    ShowBottomBorder="False"
+    BorderBrush="Transparent"
+    BorderThickness="0"
+    
+    Opened="OnWindowOpened" KeyDown="OnWindowKeyDown" Deactivated="WindowBase_OnDeactivated">
+
+    <Window.Resources>
+        <c:StringToIconConverter x:Key="StringToIconConverter" />
+    </Window.Resources>
+
+    <shadui:Card  Padding="0" HasShadow="True">
+        <DockPanel>
+            <!-- Search Bar Area -->
+            <Border DockPanel.Dock="Top" Padding="12,12,12,8">
+                <TextBox
+                    Name="SearchBox"
+                    shadui:ElementAssist.FocusOnLoad="True"
+                    Classes="Clearable"
+                    Text="{Binding SearchText, Mode=TwoWay}"
+                    Watermark="Find an action...">
+                    <TextBox.InnerRightContent>
+                        <PathIcon
+                            Width="16"
+                            Data="{x:Static shadui:Icons.Search}"
+                            Opacity="0.75" />
+                    </TextBox.InnerRightContent>
+                </TextBox>
+            </Border>
+
+            <!-- Footer Area -->
+            <Border
+                DockPanel.Dock="Bottom"
+                Padding="12,8"
+                BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,1,0,0">
+                <DockPanel>
+                    <Button
+                        DockPanel.Dock="Left"
+                        Classes="Ghost"
+                        Command="{Binding ToggleProviderCommand}"
+                        ToolTip.Tip="Toggle AI Provider for this run">
+                        <shadui:ButtonAssist.Icon>
+                            <TextBlock Classes="LucideIcon" Text="" />
+                        </shadui:ButtonAssist.Icon>
+                        <TextBlock Classes="Small" Text="{Binding CurrentProviderName}" />
+                    </Button>
+                    <Button
+                        HorizontalAlignment="Right"
+                        Classes="Ghost"
+                        Command="{Binding OpenSettingsCommand}"
+                        ToolTip.Tip="Open Settings">
+                        <shadui:ButtonAssist.Icon>
+                            <TextBlock Classes="LucideIcon" Text="" />
+                        </shadui:ButtonAssist.Icon>
+                    </Button>
+                </DockPanel>
+            </Border>
+            
+            <!-- Action List -->
+            <ItemsControl
+                ItemsSource="{Binding FilteredActions}"
+                MaxHeight="300"
+                Padding="8"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button
+                            HorizontalContentAlignment="Stretch"
+                            Padding="8"
+                            Margin="0,2"
+                            Classes="ListItem"
+                            Click="InputElement_OnPointerPressed"
+                            CommandParameter="{Binding .}">
+                            <Button.Styles>
+                                <Style Selector="Button.ListItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+                                </Style>
+                                <Style Selector="Button.ListItem:pointerover /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                </Style>
+                                <Style Selector="Button.ListItem:pressed /template/ ContentPresenter">
+                                    <Setter Property="Background" Value="{DynamicResource GhostHoverColor50}" />
+                                </Style>
+                            </Button.Styles>
+                            
+                            <Grid ColumnDefinitions="Auto, *, Auto" VerticalAlignment="Center">
+                                <!--<svg:Svg
+                                    Grid.Column="0"
+                                    Width="18"
+                                    Height="18"
+                                    Margin="0,0,12,0"
+                                    Source="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}" />-->
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding Action.Name}" />
+
+                                <!-- Force Open In New Window Toggle -->
+                                <ToggleButton
+                                    Grid.Column="2"
+                                    Classes="Icon Ghost"
+                                    Width="28" Height="28"
+                                    ToolTip.Tip="Force open in new window"
+                                    IsChecked="{Binding IsForcedOpenInWindow, Mode=OneWay}"
+                                    Command="{Binding $parent[ItemsControl].((vm:FloatingActionMenuViewModel)DataContext).ToggleForceOpenInWindowCommand, FallbackValue={x:Null}}"
+                                    CommandParameter="{Binding .}">
+                                    <TextBlock Classes="LucideIcon" Text="" />
+                                </ToggleButton>
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+    </shadui:Card>
+</shadui:Window>
