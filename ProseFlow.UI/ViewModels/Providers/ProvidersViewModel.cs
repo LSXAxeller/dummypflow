@@ -58,10 +58,7 @@ public partial class ProvidersViewModel(
         var editorWindow = new CloudProviderEditorView { DataContext = editorViewModel };
         var result = await editorWindow.ShowDialog<bool>(desktop.MainWindow);
 
-        if (result)
-        {
-            await LoadCloudProvidersAsync();
-        }
+        if (result) await LoadCloudProvidersAsync();
     }
 
     [RelayCommand]
@@ -77,15 +74,34 @@ public partial class ProvidersViewModel(
     }
     
     [RelayCommand]
-    private async Task DeleteProviderAsync(CloudProviderConfiguration? config)
+    private void DeleteProvider(CloudProviderConfiguration? config)
     {
         if (config is null) return;
 
-        var confirmed = await dialogService.ShowConfirmationDialogAsync("Delete Provider", $"Are you sure you want to delete '{config.Name}'?");
-        if (!confirmed) return;
+        dialogService.ShowConfirmationDialogAsync("Delete Provider",
+            $"Are you sure you want to delete '{config.Name}'?",
+            async () =>
+            {
+                await providerService.DeleteConfigurationAsync(config.Id);
+                await LoadCloudProvidersAsync();
+            });
+    }
+    
+    [RelayCommand]
+    private async Task ReorderProviderAsync((object dragged, object target) items)
+    {
+        if (items.dragged is not CloudProviderConfiguration draggedProvider || 
+            items.target is not CloudProviderConfiguration targetProvider) return;
+
+        var oldIndex = CloudProviders.IndexOf(draggedProvider);
+        var newIndex = CloudProviders.IndexOf(targetProvider);
         
-        await providerService.DeleteConfigurationAsync(config.Id);
-        await LoadCloudProvidersAsync();
+        if (oldIndex == -1 || newIndex == -1) return;
+
+        CloudProviders.Move(oldIndex, newIndex);
+
+        // Persist the new order to the database.
+        await providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
     }
 
     [RelayCommand]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
@@ -15,7 +16,7 @@ public partial class ActionsViewModel(
 {
     public override string Title => "Actions";
     public override string Icon => "\uE35B";
-    
+
     public ObservableCollection<Action> Actions { get; } = [];
 
     public override async Task OnNavigatedToAsync()
@@ -56,19 +57,33 @@ public partial class ActionsViewModel(
     }
 
     [RelayCommand]
-    private async Task DeleteActionAsync(Action? action)
+    private void DeleteAction(Action? action)
     {
         if (action is null) return;
 
-        var confirmed = await dialogService.ShowConfirmationDialogAsync(
+        dialogService.ShowConfirmationDialogAsync(
             "Delete Action",
-            $"Are you sure you want to delete the action '{action.Name}'?");
+            $"Are you sure you want to delete the action '{action.Name}'?", async () =>
+            {
+                await actionService.DeleteActionAsync(action.Id);
+                await LoadActionsAsync();
+            });
+    }
 
-        if (confirmed)
-        {
-            await actionService.DeleteActionAsync(action.Id);
-            await LoadActionsAsync();
-        }
+    [RelayCommand]
+    private async Task ReorderActionAsync((object dragged, object target) items)
+    {
+        if (items.dragged is not Action draggedAction || items.target is not Action targetAction) return;
+
+        var oldIndex = Actions.IndexOf(draggedAction);
+        var newIndex = Actions.IndexOf(targetAction);
+
+        if (oldIndex == -1 || newIndex == -1) return;
+
+        Actions.Move(oldIndex, newIndex);
+
+        // Persist the new order to the database.
+        await actionService.UpdateActionOrderAsync(Actions.ToList());
     }
 
     [RelayCommand]

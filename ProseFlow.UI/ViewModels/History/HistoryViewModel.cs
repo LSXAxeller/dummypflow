@@ -7,12 +7,13 @@ using ProseFlow.UI.Services;
 
 namespace ProseFlow.UI.ViewModels.History;
 
-public partial class HistoryViewModel(HistoryService historyService,
+public partial class HistoryViewModel(
+    HistoryService historyService,
     IDialogService dialogService) : ViewModelBase
 {
     public override string Title => "History";
     public override string Icon => "\uE1F5";
-    
+
     public ObservableCollection<HistoryEntry> HistoryEntries { get; } = [];
 
     public override async Task OnNavigatedToAsync()
@@ -31,11 +32,13 @@ public partial class HistoryViewModel(HistoryService historyService,
     }
 
     [RelayCommand]
-    private async Task ClearHistoryAsync()
+    private void ClearHistory()
     {
-        var confirmed = await dialogService.ShowConfirmationDialogAsync("Clear History", "Are you sure you want to clear the history?");
-        if (!confirmed) return;
-        await historyService.ClearHistoryAsync();
-        HistoryEntries.Clear();
+        dialogService.ShowConfirmationDialogAsync("Clear History", "Are you sure you want to clear the history?",
+            async () =>
+            {
+                await historyService.ClearHistoryAsync();
+                HistoryEntries.Clear();
+            });
     }
 }

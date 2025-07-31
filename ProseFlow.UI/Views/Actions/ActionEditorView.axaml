@@ -6,9 +6,8 @@
     xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
     x:DataType="vm:ActionEditorViewModel"
 
-    Title="Action Editor"
-    Icon="/Assets/avalonia-logo.ico"
     Width="600" Height="650"
+    Margin="125"
     WindowStartupLocation="CenterOwner"
     CanResize="False"
     ShowInTaskbar="False"

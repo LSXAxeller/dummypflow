@@ -2,6 +2,7 @@
     x:Class="ProseFlow.UI.Views.Actions.ActionsView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:b="using:ProseFlow.UI.Behaviors"
     xmlns:c="using:ProseFlow.UI.Converters"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
@@ -51,6 +52,7 @@
 
                 <shadui:Card HasShadow="True">
                     <DataGrid
+                        b:DataGridDragDropBehavior.ReorderCommand="{Binding ReorderActionCommand}"
                         AutoGenerateColumns="False"
                         CanUserReorderColumns="False"
                         CanUserResizeColumns="True"
@@ -59,6 +61,19 @@
                         IsReadOnly="True"
                         ItemsSource="{Binding Actions}">
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Classes="LucideIcon Muted"
+                                                   Text="&#xE0EE;"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip.Tip="Drag to reorder"
+                                                   Cursor="SizeAll" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Width="40" Binding="{Binding SortOrder}" Header="#" />
                             <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Name" />
                             <DataGridTextColumn
                                 Width="150"
@@ -76,16 +91,20 @@
                                             <shadui:SimpleDropdown.TriggerContent>
                                                 <TextBlock Classes="LucideIcon" Text="&#xE09E;" />
                                             </shadui:SimpleDropdown.TriggerContent>
-                                            <Button Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                            <Button
+                                                Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}"
+                                                CommandParameter="{Binding .}">
                                                 <shadui:ButtonAssist.Icon>
-                                                    <TextBlock Classes="LucideIcon" Text=""/>
+                                                    <TextBlock Classes="LucideIcon" Text="" />
                                                 </shadui:ButtonAssist.Icon>
                                                 Edit
                                             </Button>
                                             <Separator />
-                                            <Button Classes="DestructiveMenu" Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                            <Button Classes="DestructiveMenu"
+                                                    Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}"
+                                                    CommandParameter="{Binding .}">
                                                 <shadui:ButtonAssist.Icon>
-                                                    <TextBlock Classes="LucideIcon" Text=""/>
+                                                    <TextBlock Classes="LucideIcon" Text="" />
                                                 </shadui:ButtonAssist.Icon>
                                                 Delete
                                             </Button>

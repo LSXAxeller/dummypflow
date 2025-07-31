@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Layout;
-using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using ProseFlow.Application.Services;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.Views.Actions;
 using Microsoft.Extensions.DependencyInjection;
-using Action = ProseFlow.Core.Models.Action;
+using ShadUI;
+using Window = Avalonia.Controls.Window;
 
 namespace ProseFlow.UI.Services;
 
@@ -55,7 +52,7 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return result?.TryGetLocalPath();
     }
 
-    public async Task<bool> ShowActionEditorDialogAsync(Action action)
+    public async Task<bool> ShowActionEditorDialogAsync(Core.Models.Action action)
     {
         var mainWindow = GetMainWindow();
         if (mainWindow is null) return false;
@@ -69,39 +66,29 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return await editorWindow.ShowDialog<bool>(mainWindow);
     }
 
-    public async Task<bool> ShowConfirmationDialogAsync(string title, string message)
+    public void ShowConfirmationDialog(string title, string message, Action? onConfirm = null, Action? onCancel = null)
     {
-        // TODO: Create a more complex one, maybe a dedicated View/ViewModel.
-        var mainWindow = GetMainWindow();
-        if (mainWindow is null) return false;
-
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 350,
-            Height = 150,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            SystemDecorations = SystemDecorations.None,
-            ShowInTaskbar = false
-        };
-
-        var panel = new StackPanel { Spacing = 10, Margin = new Thickness(20) };
-        panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, FontSize = 20 });
+        var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
+        dialogManager
+            .CreateDialog(title, message)
+            .WithPrimaryButton("Confirm", onConfirm)
+            .WithCancelButton("Cancel", onCancel!)
+            .WithMaxWidth(512)
+            .Dismissible()
+            .Show();
         
-        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(25) };
-        var okButton = new Button { Content = "OK", IsDefault = true };
-        var cancelButton = new Button { Content = "Cancel", IsCancel = true };
+    }
+    
+    public void ShowConfirmationDialogAsync(string title, string message, Func<Task>? onConfirm = null, Func<Task>? onCancel = null)
+    {
+        var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
+        dialogManager
+            .CreateDialog(title, message)
+            .WithPrimaryButton("Confirm", onConfirm)
+            .WithCancelButton("Cancel", onCancel)
+            .WithMaxWidth(512)
+            .Dismissible()
+            .Show();
         
-        okButton.Click += (_, _) => dialog.Close(true);
-        cancelButton.Click += (_, _) => dialog.Close(false);
-        
-        buttonPanel.Children.Add(okButton);
-        buttonPanel.Children.Add(cancelButton);
-        panel.Children.Add(buttonPanel);
-        
-        dialog.Content = panel;
-
-        return await dialog.ShowDialog<bool>(mainWindow);
     }
 }

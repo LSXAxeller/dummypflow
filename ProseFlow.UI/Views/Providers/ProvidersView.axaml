@@ -2,6 +2,7 @@
     x:Class="ProseFlow.UI.Views.Providers.ProvidersView"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:b="using:ProseFlow.UI.Behaviors"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Providers"
     x:DataType="vm:ProvidersViewModel">
@@ -58,12 +59,25 @@
                         </DockPanel>
                     </shadui:Card.Header>
                     <DataGrid
+                        b:DataGridDragDropBehavior.ReorderCommand="{Binding ReorderProviderCommand}"
                         AutoGenerateColumns="False"
                         CanUserReorderColumns="False" CanUserResizeColumns="True" CanUserSortColumns="False"
                         GridLinesVisibility="Horizontal" IsReadOnly="True"
                         ItemsSource="{Binding CloudProviders}">
-                        <!-- TODO: Add Drag and Drop for reordering -->
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Classes="LucideIcon Muted"
+                                                   Text="&#xE0EE;"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip.Tip="Drag to reorder"
+                                                   Cursor="SizeAll" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Width="40" Binding="{Binding SortOrder}" Header="#" />
                             <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Configuration Name" />
                             <DataGridTextColumn Width="150" Binding="{Binding IsEnabled}" Header="Enabled" />
                             <DataGridTextColumn Width="150" Binding="{Binding ProviderType}" Header="Provider" />
@@ -72,10 +86,10 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-                                            <Button Classes="Icon Ghost" ToolTip.Tip="Edit Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).EditProviderCommand}" CommandParameter="{Binding .}">
+                                            <Button Classes="Icon Ghost" ToolTip.Tip="Edit Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).EditProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
                                                 <TextBlock Classes="LucideIcon" Text=""/>
                                             </Button>
-                                            <Button Classes="Icon Ghost Destructive" ToolTip.Tip="Delete Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).DeleteProviderCommand}" CommandParameter="{Binding .}">
+                                            <Button Classes="Icon Ghost Destructive" ToolTip.Tip="Delete Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).DeleteProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
                                                 <TextBlock Classes="LucideIcon" Text=""/>
                                             </Button>
                                         </StackPanel>

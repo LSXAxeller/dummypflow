@@ -1,5 +1,5 @@
-﻿using System.Threading.Tasks;
-using Action = ProseFlow.Core.Models.Action;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace ProseFlow.UI.Services;
 
@@ -29,13 +29,26 @@ public interface IDialogService
     /// </summary>
     /// <param name="action">The action to edit. Pass a new Action to create one.</param>
     /// <returns>True if the action was saved; otherwise, false.</returns>
-    Task<bool> ShowActionEditorDialogAsync(Action action);
+    Task<bool> ShowActionEditorDialogAsync(Core.Models.Action action);
 
     /// <summary>
-    /// Shows a confirmation message dialog.
+    /// Shows a confirmation message dialog with synchronous actions.
     /// </summary>
     /// <param name="title">The title of the dialog.</param>
     /// <param name="message">The message to display to the user.</param>
+    /// <param name="onConfirm">The action to perform if the user confirms.</param>
+    /// <param name="onCancel">The action to perform if the user cancels.</param>
     /// <returns>True if the user confirmed; otherwise, false.</returns>
-    Task<bool> ShowConfirmationDialogAsync(string title, string message);
+    void ShowConfirmationDialog(string title, string message, Action? onConfirm = null, Action? onCancel = null);
+    
+    /// <summary>
+    /// Shows a confirmation message dialog with asynchronous actions.
+    /// </summary>
+    /// <param name="title">The title of the dialog.</param>
+    /// <param name="message">The message to display to the user.</param>
+    /// <param name="onConfirm">The asynchronous action to perform if the user confirms.</param>
+    /// <param name="onCancel">The asynchronous action to perform if the user cancels.</param>
+    /// <returns>True if the user confirmed; otherwise, false.</returns>
+    void ShowConfirmationDialogAsync(string title, string message, Func<Task>? onConfirm = null, Func<Task>? onCancel = null);
+    
 }
