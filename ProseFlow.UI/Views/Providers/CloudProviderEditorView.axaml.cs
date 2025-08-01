@@ -11,8 +11,5 @@ public partial class CloudProviderEditorView : Window
         InitializeComponent();
     }
     
-    private void NumericTextBox_OnTextInput(object? sender, TextInputEventArgs e)
-    {
-        if (e.Text?.Any(c => !char.IsDigit(c)) ?? false) e.Handled = true;
-    }
+
 }

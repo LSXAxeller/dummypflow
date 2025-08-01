@@ -21,14 +21,16 @@ using ProseFlow.UI.ViewModels.Windows;
 using ProseFlow.UI.Views.Windows;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Threading;
+using ProseFlow.Application.DTOs;
 using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
 using ShadUI;
 
 namespace ProseFlow.UI;
 
-public partial class App : Avalonia.Application
+public class App : Avalonia.Application
 {
     public IServiceProvider? Services { get; private set; }
 
@@ -86,15 +88,16 @@ public partial class App : Avalonia.Application
         var notificationService = Services.GetRequiredService<NotificationService>();
 
         AppEvents.ShowNotificationRequested += (message, type) => Dispatcher.UIThread.Post(() => notificationService.Show(message, type));
-            
-
-        AppEvents.ShowResultWindowRequested += (data) =>
+        
+        AppEvents.ShowResultWindowAndAwaitRefinement += data =>
         {
-            Dispatcher.UIThread.Post(() =>
+            // This must be run on the UI thread.
+            return Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new ResultViewModel(data);
                 var window = new ResultWindow { DataContext = viewModel };
                 window.Show();
+                return await viewModel.CompletionSource.Task;
             });
         };
 
@@ -143,10 +146,10 @@ public partial class App : Avalonia.Application
         services.AddScoped<CloudProviderManagementService>();
 
         // Add UI Services
-        services.AddSingleton<NotificationService>();
-        services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<DialogManager>();
         services.AddSingleton<ToastManager>();
+        services.AddSingleton<NotificationService>();
+        services.AddSingleton<IDialogService, DialogService>();
 
         // Add ViewModels
         services.AddTransient<MainViewModel>();

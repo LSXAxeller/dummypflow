@@ -12,6 +12,9 @@
     Width="600" Height="500" MinWidth="450" MinHeight="350"
     WindowStartupLocation="CenterScreen"
     SaveWindowState="True">
+    <!--SystemDecorations="BorderOnly"
+    IsTitleBarVisible="False"-->
+    
 
     <DockPanel LastChildFill="True">
         <!-- Footer with action buttons -->
@@ -20,33 +23,49 @@
             Padding="16"
             BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="0,1,0,0">
-            <StackPanel
-                HorizontalAlignment="Right"
-                Orientation="Horizontal"
-                Spacing="8">
-                <Button
-                    Classes="Outline"
-                    Command="{Binding CopyCommand}">
-                    <shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="LucideIcon" Text="" />
-                    </shadui:ButtonAssist.Icon>
-                    Copy to Clipboard
-                </Button>
-                <Button
-                    Classes="Primary"
-                    Click="CloseWindow"
-                    IsDefault="True">
-                    <shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="LucideIcon" Text="" />
-                    </shadui:ButtonAssist.Icon>
-                    Close
-                </Button>
-            </StackPanel>
+            <Grid ColumnDefinitions="*, Auto">
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBox Name="RefineTextBox"
+                             Watermark="Refine the result... (e.g., 'Make it shorter')"
+                             Text="{Binding RefinementInstruction}"
+                             VerticalAlignment="Center"
+                             MinWidth="250"
+                             KeyDown="RefineTextBox_OnKeyDown" />
+                    <Button Classes="Primary"
+                            Content="Send"
+                            Command="{Binding RefineCommand}"
+                            CommandParameter="{Binding $parent[Window]}" />
+                </StackPanel>
+
+                <StackPanel
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        Classes="Outline"
+                        Command="{Binding CopyCommand}">
+                        <shadui:ButtonAssist.Icon>
+                            <TextBlock Classes="LucideIcon" Text="" />
+                        </shadui:ButtonAssist.Icon>
+                        Copy to Clipboard
+                    </Button>
+                    <Button
+                        Classes="Primary"
+                        Click="CloseWindow"
+                        IsDefault="True">
+                        <shadui:ButtonAssist.Icon>
+                            <TextBlock Classes="LucideIcon" Text="" />
+                        </shadui:ButtonAssist.Icon>
+                        Close
+                    </Button>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- Main Content -->
         <ScrollViewer Padding="16">
-            <StackPanel Spacing="16">
+            <StackPanel Spacing="16" Margin="16">
                 <!-- Main Result Content -->
                 <StackPanel>
                     <TextBlock Classes="h4" Text="Result" Margin="0,0,0,8" />

@@ -32,16 +32,20 @@ public static class AppEvents
 
 
     /// <summary>
-    /// Raised when a result needs to be displayed in the dedicated Result Window.
-    /// The UI layer subscribes to this and handles window creation.
+    /// Raised when a result needs to be displayed in a window.
+    /// The UI subscribes and is responsible for showing the window and then returning a Task
+    /// that completes with the user's next action (a refinement instruction or null if closed).
     /// </summary>
-    public static event Action<ResultWindowData>? ShowResultWindowRequested;
+    public static event Func<ResultWindowData, Task<RefinementRequest?>>? ShowResultWindowAndAwaitRefinement;
 
     /// <summary>
-    /// Invokes the ShowResultWindowRequested event.
+    /// Invokes the event to show the result window and waits for the user's interaction.
     /// </summary>
-    public static void RequestResultWindow(ResultWindowData data) =>
-        ShowResultWindowRequested?.Invoke(data);
+    /// <returns>A RefinementRequest if the user wants to refine, otherwise null.</returns>
+    public static async Task<RefinementRequest?> RequestResultWindowAsync(ResultWindowData data) =>
+        ShowResultWindowAndAwaitRefinement is not null
+            ? await ShowResultWindowAndAwaitRefinement.Invoke(data)
+            : await Task.FromResult<RefinementRequest?>(null); // Graceful failure
 
 
     /// <summary>

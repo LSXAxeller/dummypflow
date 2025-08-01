@@ -5,6 +5,7 @@ using ProseFlow.Core.Interfaces;
 using System.Diagnostics;
 using ProseFlow.Core.Enums;
 using ProseFlow.Infrastructure.Services.Database;
+using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
 
@@ -16,7 +17,7 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
 {
     public string Name => "Cloud";
 
-    public async Task<string> GenerateResponseAsync(string instruction, string input, CancellationToken cancellationToken)
+    public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken)
     {
         var enabledConfigs = (await providerService.GetConfigurationsAsync())
             .Where(c => c.IsEnabled)
@@ -32,6 +33,17 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
         }).ToList();
         
         var api = new TornadoApi(authentications);
+        
+        // Create the LlmTornado message list from DTO
+        var tornadoMessages = messages.Select(m => new LlmTornado.Chat.ChatMessage(
+            role: m.Role switch {
+                "system" => ChatMessageRoles.System,
+                "user" => ChatMessageRoles.User,
+                "assistant" => ChatMessageRoles.Assistant,
+                _ => ChatMessageRoles.User
+            },
+            content: m.Content
+        )).ToList();
 
         foreach (var config in enabledConfigs)
         {
@@ -41,6 +53,8 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
                 {
                     Model = config.Model,
                     Temperature = config.Temperature,
+                    Messages = tornadoMessages,
+                    CancellationToken = cancellationToken
                 };
                 
                 // If a custom BaseUrl is provided, override the TornadoApi instance for this specific call.
@@ -48,14 +62,11 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
                     ? new TornadoApi(new Uri(config.BaseUrl), config.ApiKey)
                     : api;
                 
-                var conversation = conversationApi.Chat.CreateConversation(request);
-                conversation.AppendSystemMessage(instruction);
-                conversation.AppendUserInput(input);
                 
-                var response = await conversation.GetResponse(cancellationToken);
-                
-                if (!string.IsNullOrWhiteSpace(response))
-                    return response;
+                var response = await conversationApi.Chat.CreateChatCompletion(request);
+            
+                if (response is { Choices.Count: > 0  } && response.Choices[0].Message != null && !string.IsNullOrWhiteSpace(response.Choices[0].Message!.Content))
+                    return response.Choices[0].Message!.Content!;
             }
             catch (Exception ex)
             {

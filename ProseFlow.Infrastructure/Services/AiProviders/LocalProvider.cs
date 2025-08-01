@@ -1,4 +1,5 @@
 ﻿using ProseFlow.Core.Interfaces;
+using ProseFlow.Core.Models;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
 
@@ -11,10 +12,11 @@ public class LocalProvider : IAiProvider
 {
     public string Name => "Local";
 
-    public Task<string> GenerateResponseAsync(string instruction, string input, CancellationToken cancellationToken)
+    public Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var chatMessages = messages.ToArray();
         var placeholderResponse =
             $"""
              --- LOCAL LLM PROVIDER (PLACEHOLDER) ---
@@ -22,11 +24,11 @@ public class LocalProvider : IAiProvider
 
              Instruction Received:
              ---------------------
-             {instruction}
+             {chatMessages.FirstOrDefault()?.Content}
 
              Input Received:
              ---------------
-             {input}
+             {chatMessages.LastOrDefault()?.Content}
              """;
 
         return Task.FromResult(placeholderResponse);

@@ -57,7 +57,6 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         var mainWindow = GetMainWindow();
         if (mainWindow is null) return false;
         
-        // We need to resolve the ActionManagementService from the DI container for the ViewModel
         var actionService = serviceProvider.GetRequiredService<ActionManagementService>();
 
         var editorViewModel = new ActionEditorViewModel(action, actionService);

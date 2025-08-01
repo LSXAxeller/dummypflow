@@ -57,6 +57,8 @@ public class DataGridDragDropBehavior : AvaloniaObject
         var source = e.Source as Control;
         var row = source?.FindAncestorOfType<DataGridRow>();
         if (row?.DataContext is null) return;
+        
+        if (source?.FindAncestorOfType<Button>(includeSelf: true) is not null) return;
 
         // The item being dragged.
         var draggedItem = row.DataContext;

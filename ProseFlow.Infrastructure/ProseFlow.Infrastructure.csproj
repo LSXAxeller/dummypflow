@@ -8,22 +8,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="LlmTornado" Version="3.7.14" />
-      <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.7" />
-      <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7" />
-      <PackageReference Include="SharpHook" Version="6.2.0" />
-      <PackageReference Include="TextCopy" Version="6.2.1" />
+        <PackageReference Include="LlmTornado" Version="3.7.14"/>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7"/>
+        <PackageReference Include="SharpHook" Version="6.2.0"/>
+        <PackageReference Include="TextCopy" Version="6.2.1"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(IsLinux)' == 'true' Or $(RuntimeIdentifier.StartsWith('linux'))">
-        <PackageReference Include="X11" Version="1.0.6" />
+        <PackageReference Include="X11" Version="1.0.6"/>
     </ItemGroup>
     <ItemGroup Condition="'$(IsOSX)' == 'true' Or $(RuntimeIdentifier.StartsWith('osx'))">
-        <PackageReference Include="MonoMac.Core" Version="0.0.23728" />
+        <PackageReference Include="MonoMac.Core" Version="0.0.23728"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ProseFlow.Core\ProseFlow.Core.csproj" />
+        <ProjectReference Include="..\ProseFlow.Core\ProseFlow.Core.csproj"/>
     </ItemGroup>
 
 </Project>

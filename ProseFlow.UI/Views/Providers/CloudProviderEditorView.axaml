@@ -40,6 +40,7 @@
                     <TextBox
                         shadui:ControlAssist.Label="API Key"
                         Classes="PasswordReveal"
+                        PasswordChar="•"
                         Text="{Binding Config.ApiKey}"
                         Watermark="Begins with sk-, gsk-, etc." />
 

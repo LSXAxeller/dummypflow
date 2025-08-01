@@ -78,19 +78,19 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <DataGridTextColumn Width="40" Binding="{Binding SortOrder}" Header="#" />
-                            <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Configuration Name" />
-                            <DataGridTextColumn Width="150" Binding="{Binding IsEnabled}" Header="Enabled" />
-                            <DataGridTextColumn Width="150" Binding="{Binding ProviderType}" Header="Provider" />
-                            <DataGridTextColumn Width="200" Binding="{Binding Model}" Header="Model" />
-                            <DataGridTemplateColumn Width="100" Header="Actions">
+                            <DataGridTextColumn Width="*" MinWidth="160" Binding="{Binding Name}" Header="Configuration Name" />
+                            <DataGridTextColumn Width="80" Binding="{Binding IsEnabled}" Header="Enabled" />
+                            <DataGridTextColumn Width="150" MinWidth="85" Binding="{Binding ProviderType}" Header="Provider" />
+                            <DataGridTextColumn Width="200" MinWidth="85" Binding="{Binding Model}" Header="Model" />
+                            <DataGridTemplateColumn Width="120" Header="Actions">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-                                            <Button Classes="Icon Ghost" ToolTip.Tip="Edit Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).EditProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
-                                                <TextBlock Classes="LucideIcon" Text=""/>
+                                            <Button Classes="Ghost" ToolTip.Tip="Edit Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).EditProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                                <TextBlock Classes="LucideIcon" Text="" TextAlignment="Center" HorizontalAlignment="Center" />
                                             </Button>
-                                            <Button Classes="Icon Ghost Destructive" ToolTip.Tip="Delete Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).DeleteProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
-                                                <TextBlock Classes="LucideIcon" Text=""/>
+                                            <Button Classes="Ghost Destructive" ToolTip.Tip="Delete Provider" Command="{Binding $parent[UserControl].((vm:ProvidersViewModel)DataContext).DeleteProviderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
+                                                <TextBlock Classes="LucideIcon" Text="" TextAlignment="Center" HorizontalAlignment="Center" />
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>
