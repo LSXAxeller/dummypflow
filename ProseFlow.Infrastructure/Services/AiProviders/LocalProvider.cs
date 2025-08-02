@@ -8,6 +8,7 @@ using ProseFlow.Core.Enums;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Data;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
 

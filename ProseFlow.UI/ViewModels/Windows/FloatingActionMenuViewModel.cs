@@ -17,50 +17,78 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
 {
     private readonly TaskCompletionSource<ActionExecutionRequest?> _selectionTcs = new();
 
-    [ObservableProperty]
-    private string _searchText = string.Empty;
+    [ObservableProperty] private string _searchText = string.Empty;
 
-    [ObservableProperty]
-    private ActionItemViewModel? _selectedAction;
+    [ObservableProperty] private ActionItemViewModel? _selectedAction;
 
-    [ObservableProperty]
-    private string _currentServiceTypeName = "Cloud"; // Default to "Cloud"
-    
+    [ObservableProperty] private string _currentServiceTypeName;
+
     public ObservableCollection<ActionItemViewModel> AllActions { get; } = [];
-    public ObservableCollection<ActionItemViewModel> FilteredActions { get; } = [];
 
-    public FloatingActionMenuViewModel(IEnumerable<Action> availableActions, ProviderSettings providerSettings, string activeAppContext)
+    public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
+
+    public FloatingActionMenuViewModel(IEnumerable<Action> availableActions, ProviderSettings providerSettings,
+        string activeAppContext)
     {
         foreach (var action in availableActions)
         {
-            AllActions.Add(new ActionItemViewModel(action));
+            var isContextual = action.ApplicationContext.Count > 0 &&
+                               action.ApplicationContext.Contains(activeAppContext, StringComparer.OrdinalIgnoreCase);
+            AllActions.Add(new ActionItemViewModel(action)
+            {
+                IsContextual = isContextual
+            });
         }
-        
-        FilterActions();
-        SelectedAction = FilteredActions.FirstOrDefault();
+
+
+        FilterAndGroupActions(); // Initial population
         CurrentServiceTypeName = providerSettings.PrimaryServiceType;
     }
 
     public Task<ActionExecutionRequest?> WaitForSelectionAsync() => _selectionTcs.Task;
-    
-    partial void OnSearchTextChanged(string value) => FilterActions();
 
-    private void FilterActions()
+    partial void OnSearchTextChanged(string value) => FilterAndGroupActions();
+
+    partial void OnSelectedActionChanged(ActionItemViewModel? oldValue, ActionItemViewModel? newValue)
     {
-        FilteredActions.Clear();
-        var filtered = string.IsNullOrWhiteSpace(SearchText)
+        if (oldValue is not null) oldValue.IsSelected = false;
+        if (newValue is not null) newValue.IsSelected = true;
+    }
+
+    private void FilterAndGroupActions()
+    {
+        // Filter the flat list based on search text
+        var filteredItems = string.IsNullOrWhiteSpace(SearchText)
             ? AllActions
             : AllActions.Where(a => a.Action.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
-        foreach (var item in filtered)
+        // Group the filtered results in memory
+        var groups = filteredItems
+            .GroupBy(item => item.IsContextual)
+            .OrderByDescending(g => g.Key);
+
+        // Rebuild the public ActionGroups collection
+        ActionGroups.Clear();
+        foreach (var group in groups)
         {
-            FilteredActions.Add(item);
+            var groupName = group.Key ? "Contextual Actions" : "General Actions";
+            var actionGroupVm = new ActionGroupViewModel(groupName);
+
+            foreach (var item in group.OrderBy(i => i.Action.SortOrder))
+            {
+                actionGroupVm.Actions.Add(item);
+            }
+
+            ActionGroups.Add(actionGroupVm);
         }
 
-        if (SelectedAction is null || !FilteredActions.Contains(SelectedAction))
-        {
-            SelectedAction = FilteredActions.FirstOrDefault();
-        }
+        // Set the default selected item
+        SelectedAction = ActionGroups.SelectMany(g => g.Actions).FirstOrDefault();
+    }
+
+    private List<ActionItemViewModel> GetFlatListOfVisibleActions()
+    {
+        return ActionGroups.SelectMany(g => g.Actions).ToList();
     }
 
     [RelayCommand]
@@ -75,15 +103,20 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         var request = new ActionExecutionRequest(
             ActionToExecute: SelectedAction.Action,
             ForceOpenInWindow: SelectedAction.IsForcedOpenInWindow,
-            ProviderOverride: CurrentServiceTypeName 
+            ProviderOverride: CurrentServiceTypeName
         );
+
         if (!_selectionTcs.Task.IsCompleted)
             _selectionTcs.SetResult(request);
     }
-    
+
     [RelayCommand]
-    private void CancelSelection() => _selectionTcs.SetResult(null);
-    
+    private void CancelSelection()
+    {
+        if (!_selectionTcs.Task.IsCompleted)
+            _selectionTcs.SetResult(null);
+    }
+
     [RelayCommand]
     private void ToggleServiceType()
     {
@@ -91,7 +124,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
             ? "Local"
             : "Cloud";
     }
-    
+
     [RelayCommand]
     private void SelectAction(ActionItemViewModel? item)
     {
@@ -103,20 +136,22 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [RelayCommand]
     private void SelectNextAction()
     {
-        if (FilteredActions.Count == 0) return;
-        var currentIndex = SelectedAction != null ? FilteredActions.IndexOf(SelectedAction) : -1;
-        SelectedAction = FilteredActions[(currentIndex + 1) % FilteredActions.Count];
+        var flatList = GetFlatListOfVisibleActions();
+        if (flatList.Count == 0) return;
+        var currentIndex = SelectedAction != null ? flatList.IndexOf(SelectedAction) : -1;
+        SelectedAction = flatList[(currentIndex + 1) % flatList.Count];
     }
 
     [RelayCommand]
     private void SelectPreviousAction()
     {
-        if (FilteredActions.Count == 0) return;
-        var currentIndex = SelectedAction != null ? FilteredActions.IndexOf(SelectedAction) : -1;
-        var newIndex = currentIndex - 1 < 0 ? FilteredActions.Count - 1 : currentIndex - 1;
-        SelectedAction = FilteredActions[newIndex];
+        var flatList = GetFlatListOfVisibleActions();
+        if (flatList.Count == 0) return;
+        var currentIndex = SelectedAction != null ? flatList.IndexOf(SelectedAction) : -1;
+        var newIndex = currentIndex - 1 < 0 ? flatList.Count - 1 : currentIndex - 1;
+        SelectedAction = flatList[newIndex];
     }
-    
+
     [RelayCommand]
     private void ToggleForceOpenInWindow(ActionItemViewModel? item)
     {
@@ -127,17 +162,19 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [RelayCommand]
     private void OpenSettings()
     {
-        var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-            
+        var mainWindow =
+            Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+
         if (mainWindow?.DataContext is MainViewModel mainWindowViewModel)
         {
             mainWindow.Show();
             mainWindow.Activate();
-            mainWindowViewModel.Navigate(mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == "Providers"));
+            mainWindowViewModel.Navigate(
+                mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == "Providers"));
         }
-        
+
         CancelSelection();
     }
 }

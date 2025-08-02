@@ -1,30 +1,126 @@
-﻿using Avalonia.Data.Converters;
+﻿using Avalonia.Media;
+using Avalonia.Platform;
+using Avalonia.Data.Converters;
 using System;
+using System.Diagnostics;
 using System.Globalization;
-using Avalonia.Svg;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ProseFlow.UI.Converters;
 
-public class StringToIconConverter : IValueConverter
+/// <summary>
+/// Converts a string into a renderable StreamGeometry icon by intelligently detecting the input format.
+/// Supported formats:
+/// 1. Full SVG XML content (e.g., "<svg>...</svg>").
+/// 2. A URI to an asset (e.g., "avares://...") or a URL ("http://...").
+/// 3. An absolute filesystem path to an SVG file.
+/// 4. Raw SVG path data (e.g., "M12 2L2 22h20z").
+/// If the input is invalid or the format is unrecognized, a default icon is returned.
+/// </summary>
+public partial class StringToIconConverter : IValueConverter
 {
+    private const string SvgStartTag = "<svg";
+    private const string SvgEndTag = "</svg>";
+    private const string DefaultIconUri = "avares://ProseFlow.UI/Assets/Icons/default.svg";
+
+    // Regex to extract the 'd' attribute from one or more <path> tags.
+    private static readonly Regex SvgPathDataRegex = SvgPathRegex();
+
+    // Cache the default icon to avoid reloading and reparsing it repeatedly.
+    private static StreamGeometry? _defaultIcon;
+
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is string path && !string.IsNullOrWhiteSpace(path))
+        if (value is not string inputPath || string.IsNullOrWhiteSpace(inputPath))
+            return GetDefaultIcon();
+
+        try
         {
-            try
+            var path = inputPath.Trim();
+            
+            // Use a switch expression for clean, pattern-based format detection.
+            return path switch
             {
-                return new SvgImage { Source = SvgSource.Load(path, null) };
-            }
-            catch
-            {
-                // Fallback to a default icon if path is invalid
-            }
+                // 1. Full SVG content
+                not null when path.StartsWith(SvgStartTag, StringComparison.OrdinalIgnoreCase) &&
+                              path.EndsWith(SvgEndTag, StringComparison.OrdinalIgnoreCase)
+                    => ParseSvgContent(path),
+
+                // 2. URI, URL, or absolute file path
+                not null when path.Contains("://") || Path.IsPathRooted(path)
+                    => ParseFromFile(path),
+                
+                // 3. Raw SVG path data (heuristic check)
+                not null when path.StartsWith('M') || path.StartsWith('m')
+                    => StreamGeometry.Parse(path),
+
+                // 4. Fallback for unrecognized formats
+                _ => GetDefaultIcon()
+            };
         }
-        return new SvgImage { Source = SvgSource.Load("avares://ProseFlow.UI/Assets/Icons/default.svg", null) };
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Failed to convert icon from string '{inputPath}'. {ex.Message}");
+            return GetDefaultIcon();
+        }
     }
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException($"{nameof(StringToIconConverter)} does not support ConvertBack.");
     }
+
+    /// <summary>
+    /// Parses an icon from a URI or a local filesystem path.
+    /// </summary>
+    private static StreamGeometry ParseFromFile(string path)
+    {
+        var stream = path.Contains("://")
+            ? AssetLoader.Open(new Uri(path))
+            : new FileStream(path, FileMode.Open, FileAccess.Read);
+
+        using (stream)
+        using (var reader = new StreamReader(stream))
+        {
+            var content = reader.ReadToEnd().Trim();
+
+            // The loaded file could contain full SVG XML or just raw path data.
+            return content.StartsWith(SvgStartTag, StringComparison.OrdinalIgnoreCase)
+                ? ParseSvgContent(content)
+                : StreamGeometry.Parse(content);
+        }
+    }
+
+    /// <summary>
+    /// Extracts path data from a full SVG XML string that may contain multiple <path/> elements.
+    /// </summary>
+    private static StreamGeometry ParseSvgContent(string svgContent)
+    {
+        var matches = SvgPathDataRegex.Matches(svgContent);
+
+        if (matches.Count == 0)
+            throw new FormatException("SVG content does not contain any <path> elements with a 'd' attribute.");
+
+        // StreamGeometry can parse multiple paths if they are combined into a single string.
+        var combinedPaths = new StringBuilder();
+        foreach (Match match in matches)
+        {
+            if (match.Success) combinedPaths.Append(match.Groups[1].Value).Append(' ');
+        }
+
+        return StreamGeometry.Parse(combinedPaths.ToString());
+    }
+
+    /// <summary>
+    /// Lazily loads and caches the default icon from application assets.
+    /// </summary>
+    private static StreamGeometry GetDefaultIcon()
+    {
+        return _defaultIcon ??= ParseFromFile(DefaultIconUri);
+    }
+
+    [GeneratedRegex("""<path[^>]*d="([^"]+)"[^>]*>""", RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    private static partial Regex SvgPathRegex();
 }

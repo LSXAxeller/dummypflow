@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using ProseFlow.Core.Models;
 using Action = System.Action;
 
-namespace ProseFlow.Infrastructure.Services.AiProviders;
+namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 public enum ModelStatus { NotLoaded, Loading, Loaded, Error }
 

@@ -20,11 +20,6 @@ public class ProviderSettings
     public int LocalCpuCores { get; set; } = 4;
 
     /// <summary>
-    /// If true, the application will attempt to use GPU acceleration for local models if available.
-    /// </summary>
-    public bool PreferGpu { get; set; } = true;
-
-    /// <summary>
     /// The context size for the local provider, determining the number of tokens to keep in memory.
     /// </summary>
     public int LocalModelContextSize { get; set; } = 4096;
@@ -38,6 +33,17 @@ public class ProviderSettings
     /// The temperature setting for the local provider, controlling randomness (0.0 to 2.0).
     /// </summary>
     public float LocalModelTemperature { get; set; } = 0.7f;
+    
+    
+    /// <summary>
+    /// If true, the application will attempt to use GPU acceleration for local models if available.
+    /// </summary>
+    public bool PreferGpu { get; set; } = true;
+    
+    /// <summary>
+    /// If true, the application will attempt to load the local model on startup.
+    /// </summary>
+    public bool LocalModelLoadOnStartup { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether to memory-map the model file.

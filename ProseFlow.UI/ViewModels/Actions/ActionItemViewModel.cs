@@ -11,4 +11,10 @@ public partial class ActionItemViewModel(Action action) : ViewModelBase
 
     [ObservableProperty]
     private bool _isForcedOpenInWindow;
+    
+    [ObservableProperty]
+    private bool _isContextual;
+    
+    [ObservableProperty]
+    private bool _isSelected;
 }

@@ -4,6 +4,7 @@ using LlmTornado.Code;
 using ProseFlow.Core.Interfaces;
 using System.Diagnostics;
 using ProseFlow.Core.Enums;
+using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
 using ProseFlow.Infrastructure.Services.Database;
 using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
@@ -13,7 +14,9 @@ namespace ProseFlow.Infrastructure.Services.AiProviders;
 /// A provider that orchestrates requests across a user-defined, ordered chain of cloud services.
 /// It leverages LlmTornado to handle different APIs seamlessly.
 /// </summary>
-public class CloudProvider(CloudProviderManagementService providerService) : IAiProvider
+public class CloudProvider(
+    CloudProviderManagementService providerService,
+    UsageTrackingService usageService) : IAiProvider
 {
     public string Name => "Cloud";
     public ProviderType Type => ProviderType.Cloud;
@@ -63,8 +66,9 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
                     ? new TornadoApi(new Uri(config.BaseUrl), config.ApiKey)
                     : api;
                 
-                
                 var response = await conversationApi.Chat.CreateChatCompletion(request);
+
+                if (response?.Usage is not null) await usageService.AddUsageAsync(response.Usage.PromptTokens, response.Usage.CompletionTokens);
             
                 if (response is { Choices.Count: > 0  } && response.Choices[0].Message != null && !string.IsNullOrWhiteSpace(response.Choices[0].Message!.Content))
                     return response.Choices[0].Message!.Content!;

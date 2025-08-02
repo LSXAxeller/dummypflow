@@ -20,6 +20,26 @@
     TitleFontWeight="SemiBold"
     SaveWindowState="True">
 
+    <Window.Styles>
+        <Style Selector="shadui|SidebarItem">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.15" Easing="CubicEaseOut" />
+                    <BrushTransition Property="Foreground" Duration="0.15" Easing="CubicEaseOut" />
+                    <BrushTransition Property="BorderBrush" Duration="0.15" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="shadui|SidebarItem:checked">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryColor}" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="Background" Value="{DynamicResource GhostColor}" />
+        </Style>
+    </Window.Styles>
+
     <shadui:Window.LogoContent>
         <PathIcon
             Width="14"
@@ -57,31 +77,41 @@
                 MinWidth="60"
                 BorderBrush="{DynamicResource BorderColor30}"
                 BorderThickness="0,0,1,0"
-                Expanded="{Binding #Toggler.IsChecked}">
+                Expanded="{Binding #Toggler.IsChecked, Mode=OneWay}">
 
                 <shadui:Sidebar.Header>
-                    <!-- App Title -->
-                    <StackPanel Spacing="4"
-                                Margin="8,10"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                IsVisible="{Binding #Toggler.IsChecked}">
-                        <TextBlock
-                            Classes="h3"
-                            Text="Prose"
-                            FontWeight="SemiBold"
-                            FontFamily="{StaticResource ManropeFont}" />
-                        <TextBlock
-                            Classes="h3"
-                            Text="Flow"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource PrimaryColor}"
-                            FontFamily="{StaticResource ManropeFont}" />
-                    </StackPanel>
+                    <DockPanel Height="48" Margin="0,4">
+                        <PathIcon
+                            Margin="16,0"
+                            IsVisible="{Binding #Toggler.IsChecked, Converter={x:Static BoolConverters.Not}}"
+                            Width="24" Height="24"
+                            Data="{x:Static shadui:Icons.Logo}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+                        <StackPanel
+                            Spacing="4"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            IsVisible="{Binding #Toggler.IsChecked}">
+                            <PathIcon
+                                Width="24" Height="24"
+                                Data="{x:Static shadui:Icons.Logo}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock
+                                Classes="h3"
+                                Text="Prose"
+                                FontFamily="{StaticResource JetbrainsFont}" />
+                            <TextBlock
+                                Classes="h3"
+                                Text="Flow"
+                                Foreground="{DynamicResource PrimaryColor}"
+                                FontFamily="{StaticResource JetbrainsFont}" />
+                        </StackPanel>
+                    </DockPanel>
                 </shadui:Sidebar.Header>
 
                 <!-- Navigation Items -->
-                <ItemsControl ItemsSource="{Binding PageViewModels}" Margin="0,16,0,0">
+                <ItemsControl ItemsSource="{Binding PageViewModels}" Margin="8,16">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <shadui:SidebarItem
@@ -100,20 +130,27 @@
                 </ItemsControl>
 
                 <shadui:Sidebar.Footer>
-                    <!-- Toggle button to expand/collapse the sidebar -->
-                    <ToggleButton
-                        Name="Toggler"
-                        HorizontalAlignment="Left"
-                        Width="32"
-                        Height="32"
-                        Padding="8"
-                        Margin="16,0,0,16"
-                        CornerRadius="{DynamicResource LgCornerRadius}"
-                        Theme="{DynamicResource SideTogglerTheme}">
-                        <Viewbox>
-                            <TextBlock Classes="LucideIcon" Text="" />
-                        </Viewbox>
-                    </ToggleButton>
+                    <StackPanel Spacing="8" Margin="0,0,0,16">
+                        <!-- Toggle button to expand/collapse the sidebar -->
+                        <ToggleButton
+                            Name="Toggler"
+                            HorizontalAlignment="Left"
+                            Width="32" Height="32"
+                            Padding="8"
+                            Margin="14,0,0,0"
+                            CornerRadius="{DynamicResource LgCornerRadius}"
+                            Theme="{DynamicResource SideTogglerTheme}">
+                            <Viewbox>
+                                <TextBlock Classes="LucideIcon" Text="" />
+                            </Viewbox>
+                        </ToggleButton>
+
+                        <!-- App version number -->
+                        <TextBlock Text="v0.1.0"
+                                   Classes="Small Muted"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding #Toggler.IsChecked}" />
+                    </StackPanel>
                 </shadui:Sidebar.Footer>
             </shadui:Sidebar>
 

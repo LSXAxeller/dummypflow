@@ -70,6 +70,7 @@
                 <StackPanel>
                     <TextBlock Classes="h4" Text="Result" Margin="0,0,0,8" />
                     <md:MarkdownScrollViewer
+                        SelectionEnabled="True"
                         Markdown="{Binding MainContent}" />
                 </StackPanel>
 
@@ -87,6 +88,7 @@
                             </StackPanel>
                         </Expander.Header>
                         <md:MarkdownScrollViewer
+                            SelectionEnabled="True"
                             Margin="0,8,0,0"
                             Markdown="{Binding ExplanationContent}"
                             MaxHeight="200" />

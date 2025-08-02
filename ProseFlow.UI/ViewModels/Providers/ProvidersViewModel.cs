@@ -11,6 +11,8 @@ using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.AiProviders;
+using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
 using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Views.Providers;
@@ -23,6 +25,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly CloudProviderManagementService _providerService;
     private readonly IDialogService _dialogService;
     private readonly LocalModelManagerService _modelManager;
+    private readonly UsageTrackingService _usageService;
 
     public override string Title => "Providers";
     public override string Icon => "\uE157";
@@ -53,17 +56,27 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     
     [ObservableProperty]
     private string _localModelPath = string.Empty;
+    
+    
+    [ObservableProperty]
+    private long _promptTokens;
+    [ObservableProperty]
+    private long _completionTokens;
+    [ObservableProperty]
+    private long _totalTokens;
 
     public ProvidersViewModel(
         SettingsService settingsService,
         CloudProviderManagementService providerService,
         IDialogService dialogService,
-        LocalModelManagerService modelManager)
+        LocalModelManagerService modelManager,
+        UsageTrackingService usageService)
     {
         _settingsService = settingsService;
         _providerService = providerService;
         _dialogService = dialogService;
         _modelManager = modelManager;
+        _usageService = usageService;
         
         // Subscribe to the event from the infrastructure service
         _modelManager.StateChanged += OnManagerStateChanged;
@@ -108,6 +121,8 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         LocalMaxTokens = Settings.LocalModelMaxTokens;
         LocalModelPath = Settings.LocalModelPath;
         await LoadCloudProvidersAsync();
+        UpdateUsageDisplay();
+
     }
     
     private async Task LoadCloudProvidersAsync()
@@ -118,6 +133,14 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         {
             CloudProviders.Add(provider);
         }
+    }
+    
+    private void UpdateUsageDisplay()
+    {
+        var usage = _usageService.GetCurrentUsage();
+        PromptTokens = usage.PromptTokens;
+        CompletionTokens = usage.CompletionTokens;
+        TotalTokens = usage.PromptTokens + usage.CompletionTokens;
     }
 
     [RelayCommand]
@@ -151,7 +174,6 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         var newConfig = new CloudProviderConfiguration { Name = "New Provider", Model = "gpt-4o" };
         var editorViewModel = new CloudProviderEditorViewModel(newConfig, _providerService);
         
-        // TODO:This is a temporary way to show the dialog until IDialogService is updated for this new view
         var editorWindow = new CloudProviderEditorView { DataContext = editorViewModel };
         var result = await editorWindow.ShowDialog<bool>(desktop.MainWindow);
 
@@ -208,6 +230,20 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         await _providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
         await _settingsService.SaveProviderSettingsAsync(Settings);
         AppEvents.RequestNotification("Provider settings saved successfully.", NotificationType.Success);
+    }
+    
+    [RelayCommand]
+    private void ResetUsage()
+    {
+        _dialogService.ShowConfirmationDialogAsync(
+            "Reset Usage Counter",
+            "Are you sure you want to reset the token usage counter for this month? This cannot be undone.",
+            async () =>
+            {
+                await _usageService.ResetUsageAsync();
+                UpdateUsageDisplay();
+                AppEvents.RequestNotification("Usage counter has been reset.", NotificationType.Success);
+            });
     }
 
     public void Dispose()

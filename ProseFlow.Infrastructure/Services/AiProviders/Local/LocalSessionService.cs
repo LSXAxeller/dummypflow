@@ -1,8 +1,8 @@
-﻿using LLama.Batched;
+﻿using System.Collections.Concurrent;
+using LLama.Batched;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 
-namespace ProseFlow.Infrastructure.Services.AiProviders;
+namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 /// <summary>
 /// Manages active, stateful Conversation instances for the local provider.
@@ -19,6 +19,15 @@ public class LocalSessionService(
     /// <returns>A new Guid representing the session, or null if the model is not loaded.</returns>
     public Guid? StartSession()
     {
+        if (modelManager.Status == ModelStatus.Loading)
+        {
+            logger.LogInformation("Waiting for local model to finish loading before creating a new session.");
+            while (modelManager.Status == ModelStatus.Loading)
+            {
+                Thread.Sleep(100);
+            }
+        }
+        
         if (!modelManager.IsLoaded || modelManager.Executor is null)
         {
             logger.LogError("Cannot start a new session because the local model's BatchedExecutor is not available.");

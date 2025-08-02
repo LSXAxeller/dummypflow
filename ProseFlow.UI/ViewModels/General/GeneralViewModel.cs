@@ -9,12 +9,13 @@ using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
+using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.ViewModels.General;
 
-public partial class GeneralViewModel(SettingsService settingsService, ActionManagementService actionService) : ViewModelBase
+public partial class GeneralViewModel(SettingsService settingsService, ActionManagementService actionService, IOsService osService) : ViewModelBase
 {
     public override string Title => "Settings";
     public override string Icon => "\uE158";
@@ -71,6 +72,8 @@ public partial class GeneralViewModel(SettingsService settingsService, ActionMan
     private async Task SaveAsync()
     {
         if (Settings is null) return;
+        osService.SetLaunchAtLogin(Settings.LaunchAtLogin);
+        osService.UpdateHotkeys(Settings.ActionMenuHotkey, Settings.SmartPasteHotkey);
         await settingsService.SaveGeneralSettingsAsync(Settings);
         AppEvents.RequestNotification("Settings saved successfully, please restart the application.", NotificationType.Success);
     }

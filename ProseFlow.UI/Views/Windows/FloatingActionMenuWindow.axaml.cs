@@ -28,12 +28,6 @@ public partial class FloatingActionMenuWindow : Window
         SearchBox.Focus();
     }
 
-    private void OnWindowLostFocus(object? sender, RoutedEventArgs e)
-    {
-        // Automatically close the window if the user clicks away
-        Close();
-    }
-
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is not FloatingActionMenuViewModel vm) return;
@@ -46,7 +40,7 @@ public partial class FloatingActionMenuWindow : Window
                 break;
             case Key.Enter:
                 vm.ConfirmSelectionCommand.Execute(null);
-                e.Handled = true; // Prevent default behavior
+                e.Handled = true;
                 Close();
                 break;
             case Key.Up:
@@ -62,14 +56,6 @@ public partial class FloatingActionMenuWindow : Window
 
     private void WindowBase_OnDeactivated(object? sender, EventArgs e)
     {
-        Close();
-    }
-
-    private void InputElement_OnPointerPressed(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not FloatingActionMenuViewModel vm || sender is not Button button) return;
-        vm.SelectActionCommand.Execute(button.CommandParameter);
-        e.Handled = true;
         Close();
     }
 }

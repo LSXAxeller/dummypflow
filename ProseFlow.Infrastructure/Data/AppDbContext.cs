@@ -12,13 +12,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ProviderSettings> ProviderSettings { get; set; }
     public DbSet<CloudProviderConfiguration> CloudProviderConfigurations { get; set; }
     public DbSet<HistoryEntry> History { get; set; }
+    public DbSet<UsageStatistic> UsageStatistics { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
         // Configure singleton settings tables by seeding them with a default entity.
-        // This ensures we can always query for the single settings row using Id = 1.
         modelBuilder.Entity<GeneralSettings>().HasData(new GeneralSettings { Id = 1 });
         // The seed data for ProviderSettings is now simpler.
         modelBuilder.Entity<ProviderSettings>().HasData(new ProviderSettings { Id = 1 });
@@ -32,5 +32,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 // Convert JSON string back to List<string> when reading
                 jsonString => JsonSerializer.Deserialize<List<string>>(jsonString, (JsonSerializerOptions?)null) ??
                               new List<string>());
+        
+        // Ensure Year and Month are a unique combination for usage statistics.
+        modelBuilder.Entity<UsageStatistic>()
+            .HasIndex(u => new { u.Year, u.Month })
+            .IsUnique();
     }
 }

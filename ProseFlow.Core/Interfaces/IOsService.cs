@@ -11,11 +11,18 @@ public interface IOsService : IDisposable
     event Action? SmartPasteHotkeyPressed;
     
     /// <summary>
-    /// Starts the global hook and begins listening for hotkey events.
+    /// Starts the global hook and begins listening for raw keyboard events.
+    /// </summary>
+    Task StartHookAsync();
+
+    /// <summary>
+    /// Updates the specific key combinations the service is listening for.
+    /// This can be called at any time to change hotkeys without restarting the hook.
     /// </summary>
     /// <param name="actionMenuHotkey">The hotkey string for the action menu (e.g., "Ctrl+J").</param>
     /// <param name="smartPasteHotkey">The hotkey string for smart paste (e.g., "Ctrl+Shift+V").</param>
-    Task StartHook(string actionMenuHotkey, string smartPasteHotkey);
+    void UpdateHotkeys(string actionMenuHotkey, string smartPasteHotkey);
+
 
     /// <summary>
     /// Asynchronously retrieves the text currently selected by the user in the foreground application.
@@ -33,4 +40,10 @@ public interface IOsService : IDisposable
     /// Asynchronously gets the process name of the currently active foreground window.
     /// </summary>
     Task<string> GetActiveWindowProcessNameAsync();
+
+    /// <summary>
+    /// Sets the launch at login preference for the application.
+    /// </summary>
+    /// <param name="isEnabled">True to enable launch at login, false to disable.</param>
+    void SetLaunchAtLogin(bool isEnabled);
 }

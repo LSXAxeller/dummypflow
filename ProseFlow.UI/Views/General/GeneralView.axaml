@@ -64,13 +64,6 @@
                             GotFocus="HotkeyBox_OnGotFocus"
                             LostFocus="HotkeyBox_OnLostFocus" />
                     </StackPanel>
-                    
-                    <shadui:Card.Footer>
-                        <StackPanel Spacing="16">
-                            
-                            <TextBlock Text="Requires a restart to take effect." />
-                        </StackPanel>
-                    </shadui:Card.Footer>
                 </shadui:Card>
 
                 <!-- Behavior Settings Card -->

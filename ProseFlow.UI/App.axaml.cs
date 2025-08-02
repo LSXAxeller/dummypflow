@@ -21,11 +21,11 @@ using ProseFlow.UI.ViewModels.Windows;
 using ProseFlow.UI.Views.Windows;
 using System;
 using System.IO;
-using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
-using ProseFlow.Application.DTOs;
-using ProseFlow.Core.Models;
+using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
 using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
 using Serilog;
@@ -45,24 +45,57 @@ public class App : Avalonia.Application
     public override async void OnFrameworkInitializationCompleted()
     {
         Services = ConfigureServices();
-
+        
         // Ensure database is created and migrated on startup
         await using (var scope = Services.CreateAsyncScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await dbContext.Database.MigrateAsync();
         }
+        
+        var usageTrackingService = Services.GetRequiredService<UsageTrackingService>();
+        await usageTrackingService.InitializeAsync();
 
+        var settingsService = Services.GetRequiredService<SettingsService>();
+
+        // Check for local model on startup
+        await using (var scope = Services.CreateAsyncScope())
+        {
+            var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<App>>();
+            
+            try
+            {
+                var providerSettings = await settingsService.GetProviderSettingsAsync();
+                if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
+                {
+                    if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) || !File.Exists(providerSettings.LocalModelPath))
+                    {
+                        logger.LogWarning("Auto-load skipped: Local model path is not configured or file does not exist.");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Attempting to auto-load local model on startup...");
+                        if (!Design.IsDesignMode) // Don't auto-load model in design mode
+                            _ = modelManager.LoadModelAsync(providerSettings);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred during the local model auto-load check.");
+            }
+        }
+        
         // Initialize and start background services
         var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
         orchestrationService.Initialize();
 
         // Subscribe UI handlers to application-layer events
         var osService = Services.GetRequiredService<IOsService>();
-        var settingsService = Services.GetRequiredService<SettingsService>();
         var generalSettings = await settingsService.GetGeneralSettingsAsync();
-        _ = osService.StartHook(generalSettings.ActionMenuHotkey,
-            generalSettings.SmartPasteHotkey);
+        _ = osService.StartHookAsync();
+        osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
 
         SubscribeToAppEvents();
 
@@ -155,6 +188,7 @@ public class App : Avalonia.Application
             options.UseSqlite($"Data Source={Path.Combine(proseFlowDataPath, "proseflow.db")}"));
 
         services.AddSingleton<ApiKeyProtector>();
+        services.AddSingleton<UsageTrackingService>();
         services.AddSingleton<LocalModelManagerService>();
         services.AddSingleton<LocalSessionService>();
         services.AddSingleton<IAiProvider, CloudProvider>();

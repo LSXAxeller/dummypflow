@@ -47,8 +47,9 @@
 
                 <TextBox
                     shadui:ControlAssist.Label="Icon Path"
+                    shadui:ControlAssist.Hint="Provide an icon path, raw SVG path data (e.g., `M12 2L...`), or the full XML content of an SVG file, leave empty for default."
                     Text="{Binding Action.Icon}"
-                    Watermark="avares://ProseFlow.UI/Assets/Icons/..." />
+                    Watermark="SVG path (e.g., M5 5h14v14h-14z) / avares://.../icon.svg" />
 
                 <TextBox
                     shadui:ControlAssist.Label="Application Context (Optional)"

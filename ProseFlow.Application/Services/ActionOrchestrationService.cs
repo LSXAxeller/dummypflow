@@ -8,6 +8,7 @@ using ProseFlow.Application.DTOs;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.AiProviders;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 namespace ProseFlow.Application.Services;
 
@@ -175,7 +176,7 @@ public class ActionOrchestrationService : IDisposable
                 // Call provider with the initial history [system, user]
                 var output = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
 
-                await LogToHistoryAsync(request.ActionToExecute.Name, provider.Name, initialUserContent, output);
+                await LogToHistoryAsync(request.ActionToExecute.Name, nameof(provider.Type), initialUserContent, output);
                 await _osService.PasteTextAsync(output);
             }
 
@@ -190,7 +191,6 @@ public class ActionOrchestrationService : IDisposable
             // Provide a user-friendly message but log the detailed exception for debugging.
             var displayMessage = ex is InvalidOperationException ? ex.Message : "An unexpected error occurred.";
             AppEvents.RequestNotification($"Error: {displayMessage}", NotificationType.Error);
-            Debug.WriteLine($"[ERROR] Processing failed: {ex}");
         }
         finally
         {

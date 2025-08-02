@@ -1,8 +1,18 @@
-﻿using ProseFlow.Core.Interfaces;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using ProseFlow.Core.Interfaces;
 using SharpHook;
 using TextCopy;
+using Action = System.Action;
 using EventMask = SharpHook.Data.EventMask;
 using KeyCode = SharpHook.Data.KeyCode;
+
+#if WINDOWS
+using Microsoft.Win32;
+using ProseFlow.Core.Models;
+#endif
 #if LINUX
 using X11;
 #endif
@@ -27,13 +37,16 @@ public sealed class OsService : IOsService
     public event Action? ActionMenuHotkeyPressed;
     public event Action? SmartPasteHotkeyPressed;
 
-    public Task StartHook(string actionMenuHotkey, string smartPasteHotkey)
+    public Task StartHookAsync()
+    {
+        _hook.KeyPressed += OnKeyPressed;
+        return _hook.RunAsync();
+    }
+    
+    public void UpdateHotkeys(string actionMenuHotkey, string smartPasteHotkey)
     {
         _actionMenuCombination = ParseHotkeyStringToSharpHook(actionMenuHotkey);
         _smartPasteCombination = ParseHotkeyStringToSharpHook(smartPasteHotkey);
-
-        _hook.KeyPressed += OnKeyPressed;
-        return _hook.RunAsync();
     }
 
     private void OnKeyPressed(object? sender, KeyboardHookEventArgs e)
@@ -43,13 +56,17 @@ public sealed class OsService : IOsService
 
         // Normalize the pressed modifiers to their generic equivalents.
         var normalizedModifiers = EventMask.None;
-        if (rawModifiers.HasFlag(EventMask.LeftCtrl) || rawModifiers.HasFlag(EventMask.RightCtrl)) normalizedModifiers |= EventMask.Ctrl;
-        if (rawModifiers.HasFlag(EventMask.LeftShift) || rawModifiers.HasFlag(EventMask.RightShift)) normalizedModifiers |= EventMask.Shift;
-        if (rawModifiers.HasFlag(EventMask.LeftAlt) || rawModifiers.HasFlag(EventMask.RightAlt)) normalizedModifiers |= EventMask.Alt;
-        if (rawModifiers.HasFlag(EventMask.LeftMeta) || rawModifiers.HasFlag(EventMask.RightMeta)) normalizedModifiers |= EventMask.Meta;
+        if (rawModifiers.HasFlag(EventMask.LeftCtrl) || rawModifiers.HasFlag(EventMask.RightCtrl))
+            normalizedModifiers |= EventMask.Ctrl;
+        if (rawModifiers.HasFlag(EventMask.LeftShift) || rawModifiers.HasFlag(EventMask.RightShift))
+            normalizedModifiers |= EventMask.Shift;
+        if (rawModifiers.HasFlag(EventMask.LeftAlt) || rawModifiers.HasFlag(EventMask.RightAlt))
+            normalizedModifiers |= EventMask.Alt;
+        if (rawModifiers.HasFlag(EventMask.LeftMeta) || rawModifiers.HasFlag(EventMask.RightMeta))
+            normalizedModifiers |= EventMask.Meta;
 
         // Now compare the normalized modifiers with the parsed configuration.
-        
+
         // Check for Action Menu Hotkey
         if (currentKey == _actionMenuCombination.key && normalizedModifiers == _actionMenuCombination.modifiers)
             ActionMenuHotkeyPressed?.Invoke();
@@ -65,7 +82,7 @@ public sealed class OsService : IOsService
 
         // Clear clipboard temporarily to reliably detect if copy worked
         await ClipboardService.SetTextAsync(string.Empty);
-        
+
         await SimulateCopyKeyPressAsync();
 
         // Give the OS and target application a moment to process the copy command.
@@ -87,10 +104,10 @@ public sealed class OsService : IOsService
     public async Task PasteTextAsync(string text)
     {
         var originalClipboardText = await ClipboardService.GetTextAsync();
-        
+
         await ClipboardService.SetTextAsync(text);
         await SimulatePasteKeyPressAsync();
-        
+
         // Give the OS a moment to process the paste, then restore the clipboard.
         await Task.Delay(150);
         if (originalClipboardText != null)
@@ -109,6 +126,17 @@ public sealed class OsService : IOsService
         return Task.FromResult(GetActiveWindowProcessName_MacOS());
 #else
         return Task.FromResult("unknown");
+#endif
+    }
+
+    public void SetLaunchAtLogin(bool isEnabled)
+    {
+#if WINDOWS
+        SetLaunchAtLogin_Windows(isEnabled);
+#elif OSX
+    SetLaunchAtLogin_MacOS(isEnabled);
+#elif LINUX
+    SetLaunchAtLogin_Linux(isEnabled);
 #endif
     }
 
@@ -171,13 +199,15 @@ public sealed class OsService : IOsService
                 default:
                     // The last non-modifier part is assumed to be the key.
                     // SharpHook uses "Vc" prefix for keycodes (e.g., VcJ for 'J').
-                    if (!Enum.TryParse<KeyCode>($"Vc{part}", true, out key))
+                    if (!Enum.TryParse($"Vc{part}", true, out key))
                     {
                         key = KeyCode.VcUndefined;
                     }
+
                     break;
             }
         }
+
         return (key, modifiers);
     }
 
@@ -186,33 +216,32 @@ public sealed class OsService : IOsService
     #region Platform-Specific Active Window Detection
 
 #if WINDOWS
-    [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
-    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
-    
+    [DllImport("user32.dll")]
+    private static extern nint GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
+
     private string GetActiveWindowProcessName_Windows()
     {
         try
         {
-            nint hwnd = GetForegroundWindow();
-            _ = GetWindowThreadProcessId(hwnd, out uint pid);
+            var hwnd = GetForegroundWindow();
+            _ = GetWindowThreadProcessId(hwnd, out var pid);
             var process = Process.GetProcessById((int)pid);
             return process.MainModule?.ModuleName ?? process.ProcessName;
         }
-        catch { return "unknown.exe"; }
+        catch
+        {
+            return "unknown.exe";
+        }
     }
 #endif
 
 #if LINUX
     /// <summary>
-    /// Gets the active window's TITLE on Linux using X11.
+    /// Gets the active window's title on Linux using X11.
     /// </summary>
-    /// <remarks>
-    /// This implementation is limited by the `X11` NuGet package (v1.0.6), which does not expose
-    /// functions like `XGetWindowProperty` or `XGetClassHint`. Therefore, we cannot get the
-    /// actual process name or WM_CLASS. Instead, we retrieve the window title (`WM_NAME`)
-    /// using `XFetchName`, which is a reasonable fallback.
-    /// This method requires the `X11` NuGet package.
-    /// </remarks>
     private string GetActiveWindowProcessName_Linux()
     {
         var display = Xlib.XOpenDisplay(null);
@@ -230,7 +259,7 @@ public sealed class OsService : IOsService
 
             if (focus == Window.None)
                 return "unknown";
-            
+
             var windowName = string.Empty;
             // XFetchName returns Status.Success (1) on success.
             if (Xlib.XFetchName(display, focus, ref windowName) != 0 && !string.IsNullOrEmpty(windowName))
@@ -255,6 +284,123 @@ public sealed class OsService : IOsService
     {
         var foregroundApp = NSWorkspace.SharedWorkspace.FrontmostApplication;
         return foregroundApp.LocalizedName;
+    }
+#endif
+
+    #endregion
+
+    #region Platform-Specific Launch At Login
+
+#if WINDOWS
+    [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
+    private void SetLaunchAtLogin_Windows(bool isEnabled)
+    {
+        try
+        {
+            const string registryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            using var key = Registry.CurrentUser.OpenSubKey(registryKeyPath, true)
+                            ?? Registry.CurrentUser.CreateSubKey(registryKeyPath);
+
+            var appPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(appPath)) return;
+
+            if (isEnabled)
+                key.SetValue(Constants.AppName, $"\"{appPath}\"");
+            else
+                key.DeleteValue(Constants.AppName, false);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Failed to set startup registry key: {ex.Message}");
+        }
+    }
+#endif
+
+
+#if OSX
+    private void SetLaunchAtLogin_MacOS(bool isEnabled)
+    {
+        try
+        {
+            var launchAgentsDir =
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library",
+                    "LaunchAgents");
+            var plistFile = Path.Combine(launchAgentsDir, "com.proseflow.app.plist");
+
+            Directory.CreateDirectory(launchAgentsDir);
+
+            if (isEnabled)
+            {
+                var appPath = Assembly.GetExecutingAssembly().Location;
+                // For .app bundles, the path points inside, we need the path to the bundle itself.
+                var bundleIndex = appPath.IndexOf(".app/", StringComparison.OrdinalIgnoreCase);
+                if (bundleIndex != -1) appPath = appPath[..(bundleIndex + 4)];
+
+                var plistContent = $"""
+                                    <?xml version="1.0" encoding="UTF-8"?>
+                                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                                    <plist version="1.0">
+                                    <dict>
+                                        <key>Label</key>
+                                        <string>com.proseflow.app</string>
+                                        <key>ProgramArguments</key>
+                                        <array>
+                                            <string>{appPath}</string>
+                                        </array>
+                                        <key>RunAtLoad</key>
+                                        <true/>
+                                    </dict>
+                                    </plist>
+                                    """;
+                File.WriteAllText(plistFile, plistContent);
+            }
+            else
+            {
+                if (File.Exists(plistFile)) File.Delete(plistFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Failed to set macOS launch agent: {ex.Message}");
+        }
+    }
+#endif
+
+#if LINUX
+    private void SetLaunchAtLogin_Linux(bool isEnabled)
+    {
+        try
+        {
+            var autostartDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "autostart");
+            var desktopFile = Path.Combine(autostartDir, "proseflow.desktop");
+
+            Directory.CreateDirectory(autostartDir);
+
+            if (isEnabled)
+            {
+                var appPath = Environment.ProcessPath;
+                if (string.IsNullOrWhiteSpace(appPath)) return;
+
+                var desktopContent = $"""
+                                      [Desktop Entry]
+                                      Type=Application
+                                      Name={Constants.AppName}
+                                      Exec={appPath}
+                                      Icon=proseflow
+                                      Comment=AI-Powered Writing Assistant
+                                      X-GNOME-Autostart-enabled=true
+                                      """;
+                File.WriteAllText(desktopFile, desktopContent);
+            }
+            else
+            {
+                if (File.Exists(desktopFile)) File.Delete(desktopFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Failed to set Linux autostart file: {ex.Message}");
+        }
     }
 #endif
 
