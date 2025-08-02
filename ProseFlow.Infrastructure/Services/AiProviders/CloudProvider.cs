@@ -16,8 +16,9 @@ namespace ProseFlow.Infrastructure.Services.AiProviders;
 public class CloudProvider(CloudProviderManagementService providerService) : IAiProvider
 {
     public string Name => "Cloud";
+    public ProviderType Type => ProviderType.Cloud;
 
-    public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken)
+    public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
     {
         var enabledConfigs = (await providerService.GetConfigurationsAsync())
             .Where(c => c.IsEnabled)
@@ -85,7 +86,7 @@ public class CloudProvider(CloudProviderManagementService providerService) : IAi
     {
         return providerType switch
         {
-            ProviderType.OpenAI => LLmProviders.OpenAi,
+            ProviderType.OpenAi => LLmProviders.OpenAi,
             ProviderType.Groq => LLmProviders.Groq,
             ProviderType.Anthropic => LLmProviders.Anthropic,
             ProviderType.Google => LLmProviders.Google,

@@ -5,7 +5,9 @@ using ProseFlow.Core.Interfaces;
 using ProseFlow.Infrastructure.Data;
 using System.Diagnostics;
 using ProseFlow.Application.DTOs;
+using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
+using ProseFlow.Infrastructure.Services.AiProviders;
 
 namespace ProseFlow.Application.Services;
 
@@ -14,13 +16,15 @@ public class ActionOrchestrationService : IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOsService _osService;
     private readonly IReadOnlyDictionary<string, IAiProvider> _providers;
+    private readonly LocalSessionService _localSessionService;
+
 
     public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IOsService osService,
-        IEnumerable<IAiProvider> providers)
+        IEnumerable<IAiProvider> providers, LocalSessionService localSessionService)
     {
         _scopeFactory = scopeFactory;
         _osService = osService;
-        // Create a dictionary for easy provider lookup by name
+        _localSessionService = localSessionService;
         _providers = providers.ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -85,6 +89,9 @@ public class ActionOrchestrationService : IDisposable
         var stopwatch = Stopwatch.StartNew();
         AppEvents.RequestNotification("Processing...", NotificationType.Info);
 
+        // Local stateful session ID (If local provider is used)
+        Guid? localSessionId = null; 
+        
         try
         {
             var userInput = await _osService.GetSelectedTextAsync();
@@ -119,9 +126,20 @@ public class ActionOrchestrationService : IDisposable
                         AppEvents.RequestNotification("No valid AI provider configured.", NotificationType.Error);
                         return;
                     }
+                    
+                    if ((provider.Type == ProviderType.Local || provider.Name == "Local") && localSessionId is null)
+                    {
+                        // If this is the first turn in a windowed local session. Create a new session.
+                        localSessionId = _localSessionService.StartSession();
+                        if (localSessionId is null)
+                        {
+                            AppEvents.RequestNotification("Failed to start a local model session.", NotificationType.Error);
+                            return;
+                        }
+                    }
 
                     // Call the provider with the entire conversation history
-                    var aiOutput = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
+                    var aiOutput = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
 
                     // Add the provider's response to the history for the next turn
                     conversationHistory.Add(new ChatMessage("assistant", aiOutput));
@@ -174,6 +192,11 @@ public class ActionOrchestrationService : IDisposable
             AppEvents.RequestNotification($"Error: {displayMessage}", NotificationType.Error);
             Debug.WriteLine($"[ERROR] Processing failed: {ex}");
         }
+        finally
+        {
+            // Clean up the stateful session if one was created.
+            if (localSessionId.HasValue) _localSessionService.EndSession(localSessionId.Value);
+        }
     }
 
     private (string MainOutput, string? Explanation) ParseOutput(string rawOutput, bool expectExplanation)
@@ -191,16 +214,16 @@ public class ActionOrchestrationService : IDisposable
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var settings = await dbContext.ProviderSettings.AsNoTracking().FirstAsync();
 
-        // 1. Handle runtime user override from the Floating Action Menu
+        // Handle runtime user override from the Floating Action Menu
         if (!string.IsNullOrWhiteSpace(providerOverride) &&
             _providers.TryGetValue(providerOverride, out var overriddenProvider))
             return overriddenProvider;
 
-        // 2. Use the primary service type from settings
+        // Use the primary service type from settings
         if (_providers.TryGetValue(settings.PrimaryServiceType, out var primaryProvider))
             return primaryProvider;
 
-        // 3. Use the fallback service type if primary fails
+        // Use the fallback service type if primary fails
         if (!_providers.TryGetValue(settings.FallbackServiceType, out var fallbackProvider)) return null;
         
         AppEvents.RequestNotification($"Primary service type '{settings.PrimaryServiceType}' not available. Using fallback.",

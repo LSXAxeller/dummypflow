@@ -17,7 +17,7 @@ public class CloudProviderConfiguration
     /// <summary>
     /// The type of the provider, which determines how to interact with its API.
     /// </summary>
-    public ProviderType ProviderType { get; set; } = ProviderType.OpenAI;
+    public ProviderType ProviderType { get; set; } = ProviderType.OpenAi;
 
     /// <summary>
     /// Whether this provider configuration is active and can be used in the fallback chain.

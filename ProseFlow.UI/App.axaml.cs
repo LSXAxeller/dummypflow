@@ -23,9 +23,12 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
 using ProseFlow.Application.DTOs;
+using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
+using Serilog;
 using ShadUI;
 
 namespace ProseFlow.UI;
@@ -103,7 +106,8 @@ public class App : Avalonia.Application
 
         AppEvents.ShowFloatingMenuRequested += async (actions, context) =>
         {
-            var viewModel = new FloatingActionMenuViewModel(actions, context);
+            var providerSettings = await Services.GetRequiredService<SettingsService>().GetProviderSettingsAsync();
+            var viewModel = new FloatingActionMenuViewModel(actions, providerSettings, context);
             Dispatcher.UIThread.Post(() =>
             {
                 var window = new FloatingActionMenuWindow
@@ -126,6 +130,23 @@ public class App : Avalonia.Application
         var proseFlowDataPath = Path.Combine(appDataPath, "ProseFlow");
         Directory.CreateDirectory(proseFlowDataPath);
 
+        var logPath = Path.Combine(proseFlowDataPath, "logs", "proseflow-.log");
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+#if DEBUG
+            .WriteTo.Debug()
+            .WriteTo.Console()
+#endif
+            .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+
+        services.AddLogging(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddSerilog(dispose: true);
+        });
+        
         services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(proseFlowDataPath, "keys")))
             .SetApplicationName("ProseFlow");
@@ -134,6 +155,8 @@ public class App : Avalonia.Application
             options.UseSqlite($"Data Source={Path.Combine(proseFlowDataPath, "proseflow.db")}"));
 
         services.AddSingleton<ApiKeyProtector>();
+        services.AddSingleton<LocalModelManagerService>();
+        services.AddSingleton<LocalSessionService>();
         services.AddSingleton<IAiProvider, CloudProvider>();
         services.AddSingleton<IAiProvider, LocalProvider>();
         services.AddSingleton<IOsService, OsService>();

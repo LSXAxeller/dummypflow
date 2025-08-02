@@ -7,6 +7,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
+using ProseFlow.Core.Models;
 using ProseFlow.UI.ViewModels.Actions;
 using Action = ProseFlow.Core.Models.Action;
 
@@ -28,7 +29,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     public ObservableCollection<ActionItemViewModel> AllActions { get; } = [];
     public ObservableCollection<ActionItemViewModel> FilteredActions { get; } = [];
 
-    public FloatingActionMenuViewModel(IEnumerable<Action> availableActions, string activeAppContext)
+    public FloatingActionMenuViewModel(IEnumerable<Action> availableActions, ProviderSettings providerSettings, string activeAppContext)
     {
         foreach (var action in availableActions)
         {
@@ -37,6 +38,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         
         FilterActions();
         SelectedAction = FilteredActions.FirstOrDefault();
+        CurrentServiceTypeName = providerSettings.PrimaryServiceType;
     }
 
     public Task<ActionExecutionRequest?> WaitForSelectionAsync() => _selectionTcs.Task;

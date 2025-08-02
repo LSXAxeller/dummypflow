@@ -1,45 +1,119 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
+using ProseFlow.Infrastructure.Services.AiProviders;
 using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Views.Providers;
 
 namespace ProseFlow.UI.ViewModels.Providers;
 
-public partial class ProvidersViewModel(
-    SettingsService settingsService,
-    CloudProviderManagementService providerService,
-    IDialogService dialogService) : ViewModelBase
+public partial class ProvidersViewModel : ViewModelBase, IDisposable
 {
+    private readonly SettingsService _settingsService;
+    private readonly CloudProviderManagementService _providerService;
+    private readonly IDialogService _dialogService;
+    private readonly LocalModelManagerService _modelManager;
+
     public override string Title => "Providers";
     public override string Icon => "\uE157";
     
     [ObservableProperty]
     private ProviderSettings? _settings;
+    
+    [ObservableProperty]
+    private ModelStatus _managerStatus;
+    [ObservableProperty]
+    private string? _managerErrorMessage;
+    [ObservableProperty]
+    private bool _isManagerLoaded;
 
     public ObservableCollection<CloudProviderConfiguration> CloudProviders { get; } = [];
     
     public List<string> AvailableServiceTypes => ["Cloud", "Local"];
     public List<string> AvailableFallbackServiceTypes => ["Cloud", "Local", "None"];
 
+    [ObservableProperty]
+    private float _localTemp;
+    
+    [ObservableProperty]
+    private int _localContextSize;
+    
+    [ObservableProperty]
+    private int _localMaxTokens;
+    
+    [ObservableProperty]
+    private string _localModelPath = string.Empty;
+
+    public ProvidersViewModel(
+        SettingsService settingsService,
+        CloudProviderManagementService providerService,
+        IDialogService dialogService,
+        LocalModelManagerService modelManager)
+    {
+        _settingsService = settingsService;
+        _providerService = providerService;
+        _dialogService = dialogService;
+        _modelManager = modelManager;
+        
+        // Subscribe to the event from the infrastructure service
+        _modelManager.StateChanged += OnManagerStateChanged;
+        // Set initial state
+        OnManagerStateChanged();
+    }
+    
+    private void OnManagerStateChanged()
+    {
+        // UI updates must be dispatched to the UI thread.
+        Dispatcher.UIThread.Post(() =>
+        {
+            ManagerStatus = _modelManager.Status;
+            ManagerErrorMessage = _modelManager.ErrorMessage;
+            IsManagerLoaded = _modelManager.IsLoaded;
+        });
+    }
+
+    partial void OnLocalTempChanged(float value)
+    {
+        if (Settings is null) return;
+        Settings.LocalModelTemperature = value;
+    }
+    
+    partial void OnLocalContextSizeChanged(int value)
+    {
+        if (Settings is null) return;
+        Settings.LocalModelContextSize = value;
+    }
+    
+    partial void OnLocalMaxTokensChanged(int value)
+    {
+        if (Settings is null) return;
+        Settings.LocalModelMaxTokens = value;
+    }
+
     public override async Task OnNavigatedToAsync()
     {
-        Settings = await settingsService.GetProviderSettingsAsync();
+        Settings = await _settingsService.GetProviderSettingsAsync();
+        LocalTemp = Settings.LocalModelTemperature;
+        LocalContextSize = Settings.LocalModelContextSize;
+        LocalMaxTokens = Settings.LocalModelMaxTokens;
+        LocalModelPath = Settings.LocalModelPath;
         await LoadCloudProvidersAsync();
     }
     
     private async Task LoadCloudProvidersAsync()
     {
         CloudProviders.Clear();
-        var providers = await providerService.GetConfigurationsAsync();
+        var providers = await _providerService.GetConfigurationsAsync();
         foreach (var provider in providers)
         {
             CloudProviders.Add(provider);
@@ -47,12 +121,35 @@ public partial class ProvidersViewModel(
     }
 
     [RelayCommand]
+    private async Task BrowseForModelAsync()
+    {
+        var filePath = await _dialogService.ShowOpenFileDialogAsync("Select Local Model", "GGUF files", "*.gguf");
+        if (string.IsNullOrWhiteSpace(filePath) || Settings is null) return;
+
+        Settings.LocalModelPath = filePath;
+        LocalModelPath = filePath;
+    }
+    
+    [RelayCommand]
+    private async Task LoadLocalModelAsync()
+    {
+        if (Settings is null) return;
+        await _modelManager.LoadModelAsync(Settings);
+    }
+    
+    [RelayCommand]
+    private void UnloadLocalModel()
+    {
+        _modelManager.UnloadModel();
+    }
+    
+    [RelayCommand]
     private async Task AddProviderAsync()
     {
         if (Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null) return;
 
         var newConfig = new CloudProviderConfiguration { Name = "New Provider", Model = "gpt-4o" };
-        var editorViewModel = new CloudProviderEditorViewModel(newConfig, providerService);
+        var editorViewModel = new CloudProviderEditorViewModel(newConfig, _providerService);
         
         // TODO:This is a temporary way to show the dialog until IDialogService is updated for this new view
         var editorWindow = new CloudProviderEditorView { DataContext = editorViewModel };
@@ -66,7 +163,7 @@ public partial class ProvidersViewModel(
     {
         if (config is null || Avalonia.Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null) return;
         
-        var editorViewModel = new CloudProviderEditorViewModel(config, providerService);
+        var editorViewModel = new CloudProviderEditorViewModel(config, _providerService);
         var editorWindow = new CloudProviderEditorView { DataContext = editorViewModel };
         
         var result = await editorWindow.ShowDialog<bool>(desktop.MainWindow);
@@ -78,11 +175,11 @@ public partial class ProvidersViewModel(
     {
         if (config is null) return;
 
-        dialogService.ShowConfirmationDialogAsync("Delete Provider",
+        _dialogService.ShowConfirmationDialogAsync("Delete Provider",
             $"Are you sure you want to delete '{config.Name}'?",
             async () =>
             {
-                await providerService.DeleteConfigurationAsync(config.Id);
+                await _providerService.DeleteConfigurationAsync(config.Id);
                 await LoadCloudProvidersAsync();
             });
     }
@@ -101,15 +198,21 @@ public partial class ProvidersViewModel(
         CloudProviders.Move(oldIndex, newIndex);
 
         // Persist the new order to the database.
-        await providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
+        await _providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
     }
 
     [RelayCommand]
     private async Task SaveAsync()
     {
         if (Settings is null) return;
-        await providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
-        await settingsService.SaveProviderSettingsAsync(Settings);
+        await _providerService.UpdateConfigurationOrderAsync(CloudProviders.ToList());
+        await _settingsService.SaveProviderSettingsAsync(Settings);
         AppEvents.RequestNotification("Provider settings saved successfully.", NotificationType.Success);
+    }
+
+    public void Dispose()
+    {
+        _modelManager.StateChanged -= OnManagerStateChanged;
+        GC.SuppressFinalize(this);
     }
 }
