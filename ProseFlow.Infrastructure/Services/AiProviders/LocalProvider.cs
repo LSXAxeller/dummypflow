@@ -4,6 +4,7 @@ using LLama.Batched;
 using LLama.Sampling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
@@ -19,16 +20,15 @@ namespace ProseFlow.Infrastructure.Services.AiProviders;
 public class LocalProvider(
     ILogger<LocalProvider> logger,
     LocalModelManagerService modelManager,
-    LocalSessionService sessionService,
-    IDbContextFactory<AppDbContext> dbContextFactory) : IAiProvider
+    ILocalSessionService sessionService,
+    IUnitOfWork unitOfWork) : IAiProvider
 {
     public string Name => "Local";
     public ProviderType Type => ProviderType.Local;
 
     public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
     {
-        await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var settings = await dbContext.ProviderSettings.FindAsync([1], cancellationToken: cancellationToken)
+        var settings = await unitOfWork.Settings.GetProviderSettingsAsync()
                        ?? throw new InvalidOperationException("Provider settings not found in the database.");
 
         if (!modelManager.IsLoaded || modelManager.Executor is null)
@@ -47,9 +47,9 @@ public class LocalProvider(
         Conversation? conversation;
         bool isTemporarySession;
 
-        if (sessionId.HasValue)
+        if (sessionId.HasValue && sessionService is LocalSessionService localSessionService)
         {
-            conversation = sessionService.GetSession(sessionId.Value);
+            conversation = localSessionService.GetSession(sessionId.Value);
             isTemporarySession = false;
         }
         else

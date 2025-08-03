@@ -1,27 +1,32 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Extensions.Logging;
+using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
-using ProseFlow.Infrastructure.Data;
 
 namespace ProseFlow.Application.Services;
 
 /// <summary>
 /// Manages loading and saving of global application settings.
-/// This service handles the GeneralSettings and the top-level ProviderSettings entities.
+/// This service handles the GeneralSettings and the local ProviderSettings entities.
 /// </summary>
-public class SettingsService(IDbContextFactory<AppDbContext> dbFactory)
+public class SettingsService(IUnitOfWork unitOfWork, ILogger<SettingsService> logger)
 {
     public async Task<GeneralSettings> GetGeneralSettingsAsync()
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        return await dbContext.GeneralSettings.FindAsync(1)
-               ?? throw new InvalidOperationException("General settings not found in the database.");
+        var generalSettings = await unitOfWork.Settings.GetGeneralSettingsAsync();
+        if (generalSettings == null)
+        {
+            logger.LogError("General settings record not found in the database. Ensure it is seeded.");
+            throw new InvalidOperationException(
+                "General settings record not found in the database. Ensure it is seeded.");
+        }
+
+        return generalSettings;
     }
 
     public async Task SaveGeneralSettingsAsync(GeneralSettings settings)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        dbContext.GeneralSettings.Update(settings);
-        await dbContext.SaveChangesAsync();
+        await unitOfWork.Settings.UpdateGeneralSettingsAsync(settings);
+        await unitOfWork.SaveChangesAsync();
     }
 
     /// <summary>
@@ -31,9 +36,15 @@ public class SettingsService(IDbContextFactory<AppDbContext> dbFactory)
     /// <returns>The ProviderSettings entity.</returns>
     public async Task<ProviderSettings> GetProviderSettingsAsync()
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        return await dbContext.ProviderSettings.FindAsync(1)
-                       ?? throw new InvalidOperationException("Provider settings not found in the database.");
+        var providerSettings = await unitOfWork.Settings.GetProviderSettingsAsync();
+        if (providerSettings == null)
+        {
+            logger.LogError("Provider settings record not found in the database. Ensure it is seeded.");
+            throw new InvalidOperationException(
+                "Provider settings record not found in the database. Ensure it is seeded.");
+        }
+
+        return providerSettings;
     }
 
     /// <summary>
@@ -42,8 +53,7 @@ public class SettingsService(IDbContextFactory<AppDbContext> dbFactory)
     /// <param name="settings">The ProviderSettings entity to save.</param>
     public async Task SaveProviderSettingsAsync(ProviderSettings settings)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        dbContext.ProviderSettings.Update(settings);
-        await dbContext.SaveChangesAsync();
+        await unitOfWork.Settings.UpdateProviderSettingsAsync(settings);
+        await unitOfWork.SaveChangesAsync();
     }
 }

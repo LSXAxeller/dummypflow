@@ -3,9 +3,10 @@ using LlmTornado.Chat;
 using LlmTornado.Code;
 using ProseFlow.Core.Interfaces;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using ProseFlow.Application.Events;
+using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
-using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
-using ProseFlow.Infrastructure.Services.Database;
 using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
@@ -16,7 +17,8 @@ namespace ProseFlow.Infrastructure.Services.AiProviders;
 /// </summary>
 public class CloudProvider(
     CloudProviderManagementService providerService,
-    UsageTrackingService usageService) : IAiProvider
+    UsageTrackingService usageService,
+    ILogger<CloudProvider> logger) : IAiProvider
 {
     public string Name => "Cloud";
     public ProviderType Type => ProviderType.Cloud;
@@ -28,7 +30,10 @@ public class CloudProvider(
             .ToList();
 
         if (enabledConfigs.Count == 0)
+        {
+            AppEvents.RequestNotification("No enabled cloud providers are configured. Please add and enable one in settings.", NotificationType.Warning);
             throw new InvalidOperationException("No enabled cloud providers are configured. Please add and enable one in settings.");
+        }
 
         var authentications = enabledConfigs.Select(config =>
         {
@@ -76,13 +81,12 @@ public class CloudProvider(
             catch (Exception ex)
             {
                 var errorMessage = $"Provider '{config.Name}' failed: {ex.Message}. Trying next provider...";
-                Debug.WriteLine($"[ERROR] {errorMessage}");
-                // TODO: Inform the user about the provider failure
-                // AppEvents.RequestNotification(errorMessage, NotificationType.Warning);
-                // Continue to the next provider in the chain
+                AppEvents.RequestNotification(errorMessage, NotificationType.Warning);
+                logger.LogError(errorMessage);
             }
         }
         
+        logger.LogError("All configured cloud providers failed to return a valid response.");
         throw new InvalidOperationException("All configured cloud providers failed to return a valid response.");
     }
     

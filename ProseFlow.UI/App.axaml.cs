@@ -25,13 +25,13 @@ using Avalonia.Controls;
 using Avalonia.Data.Converters;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
-using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
-using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
 using Serilog;
 using ShadUI;
 using Avalonia.Platform;
+using CommunityToolkit.Mvvm.DependencyInjection;
+using ProseFlow.Application.Interfaces;
 
 namespace ProseFlow.UI;
 
@@ -48,6 +48,8 @@ public class App : Avalonia.Application
     public override async void OnFrameworkInitializationCompleted()
     {
         Services = ConfigureServices();
+        Ioc.Default.ConfigureServices(Services);
+
 
         // Ensure database is created and migrated on startup
         await using (var scope = Services.CreateAsyncScope())
@@ -164,6 +166,9 @@ public class App : Avalonia.Application
         // Define a converter for the menu item header
         var modelStatusToHeaderConverter = new FuncValueConverter<bool, string>(isLoaded =>
             isLoaded ? "Unload Local Model" : "Load Local Model");
+        
+        var providerTypeToHeaderConverter = new FuncValueConverter<string, string>(providerType =>
+            $"Set Primary Provider ({providerType})");
 
         // Build the context menu items
         var openItem = new NativeMenuItem
@@ -216,12 +221,16 @@ public class App : Avalonia.Application
 
         var setProviderSubMenu = new NativeMenuItem
         {
-            Header = "Set Primary Provider",
             Menu = new NativeMenu
             {
                 Items = { cloudProviderItem, localProviderItem }
             }
         };
+        setProviderSubMenu.Bind(NativeMenuItem.HeaderProperty, new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+        {
+            Source = trayVm,
+            Converter = providerTypeToHeaderConverter
+        });
 
         var quitItem = new NativeMenuItem
         {
@@ -322,13 +331,15 @@ public class App : Avalonia.Application
             .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(proseFlowDataPath, "keys")))
             .SetApplicationName("ProseFlow");
 
-        services.AddDbContextFactory<AppDbContext>(options =>
+        services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={Path.Combine(proseFlowDataPath, "proseflow.db")}"));
-
+        
+        // Add Infrastructure Services
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<ApiKeyProtector>();
         services.AddSingleton<UsageTrackingService>();
         services.AddSingleton<LocalModelManagerService>();
-        services.AddSingleton<LocalSessionService>();
+        services.AddSingleton<ILocalSessionService, LocalSessionService>();
         services.AddSingleton<IAiProvider, CloudProvider>();
         services.AddSingleton<IAiProvider, LocalProvider>();
         services.AddSingleton<IOsService, OsService>();

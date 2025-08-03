@@ -1,10 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
-using ProseFlow.Infrastructure.Data;
 
 namespace ProseFlow.Application.Services;
 
-public class HistoryService(IDbContextFactory<AppDbContext> dbFactory)
+public class HistoryService(IUnitOfWork unitOfWork)
 {
     public async Task AddHistoryEntryAsync(string actionName, string providerUsed, string input, string output)
     {
@@ -16,21 +15,18 @@ public class HistoryService(IDbContextFactory<AppDbContext> dbFactory)
             InputText = input,
             OutputText = output
         };
-
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        dbContext.History.Add(entry);
-        await dbContext.SaveChangesAsync();
+        
+        await unitOfWork.History.AddAsync(entry);
+        await unitOfWork.SaveChangesAsync();
     }
 
     public async Task<List<HistoryEntry>> GetHistoryAsync()
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        return await dbContext.History.OrderByDescending(h => h.Timestamp).ToListAsync();
+        return await unitOfWork.History.GetAllOrderedByTimestampAsync();
     }
 
     public async Task ClearHistoryAsync()
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        await dbContext.History.ExecuteDeleteAsync();
+        await unitOfWork.History.ClearAllAsync();
     }
 }

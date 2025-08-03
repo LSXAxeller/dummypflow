@@ -7,7 +7,7 @@ using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
 using System;
 using System.Linq;
-using ProseFlow.Infrastructure.Services.Database;
+using ProseFlow.Application.Services;
 using Window = ShadUI.Window;
 
 namespace ProseFlow.UI.ViewModels.Providers;

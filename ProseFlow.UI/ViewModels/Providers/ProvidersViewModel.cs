@@ -10,10 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
-using ProseFlow.Infrastructure.Services.AiProviders;
-using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
-using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Views.Providers;
 

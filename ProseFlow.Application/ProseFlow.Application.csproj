@@ -8,7 +8,10 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ProseFlow.Core\ProseFlow.Core.csproj" />
-        <ProjectReference Include="..\ProseFlow.Infrastructure\ProseFlow.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
     </ItemGroup>
     
 </Project>

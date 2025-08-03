@@ -1,59 +1,66 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ProseFlow.Application.DTOs;
-using ProseFlow.Infrastructure.Data;
+using ProseFlow.Core.Interfaces;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.Application.Services;
 
-public class ActionManagementService(IDbContextFactory<AppDbContext> dbFactory)
+/// <summary>
+/// Manages CRUD operations and business logic for Actions.
+/// </summary>
+public class ActionManagementService(IUnitOfWork unitOfWork, ILogger<ActionManagementService> logger)
 {
     public async Task<List<Action>> GetActionsAsync()
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        return await dbContext.Actions.OrderBy(a => a.SortOrder).ToListAsync();
+        return await unitOfWork.Actions.GetAllOrderedAsync();
     }
 
     public async Task UpdateActionAsync(Action action)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        dbContext.Actions.Update(action);
-        await dbContext.SaveChangesAsync();
+        var trackedAction = await unitOfWork.Actions.GetByIdAsync(action.Id);
+
+        if (trackedAction is null)
+        {
+            logger.LogWarning("Action with ID {ActionId} not found.", action.Id);
+            throw new InvalidOperationException($"Action with ID {action.Id} not found.");
+        }
+
+        trackedAction.Name = action.Name;
+        trackedAction.Prefix = action.Prefix;
+        trackedAction.Instruction = action.Instruction;
+        trackedAction.Icon = action.Icon;
+        trackedAction.OpenInWindow = action.OpenInWindow;
+        trackedAction.ExplainChanges = action.ExplainChanges;
+        trackedAction.ApplicationContext = action.ApplicationContext;
+        
+        unitOfWork.Actions.Update(trackedAction);
+        await unitOfWork.SaveChangesAsync();
     }
 
     public async Task CreateActionAsync(Action action)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        var maxSortOrder = await dbContext.Actions.AnyAsync()
-            ? await dbContext.Actions.MaxAsync(a => a.SortOrder)
-            : 0;
+        var maxSortOrder = await unitOfWork.Actions.GetMaxSortOrderAsync();
         action.SortOrder = maxSortOrder + 1;
-        dbContext.Actions.Add(action);
-        await dbContext.SaveChangesAsync();
+
+        await unitOfWork.Actions.AddAsync(action);
+        await unitOfWork.SaveChangesAsync();
     }
 
     public async Task DeleteActionAsync(int actionId)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        var action = await dbContext.Actions.FindAsync(actionId);
+        var action = await unitOfWork.Actions.GetByIdAsync(actionId);
         if (action is not null)
         {
-            dbContext.Actions.Remove(action);
-            await dbContext.SaveChangesAsync();
+            unitOfWork.Actions.Delete(action);
+            await unitOfWork.SaveChangesAsync();
         }
     }
 
-
     public async Task UpdateActionOrderAsync(List<Action> orderedActions)
     {
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        for (var i = 0; i < orderedActions.Count; i++)
-        {
-            var actionToUpdate = await dbContext.Actions.FindAsync(orderedActions[i].Id);
-            if (actionToUpdate != null) 
-                actionToUpdate.SortOrder = i;
-        }
-        await dbContext.SaveChangesAsync();
+        await unitOfWork.Actions.UpdateOrderAsync(orderedActions);
+        await unitOfWork.SaveChangesAsync();
     }
 
     public async Task ExportActionsToJsonAsync(string filePath)
@@ -83,9 +90,9 @@ public class ActionManagementService(IDbContextFactory<AppDbContext> dbFactory)
 
         if (actionDtos is null) return;
 
-        await using var dbContext = await dbFactory.CreateDbContextAsync();
-        var existingActionNames = await dbContext.Actions.Select(a => a.Name).ToListAsync();
-        var maxSortOrder = existingActionNames.Count != 0 ? await dbContext.Actions.MaxAsync(a => a.SortOrder) : 0;
+        // Check for duplicates
+        var existingActionNames = await unitOfWork.Actions.GetAllNamesAsync();
+        var maxSortOrder = await unitOfWork.Actions.GetMaxSortOrderAsync();
 
         foreach (var (name, dto) in actionDtos)
         {
@@ -102,8 +109,10 @@ public class ActionManagementService(IDbContextFactory<AppDbContext> dbFactory)
                 ApplicationContext = dto.ApplicationContext,
                 SortOrder = ++maxSortOrder
             };
-            dbContext.Actions.Add(newAction);
+
+            await unitOfWork.Actions.AddAsync(newAction);
         }
-        await dbContext.SaveChangesAsync();
+
+        await unitOfWork.SaveChangesAsync();
     }
 }

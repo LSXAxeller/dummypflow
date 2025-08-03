@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using LLama.Batched;
 using Microsoft.Extensions.Logging;
+using ProseFlow.Application.Interfaces;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 
@@ -9,7 +10,7 @@ namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 /// </summary>
 public class LocalSessionService(
     ILogger<LocalSessionService> logger,
-    LocalModelManagerService modelManager)
+    LocalModelManagerService modelManager) : ILocalSessionService
 {
     private readonly ConcurrentDictionary<Guid, Conversation> _activeSessions = new();
 

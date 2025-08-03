@@ -1,14 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using ProseFlow.Application.Events;
 using ProseFlow.Core.Interfaces;
-using ProseFlow.Infrastructure.Data;
 using System.Diagnostics;
 using ProseFlow.Application.DTOs;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
-using ProseFlow.Infrastructure.Services.AiProviders;
-using ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 namespace ProseFlow.Application.Services;
 
@@ -17,13 +14,15 @@ public class ActionOrchestrationService : IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOsService _osService;
     private readonly IReadOnlyDictionary<string, IAiProvider> _providers;
-    private readonly LocalSessionService _localSessionService;
+    private readonly ILocalSessionService _localSessionService;
+    private readonly IUnitOfWork _unitOfWork;
 
 
-    public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IOsService osService,
-        IEnumerable<IAiProvider> providers, LocalSessionService localSessionService)
+    public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IUnitOfWork unitOfWork, IOsService osService,
+        IEnumerable<IAiProvider> providers, ILocalSessionService localSessionService)
     {
         _scopeFactory = scopeFactory;
+        _unitOfWork = unitOfWork;
         _osService = osService;
         _localSessionService = localSessionService;
         _providers = providers.ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
@@ -37,11 +36,8 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task HandleActionMenuHotkeyAsync()
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
         var activeAppContext = await _osService.GetActiveWindowProcessNameAsync();
-        var allActions = await dbContext.Actions.AsNoTracking().OrderBy(a => a.SortOrder).ToListAsync();
+        var allActions = await _unitOfWork.Actions.GetAllOrderedAsync();
 
         // Filter actions based on context
         var availableActions = allActions
@@ -63,9 +59,7 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task HandleSmartPasteHotkeyAsync()
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var settings = await dbContext.GeneralSettings.AsNoTracking().FirstAsync();
+        var settings = await _unitOfWork.Settings.GetGeneralSettingsAsync();
 
         if (settings.SmartPasteActionId is null)
         {
@@ -73,8 +67,8 @@ public class ActionOrchestrationService : IDisposable
             return;
         }
 
-        var action = await dbContext.Actions.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.Id == settings.SmartPasteActionId);
+        var action = (await _unitOfWork.Actions
+            .GetByExpressionAsync(a => a.Id == settings.SmartPasteActionId)).FirstOrDefault();
         if (action is null)
         {
             AppEvents.RequestNotification("The configured Smart Paste action was not found.", NotificationType.Error);
@@ -210,9 +204,7 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task<IAiProvider?> GetProviderAsync(string? providerOverride)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var settings = await dbContext.ProviderSettings.AsNoTracking().FirstAsync();
+        var settings = await _unitOfWork.Settings.GetProviderSettingsAsync();
 
         // Handle runtime user override from the Floating Action Menu
         if (!string.IsNullOrWhiteSpace(providerOverride) &&

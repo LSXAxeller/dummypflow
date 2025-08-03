@@ -37,5 +37,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ProseFlow.Core\ProseFlow.Core.csproj"/>
+        <ProjectReference Include="..\ProseFlow.Application\ProseFlow.Application.csproj"/>
     </ItemGroup>
 </Project>
