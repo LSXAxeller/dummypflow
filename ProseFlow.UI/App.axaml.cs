@@ -22,6 +22,7 @@ using ProseFlow.UI.Views.Windows;
 using System;
 using System.IO;
 using Avalonia.Controls;
+using Avalonia.Data.Converters;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Infrastructure.Services.AiProviders.Cloud;
@@ -30,12 +31,14 @@ using ProseFlow.Infrastructure.Services.Database;
 using ProseFlow.UI.Views;
 using Serilog;
 using ShadUI;
+using Avalonia.Platform;
 
 namespace ProseFlow.UI;
 
 public class App : Avalonia.Application
 {
     public IServiceProvider? Services { get; private set; }
+    private TrayIcon? _trayIcon;
 
     public override void Initialize()
     {
@@ -45,14 +48,14 @@ public class App : Avalonia.Application
     public override async void OnFrameworkInitializationCompleted()
     {
         Services = ConfigureServices();
-        
+
         // Ensure database is created and migrated on startup
         await using (var scope = Services.CreateAsyncScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await dbContext.Database.MigrateAsync();
         }
-        
+
         var usageTrackingService = Services.GetRequiredService<UsageTrackingService>();
         await usageTrackingService.InitializeAsync();
 
@@ -63,15 +66,17 @@ public class App : Avalonia.Application
         {
             var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<App>>();
-            
+
             try
             {
                 var providerSettings = await settingsService.GetProviderSettingsAsync();
                 if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
                 {
-                    if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) || !File.Exists(providerSettings.LocalModelPath))
+                    if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) ||
+                        !File.Exists(providerSettings.LocalModelPath))
                     {
-                        logger.LogWarning("Auto-load skipped: Local model path is not configured or file does not exist.");
+                        logger.LogWarning(
+                            "Auto-load skipped: Local model path is not configured or file does not exist.");
                     }
                     else
                     {
@@ -86,7 +91,7 @@ public class App : Avalonia.Application
                 logger.LogError(ex, "An error occurred during the local model auto-load check.");
             }
         }
-        
+
         // Initialize and start background services
         var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
         orchestrationService.Initialize();
@@ -101,6 +106,10 @@ public class App : Avalonia.Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Don't shut down the app when the main window is closed.
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            desktop.Exit += OnApplicationExit;
+
             var settings = await settingsService.GetGeneralSettingsAsync();
             RequestedThemeVariant = settings.Theme switch
             {
@@ -113,9 +122,136 @@ public class App : Avalonia.Application
             {
                 DataContext = Services.GetRequiredService<MainViewModel>()
             };
+
+            // Handle the closing event to hide the window instead of closing
+            desktop.MainWindow.Closing += (_, e) =>
+            {
+                e.Cancel = true;
+                desktop.MainWindow.Hide();
+            };
+
+            // Create and set up the system tray icon
+            _trayIcon = CreateTrayIcon();
+            if (_trayIcon is not null)
+            {
+                TrayIcon.SetIcons(this, [_trayIcon]);
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private TrayIcon? CreateTrayIcon()
+    {
+        if (Services is null) return null;
+
+        var trayVm = Services.GetRequiredService<TrayIconViewModel>();
+
+        // Wire up the event to show the main window
+        trayVm.ShowMainWindowRequested += () =>
+        {
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: not null } desktop)
+            {
+                // Ensure we're on the UI thread before showing the window
+                Dispatcher.UIThread.Post(() =>
+                {
+                    desktop.MainWindow.Show();
+                    desktop.MainWindow.Activate();
+                });
+            }
+        };
+
+        // Define a converter for the menu item header
+        var modelStatusToHeaderConverter = new FuncValueConverter<bool, string>(isLoaded =>
+            isLoaded ? "Unload Local Model" : "Load Local Model");
+
+        // Build the context menu items
+        var openItem = new NativeMenuItem
+        {
+            Header = "Open ProseFlow",
+            Command = trayVm.OpenSettingsCommand
+        };
+
+        var toggleModelItem = new NativeMenuItem
+        {
+            Command = trayVm.ToggleLocalModelCommand
+        };
+        toggleModelItem.Bind(NativeMenuItem.HeaderProperty, new Avalonia.Data.Binding(nameof(trayVm.IsModelLoaded))
+        {
+            Source = trayVm,
+            Converter = modelStatusToHeaderConverter
+        });
+        toggleModelItem.Bind(NativeMenuItem.IsEnabledProperty, new Avalonia.Data.Binding(nameof(trayVm.ManagerStatus))
+        {
+            Source = trayVm,
+            Converter = new FuncValueConverter<ModelStatus, bool>(s => s != ModelStatus.Loading)
+        });
+
+        // Provider Type Sub-menu
+        var cloudProviderItem = new NativeMenuItem
+        {
+            Header = "Cloud",
+            Command = trayVm.SetProviderTypeCommand,
+            CommandParameter = "Cloud"
+        };
+        cloudProviderItem.Bind(NativeMenuItem.IsCheckedProperty,
+            new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+            {
+                Source = trayVm,
+                Converter = new FuncValueConverter<string, bool>(t => t == "Cloud")
+            });
+
+        var localProviderItem = new NativeMenuItem
+        {
+            Header = "Local",
+            Command = trayVm.SetProviderTypeCommand,
+            CommandParameter = "Local"
+        };
+        localProviderItem.Bind(NativeMenuItem.IsCheckedProperty,
+            new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+            {
+                Source = trayVm,
+                Converter = new FuncValueConverter<string, bool>(t => t == "Local")
+            });
+
+        var setProviderSubMenu = new NativeMenuItem
+        {
+            Header = "Set Primary Provider",
+            Menu = new NativeMenu
+            {
+                Items = { cloudProviderItem, localProviderItem }
+            }
+        };
+
+        var quitItem = new NativeMenuItem
+        {
+            Header = "Quit",
+            Command = trayVm.QuitApplicationCommand
+        };
+
+        // Create the TrayIcon instance
+        var trayIcon = new TrayIcon
+        {
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://ProseFlow.UI/Assets/avalonia-logo.ico"))),
+            ToolTipText = "ProseFlow",
+            Menu = new NativeMenu
+            {
+                Items =
+                {
+                    openItem,
+                    new NativeMenuItemSeparator(),
+                    toggleModelItem,
+                    setProviderSubMenu,
+                    new NativeMenuItemSeparator(),
+                    quitItem
+                }
+            }
+        };
+
+        // Open settings on left-click
+        trayIcon.Clicked += (_, _) => trayVm.OpenSettingsCommand.Execute(null);
+
+        return trayIcon;
     }
 
     private void SubscribeToAppEvents()
@@ -123,8 +259,9 @@ public class App : Avalonia.Application
         if (Services is null) return;
         var notificationService = Services.GetRequiredService<NotificationService>();
 
-        AppEvents.ShowNotificationRequested += (message, type) => Dispatcher.UIThread.Post(() => notificationService.Show(message, type));
-        
+        AppEvents.ShowNotificationRequested += (message, type) =>
+            Dispatcher.UIThread.Post(() => notificationService.Show(message, type));
+
         AppEvents.ShowResultWindowAndAwaitRefinement += data =>
         {
             // This must be run on the UI thread.
@@ -165,7 +302,8 @@ public class App : Avalonia.Application
 
         var logPath = Path.Combine(proseFlowDataPath, "logs", "proseflow-.log");
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command",
+                Serilog.Events.LogEventLevel.Warning)
             .Enrich.FromLogContext()
 #if DEBUG
             .WriteTo.Debug()
@@ -179,7 +317,7 @@ public class App : Avalonia.Application
             builder.ClearProviders();
             builder.AddSerilog(dispose: true);
         });
-        
+
         services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(proseFlowDataPath, "keys")))
             .SetApplicationName("ProseFlow");
@@ -209,7 +347,8 @@ public class App : Avalonia.Application
         services.AddSingleton<IDialogService, DialogService>();
 
         // Add ViewModels
-        services.AddTransient<MainViewModel>();
+        services.AddSingleton<MainViewModel>();
+        services.AddSingleton<TrayIconViewModel>();
         services.AddTransient<ActionsViewModel>();
         services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<ProvidersViewModel>();
@@ -218,5 +357,23 @@ public class App : Avalonia.Application
         services.AddTransient<HistoryViewModel>();
 
         return services.BuildServiceProvider();
+    }
+    
+    private void OnApplicationExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
+    {
+        if (Services is null) return;
+
+        var logger = Services.GetService<ILogger<App>>();
+        logger?.LogInformation("Application exit requested. Cleaning up resources...");
+
+        // Dispose the OS service to stop the SharpHook thread.
+        var osService = Services.GetService<IOsService>();
+        osService?.Dispose();
+
+        // Also, as a best practice, unload the local model to free GPU/RAM.
+        var modelManager = Services.GetService<LocalModelManagerService>();
+        modelManager?.UnloadModel();
+    
+        logger?.LogInformation("Cleanup complete. Application will now exit.");
     }
 }

@@ -75,6 +75,6 @@ public partial class GeneralViewModel(SettingsService settingsService, ActionMan
         osService.SetLaunchAtLogin(Settings.LaunchAtLogin);
         osService.UpdateHotkeys(Settings.ActionMenuHotkey, Settings.SmartPasteHotkey);
         await settingsService.SaveGeneralSettingsAsync(Settings);
-        AppEvents.RequestNotification("Settings saved successfully, please restart the application.", NotificationType.Success);
+        AppEvents.RequestNotification("Settings saved successfully.", NotificationType.Success);
     }
 }

@@ -17,7 +17,6 @@ public interface IOsService : IDisposable
 
     /// <summary>
     /// Updates the specific key combinations the service is listening for.
-    /// This can be called at any time to change hotkeys without restarting the hook.
     /// </summary>
     /// <param name="actionMenuHotkey">The hotkey string for the action menu (e.g., "Ctrl+J").</param>
     /// <param name="smartPasteHotkey">The hotkey string for smart paste (e.g., "Ctrl+Shift+V").</param>
