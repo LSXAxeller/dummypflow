@@ -6,6 +6,7 @@ using ProseFlow.Application.DTOs;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
+using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.Application.Services;
 
@@ -15,14 +16,12 @@ public class ActionOrchestrationService : IDisposable
     private readonly IOsService _osService;
     private readonly IReadOnlyDictionary<string, IAiProvider> _providers;
     private readonly ILocalSessionService _localSessionService;
-    private readonly IUnitOfWork _unitOfWork;
 
 
-    public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IUnitOfWork unitOfWork, IOsService osService,
+    public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IOsService osService,
         IEnumerable<IAiProvider> providers, ILocalSessionService localSessionService)
     {
         _scopeFactory = scopeFactory;
-        _unitOfWork = unitOfWork;
         _osService = osService;
         _localSessionService = localSessionService;
         _providers = providers.ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
@@ -37,7 +36,7 @@ public class ActionOrchestrationService : IDisposable
     private async Task HandleActionMenuHotkeyAsync()
     {
         var activeAppContext = await _osService.GetActiveWindowProcessNameAsync();
-        var allActions = await _unitOfWork.Actions.GetAllOrderedAsync();
+        var allActions = await ExecuteQueryAsync(unitOfWork => unitOfWork.Actions.GetAllOrderedAsync());
 
         // Filter actions based on context
         var availableActions = allActions
@@ -59,23 +58,33 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task HandleSmartPasteHotkeyAsync()
     {
-        var settings = await _unitOfWork.Settings.GetGeneralSettingsAsync();
+        var result = await ExecuteQueryAsync(async unitOfWork =>
+        {
+            var settings = await unitOfWork.Settings.GetGeneralSettingsAsync();
+            if (settings.SmartPasteActionId is null)
+            {
+                return new { Action = (Action?)null, IsConfigured = false };
+            }
 
-        if (settings.SmartPasteActionId is null)
+            var action = (await unitOfWork.Actions
+                .GetByExpressionAsync(a => a.Id == settings.SmartPasteActionId.Value)).FirstOrDefault();
+            
+            return new { Action = action, IsConfigured = true };
+        });
+
+        if (!result.IsConfigured)
         {
             AppEvents.RequestNotification("Smart Paste action not configured in settings.", NotificationType.Warning);
             return;
         }
 
-        var action = (await _unitOfWork.Actions
-            .GetByExpressionAsync(a => a.Id == settings.SmartPasteActionId)).FirstOrDefault();
-        if (action is null)
+        if (result.Action is null)
         {
             AppEvents.RequestNotification("The configured Smart Paste action was not found.", NotificationType.Error);
             return;
         }
 
-        var request = new ActionExecutionRequest(action, action.OpenInWindow, null);
+        var request = new ActionExecutionRequest(result.Action, result.Action.OpenInWindow, null);
         await ProcessRequestAsync(request);
     }
 
@@ -204,7 +213,7 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task<IAiProvider?> GetProviderAsync(string? providerOverride)
     {
-        var settings = await _unitOfWork.Settings.GetProviderSettingsAsync();
+        var settings = await ExecuteQueryAsync(unitOfWork => unitOfWork.Settings.GetProviderSettingsAsync());
 
         // Handle runtime user override from the Floating Action Menu
         if (!string.IsNullOrWhiteSpace(providerOverride) &&
@@ -244,4 +253,18 @@ public class ActionOrchestrationService : IDisposable
         _osService.Dispose();
         GC.SuppressFinalize(this);
     }
+    
+    #region Private Helpers
+
+    /// <summary>
+    /// Creates a UoW scope and executes a query.
+    /// </summary>
+    private async Task<T> ExecuteQueryAsync<T>(Func<IUnitOfWork, Task<T>> query)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await using var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+        return await query(unitOfWork);
+    }
+
+    #endregion
 }

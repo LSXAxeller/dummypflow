@@ -1,12 +1,12 @@
-﻿namespace ProseFlow.Core.Models;
+﻿using ProseFlow.Core.Abstracts;
+
+namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Stores general application settings, intended to be a single record in the database.
 /// </summary>
-public class GeneralSettings
+public class GeneralSettings : EntityBase
 {
-    public int Id { get; set; }
-
     /// <summary>
     /// The system-wide hotkey to trigger the Floating Action Menu.
     /// </summary>

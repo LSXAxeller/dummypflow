@@ -19,8 +19,11 @@
             <FontFamily x:Key="ManropeFont">avares://ProseFlow.UI/Assets/Fonts#Manrope</FontFamily>
             <FontFamily x:Key="LucideIconFont">avares://ProseFlow.UI/Assets/Fonts#lucide</FontFamily>
             <FontFamily x:Key="ShadUiIconFont">avares://ProseFlow.UI/Assets/Fonts#shadui</FontFamily>
-            
-            <converters:StringListConverter x:Key="StringListConverter"/>
+
+            <converters:StringListConverter x:Key="StringListConverter" />
+            <converters:BoolToOutputTargetConverter x:Key="BoolToOutputTargetConverter" />
+            <converters:StringToIconConverter x:Key="StringToIconConverter" />
+            <converters:ConditionCheckConverter x:Key="ConditionCheckConverter" />
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceInclude x:Key="Light" Source="Styles/Themes/Light.axaml" />
@@ -34,8 +37,9 @@
 
         <!-- Markdown Styles -->
         <md:MarkdownStyleGithubLike />
-        
+
         <!-- ShadUI Styles -->
         <StyleInclude Source="avares://ProseFlow.UI/Styles/Index.axaml" />
+
     </Application.Styles>
 </Application>

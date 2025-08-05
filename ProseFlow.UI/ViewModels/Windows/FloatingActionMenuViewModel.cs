@@ -16,103 +16,140 @@ namespace ProseFlow.UI.ViewModels.Windows;
 public partial class FloatingActionMenuViewModel : ViewModelBase
 {
     private readonly TaskCompletionSource<ActionExecutionRequest?> _selectionTcs = new();
+    private readonly List<Action> _allAvailableActions;
+    private readonly string _activeAppContext;
 
     [ObservableProperty] private string _searchText = string.Empty;
-
-    [ObservableProperty] private ActionItemViewModel? _selectedAction;
-
+    [ObservableProperty] private object? _selectedItem;
     [ObservableProperty] private string _currentServiceTypeName;
 
-    public ObservableCollection<ActionItemViewModel> AllActions { get; } = [];
+    public bool ShouldClose { get; private set; } = false;
 
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
 
     public FloatingActionMenuViewModel(IEnumerable<Action> availableActions, ProviderSettings providerSettings,
         string activeAppContext)
     {
-        foreach (var action in availableActions)
-        {
-            var isContextual = action.ApplicationContext.Count > 0 &&
-                               action.ApplicationContext.Contains(activeAppContext, StringComparer.OrdinalIgnoreCase);
-            AllActions.Add(new ActionItemViewModel(action)
-            {
-                IsContextual = isContextual
-            });
-        }
-
-
-        FilterAndGroupActions(); // Initial population
+        _allAvailableActions = availableActions.ToList();
+        _activeAppContext = activeAppContext;
         CurrentServiceTypeName = providerSettings.PrimaryServiceType;
+        
+        FilterAndGroupActions();
     }
 
     public Task<ActionExecutionRequest?> WaitForSelectionAsync() => _selectionTcs.Task;
 
     partial void OnSearchTextChanged(string value) => FilterAndGroupActions();
-
-    partial void OnSelectedActionChanged(ActionItemViewModel? oldValue, ActionItemViewModel? newValue)
+    
+    partial void OnSelectedItemChanged(object? oldValue, object? newValue)
     {
-        if (oldValue is not null) oldValue.IsSelected = false;
-        if (newValue is not null) newValue.IsSelected = true;
-    }
+        // Deselect the old item
+        if (oldValue is ActionGroupViewModel oldGroup) oldGroup.IsSelected = false;
+        if (oldValue is ActionItemViewModel oldAction) oldAction.IsSelected = false;
 
+        // Select the new item
+        if (newValue is ActionGroupViewModel newGroup) newGroup.IsSelected = true;
+        if (newValue is ActionItemViewModel newAction) newAction.IsSelected = true;
+    }
+    
     private void FilterAndGroupActions()
     {
-        // Filter the flat list based on search text
-        var filteredItems = string.IsNullOrWhiteSpace(SearchText)
-            ? AllActions
-            : AllActions.Where(a => a.Action.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-
-        // Group the filtered results in memory
-        var groups = filteredItems
-            .GroupBy(item => item.IsContextual)
-            .OrderByDescending(g => g.Key);
-
-        // Rebuild the public ActionGroups collection
         ActionGroups.Clear();
-        foreach (var group in groups)
+    
+        // If searching, create a flat list under a "Search Results" group
+        if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            var groupName = group.Key ? "Contextual Actions" : "General Actions";
-            var actionGroupVm = new ActionGroupViewModel(groupName);
-
-            foreach (var item in group.OrderBy(i => i.Action.SortOrder))
+            var searchResults = _allAvailableActions
+                .Where(a => a.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                .Select(a => new ActionItemViewModel(a)).ToList();
+    
+            if (searchResults.Count != 0)
             {
-                actionGroupVm.Actions.Add(item);
+                var searchGroup = new ActionGroupViewModel("Search Results") { IsExpanded = true };
+                foreach (var item in searchResults)
+                {
+                    searchGroup.Actions.Add(item);
+                }
+                ActionGroups.Add(searchGroup);
             }
-
-            ActionGroups.Add(actionGroupVm);
         }
-
-        // Set the default selected item
-        SelectedAction = ActionGroups.SelectMany(g => g.Actions).FirstOrDefault();
+        else
+        {
+            // Otherwise, group by the actual ActionGroup
+            var groupedActions = _allAvailableActions
+                .GroupBy(a => a.ActionGroup)
+                .OrderBy(g => g.Key?.SortOrder ?? int.MaxValue);
+    
+            foreach (var group in groupedActions)
+            {
+                var groupName = group.Key?.Name ?? "Uncategorized";
+                var actionGroupVm = new ActionGroupViewModel(groupName);
+    
+                foreach (var action in group.OrderBy(a => a.SortOrder))
+                {
+                    var isContextual = action.ApplicationContext.Count > 0 &&
+                                       action.ApplicationContext.Any(a => a.Contains(_activeAppContext, StringComparison.OrdinalIgnoreCase));
+                    actionGroupVm.Actions.Add(new ActionItemViewModel(action) { IsContextual = isContextual });
+                }
+                ActionGroups.Add(actionGroupVm);
+            }
+        }
+    
+        SelectedItem = GetFlatListOfVisibleItems().FirstOrDefault();
     }
 
-    private List<ActionItemViewModel> GetFlatListOfVisibleActions()
+    private List<object> GetFlatListOfVisibleItems()
     {
-        return ActionGroups.SelectMany(g => g.Actions).ToList();
+        var flatList = new List<object>();
+        foreach (var group in ActionGroups)
+        {
+            flatList.Add(group);
+            if (group.IsExpanded)
+            {
+                flatList.AddRange(group.Actions);
+            }
+        }
+        return flatList;
     }
-
+    
     [RelayCommand]
     private void ConfirmSelection()
     {
-        if (SelectedAction is null)
+        ShouldClose = false;
+
+        if (SelectedItem is null)
         {
-            _selectionTcs.SetResult(null);
+            CancelSelection();
             return;
         }
 
-        var request = new ActionExecutionRequest(
-            ActionToExecute: SelectedAction.Action,
-            ForceOpenInWindow: SelectedAction.IsForcedOpenInWindow,
-            ProviderOverride: CurrentServiceTypeName
-        );
+        // If a group header is selected, Enter toggles its expansion state
+        if (SelectedItem is ActionGroupViewModel group)
+        {
+            group.IsExpanded = !group.IsExpanded;
+            return;
+        }
 
-        if (!_selectionTcs.Task.IsCompleted)
-            _selectionTcs.SetResult(request);
+        // If an action item is selected, execute it
+        if (SelectedItem is ActionItemViewModel actionItem)
+        {
+            var request = new ActionExecutionRequest(
+                ActionToExecute: actionItem.Action,
+                ForceOpenInWindow: actionItem.IsForcedOpenInWindow,
+                ProviderOverride: CurrentServiceTypeName
+            );
+
+            if (!_selectionTcs.Task.IsCompleted)
+                _selectionTcs.SetResult(request);
+            
+            ShouldClose = true;
+        }
     }
-
+    
     [RelayCommand]
     private void CancelSelection()
     {
+        ShouldClose = true;
         if (!_selectionTcs.Task.IsCompleted)
             _selectionTcs.SetResult(null);
     }
@@ -120,36 +157,61 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [RelayCommand]
     private void ToggleServiceType()
     {
-        CurrentServiceTypeName = CurrentServiceTypeName == "Cloud"
-            ? "Local"
-            : "Cloud";
+        CurrentServiceTypeName = CurrentServiceTypeName == "Cloud" ? "Local" : "Cloud";
     }
 
     [RelayCommand]
-    private void SelectAction(ActionItemViewModel? item)
+    private void SelectAndConfirmItem(object? item)
     {
         if (item is null) return;
-        SelectedAction = item;
+        SelectedItem = item;
         ConfirmSelection();
     }
 
     [RelayCommand]
-    private void SelectNextAction()
+    private void SelectNextItem()
     {
-        var flatList = GetFlatListOfVisibleActions();
+        var flatList = GetFlatListOfVisibleItems();
         if (flatList.Count == 0) return;
-        var currentIndex = SelectedAction != null ? flatList.IndexOf(SelectedAction) : -1;
-        SelectedAction = flatList[(currentIndex + 1) % flatList.Count];
+        var currentIndex = SelectedItem != null ? flatList.IndexOf(SelectedItem) : -1;
+        SelectedItem = flatList[(currentIndex + 1) % flatList.Count];
     }
 
     [RelayCommand]
-    private void SelectPreviousAction()
+    private void SelectPreviousItem()
     {
-        var flatList = GetFlatListOfVisibleActions();
+        var flatList = GetFlatListOfVisibleItems();
         if (flatList.Count == 0) return;
-        var currentIndex = SelectedAction != null ? flatList.IndexOf(SelectedAction) : -1;
+        var currentIndex = SelectedItem != null ? flatList.IndexOf(SelectedItem) : -1;
         var newIndex = currentIndex - 1 < 0 ? flatList.Count - 1 : currentIndex - 1;
-        SelectedAction = flatList[newIndex];
+        SelectedItem = flatList[newIndex];
+    }
+
+    [RelayCommand]
+    private void CollapseSelectedItem()
+    {
+        if (SelectedItem is ActionGroupViewModel group)
+        {
+            group.IsExpanded = false;
+        }
+        else if (SelectedItem is ActionItemViewModel item)
+        {
+            var parentGroup = ActionGroups.FirstOrDefault(g => g.Actions.Contains(item));
+            if (parentGroup is not null)
+            {
+                parentGroup.IsExpanded = false;
+                SelectedItem = parentGroup; // Move selection to the group header
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void ExpandSelectedItem()
+    {
+        if (SelectedItem is ActionGroupViewModel group)
+        {
+            group.IsExpanded = true;
+        }
     }
 
     [RelayCommand]

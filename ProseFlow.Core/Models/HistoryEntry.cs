@@ -1,12 +1,12 @@
-﻿namespace ProseFlow.Core.Models;
+﻿using ProseFlow.Core.Abstracts;
+
+namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Represents a record of a past AI interaction.
 /// </summary>
-public class HistoryEntry
+public class HistoryEntry : EntityBase
 {
-    public int Id { get; set; }
-
     /// <summary>
     /// The date and time when the interaction occurred.
     /// </summary>

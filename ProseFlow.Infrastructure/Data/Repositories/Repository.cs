@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using ProseFlow.Core.Abstracts;
 using ProseFlow.Core.Interfaces.Repositories;
 
 namespace ProseFlow.Infrastructure.Data.Repositories;
@@ -8,7 +9,7 @@ namespace ProseFlow.Infrastructure.Data.Repositories;
 /// A generic base repository providing common data access functionality using EF Core.
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity this repository handles.</typeparam>
-public class Repository<TEntity>(AppDbContext context) : IRepository<TEntity> where TEntity : class
+public class Repository<TEntity>(AppDbContext context) : IRepository<TEntity> where TEntity : EntityBase
 {
     protected readonly AppDbContext Context = context;
 
@@ -19,7 +20,7 @@ public class Repository<TEntity>(AppDbContext context) : IRepository<TEntity> wh
     }
     
     /// <inheritdoc />
-    public async Task<TEntity?> GetByIdAsync(int id)
+    public async Task<TEntity?> GetByIdAsync(int id, bool asNoTracking = false)
     {
         return await Context.Set<TEntity>().FindAsync(id);
     }
@@ -27,7 +28,7 @@ public class Repository<TEntity>(AppDbContext context) : IRepository<TEntity> wh
     /// <inheritdoc />
     public async Task<List<TEntity>> GetByExpressionAsync(Expression<Func<TEntity, bool>> expression)
     {
-        return await Context.Set<TEntity>().AsNoTracking().Where(expression).ToListAsync();
+        return await Context.Set<TEntity>().Where(expression).ToListAsync();
     }
 
     /// <inheritdoc />

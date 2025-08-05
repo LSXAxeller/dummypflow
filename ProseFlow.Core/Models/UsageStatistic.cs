@@ -1,12 +1,12 @@
-﻿namespace ProseFlow.Core.Models;
+﻿using ProseFlow.Core.Abstracts;
+
+namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Represents aggregated token usage statistics for a specific month, stored in the database.
 /// </summary>
-public class UsageStatistic
+public class UsageStatistic : EntityBase
 {
-    public int Id { get; set; }
-
     /// <summary>
     /// The year of the usage record (e.g., 2024).
     /// </summary>

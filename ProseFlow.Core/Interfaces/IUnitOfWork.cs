@@ -2,9 +2,10 @@
 
 namespace ProseFlow.Core.Interfaces;
 
-public interface IUnitOfWork : IAsyncDisposable
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     IActionRepository Actions { get; }
+    IActionGroupRepository ActionGroups { get; }
     ICloudProviderConfigurationRepository CloudProviderConfigurations { get; }
     IHistoryRepository History { get; }
     ISettingsRepository Settings { get; }

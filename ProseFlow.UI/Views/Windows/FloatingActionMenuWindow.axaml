@@ -6,8 +6,8 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Windows"
     xmlns:actions="clr-namespace:ProseFlow.UI.ViewModels.Actions"
+    xmlns:local="clr-namespace:ProseFlow.UI.Views.Windows"
     x:DataType="vm:FloatingActionMenuViewModel"
-
 
     Width="450" SizeToContent="Height"
     SystemDecorations="None" CanResize="False" ShowInTaskbar="False" Topmost="True"
@@ -56,7 +56,7 @@
                         Command="{Binding ToggleServiceTypeCommand}"
                         ToolTip.Tip="Toggle AI Service Type for this run">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <TextBlock Classes="LucideIcon" Text="&#xe0ec;" />
                         </shadui:ButtonAssist.Icon>
                         <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" />
                     </Button>
@@ -66,98 +66,122 @@
                         Command="{Binding OpenSettingsCommand}"
                         ToolTip.Tip="Open Settings">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <TextBlock Classes="LucideIcon" Text="&#xe158;" />
                         </shadui:ButtonAssist.Icon>
                     </Button>
                 </DockPanel>
             </Border>
 
-            <!-- Action List -->
-            <ItemsControl
-                ItemsSource="{Binding ActionGroups}"
+            <!-- Action List with ScrollViewer -->
+            <ScrollViewer
+                Name="ActionListScrollViewer"
                 MaxHeight="300"
-                Padding="8,0"
-                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="actions:ActionGroupViewModel">
-                        <StackPanel Margin="0,4">
-                            <!-- Group Header -->
-                            <TextBlock Text="{Binding Name}"
-                                       Classes="Small Muted"
-                                       FontWeight="SemiBold"
-                                       Margin="8,8,8,4" />
+                Padding="8,8"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding ActionGroups}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Margin="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="actions:ActionGroupViewModel">
+                            <StackPanel Margin="0,4">
+                                <!-- Group Header -->
+                                <Border
+                                    Name="GroupHeader"
+                                    Padding="8,8,8,4"
+                                    Margin="0,2"
+                                    CornerRadius="{DynamicResource MdCornerRadius}"
+                                    Classes.IsSelected="{Binding IsSelected}">
+                                    <Border.Styles>
+                                        <Style Selector="Border.IsSelected">
+                                            <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                        </Style>
+                                    </Border.Styles>
+                                    <DockPanel VerticalAlignment="Center">
+                                        <!-- Selection Indicator -->
+                                        <TextBlock Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" IsVisible="{Binding IsSelected}" />
 
-                            <!-- Actions within Group -->
-                            <ItemsControl ItemsSource="{Binding Actions}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="actions:ActionItemViewModel">
-                                        <Button
-                                            HorizontalContentAlignment="Stretch"
-                                            Padding="8"
-                                            Margin="0,2"
-                                            Classes="ListItem"
-                                            IsVisible="True"
-                                            ClickMode="Press"
-                                            Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).SelectActionCommand, FallbackValue={x:Null}}"
-                                            CommandParameter="{Binding .}">
+                                        <!-- Expander Icon -->
+                                        <TextBlock DockPanel.Dock="Left" Width="12" IsVisible="{Binding !IsSelected}" Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}" Classes="Small Muted" FontWeight="SemiBold" VerticalAlignment="Center" />
 
-                                            <Button.Styles>
-                                                <Style Selector="Button.ListItem">
-                                                    <Setter Property="Background" Value="Transparent" />
-                                                    <Setter Property="BorderThickness" Value="0" />
-                                                    <Setter Property="CornerRadius"
-                                                            Value="{DynamicResource MdCornerRadius}" />
-                                                </Style>
-                                                <Style
-                                                    Selector="Button.ListItem:selected:pointerover">
-                                                    <Setter Property="Background"
-                                                            Value="{DynamicResource GhostHoverColor}" />
-                                                </Style>
-                                                <Style
-                                                    Selector="Button.ListItem:pointerover /template/ ContentPresenter">
-                                                    <Setter Property="Background"
-                                                            Value="{DynamicResource GhostHoverColor}" />
-                                                </Style>
-                                                <Style Selector="Button.ListItem:pressed /template/ ContentPresenter">
-                                                    <Setter Property="Background"
-                                                            Value="{DynamicResource GhostHoverColor50}" />
-                                                </Style>
-                                            </Button.Styles>
+                                        <!-- Group Name -->
+                                        <TextBlock Text="{Binding Name}" Classes="Small Muted" FontWeight="SemiBold" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </Border>
 
-                                            <!-- Action Data -->
-                                            <Grid ColumnDefinitions="Auto, Auto, *, Auto" VerticalAlignment="Center">
-                                                <TextBlock Text="> " FontSize="20" VerticalAlignment="Center" IsVisible="{Binding IsSelected}" />
-                                                <PathIcon
-                                                    Grid.Column="1"
-                                                    Width="18"
-                                                    Height="18"
-                                                    Margin="0,0,12,0"
-                                                    Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}" />
+                                <!-- Actions within Group -->
+                                <ItemsControl IsVisible="{Binding IsExpanded}" ItemsSource="{Binding Actions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="actions:ActionItemViewModel">
+                                            <Button
+                                                Name="ActionButton"
+                                                HorizontalContentAlignment="Stretch"
+                                                Padding="8"
+                                                Margin="0,2"
+                                                Classes="ListItem"
+                                                IsVisible="True"
+                                                ClickMode="Press"
+                                                Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).SelectAndConfirmItemCommand, FallbackValue={x:Null}}"
+                                                CommandParameter="{Binding .}"
+                                                Classes.IsSelected="{Binding IsSelected}">
 
-                                                <TextBlock
-                                                    Grid.Column="2"
-                                                    VerticalAlignment="Center"
-                                                    Text="{Binding Action.Name}" />
+                                                <Button.Styles>
+                                                    <Style Selector="Button.ListItem">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Setter Property="BorderThickness" Value="0" />
+                                                        <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+                                                    </Style>
+                                                    <Style Selector="Button.ListItem.IsSelected">
+                                                        <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                                    </Style>
+                                                    <Style Selector="Button.ListItem:pointerover /template/ ContentPresenter">
+                                                        <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                                    </Style>
+                                                </Button.Styles>
 
-                                                <ToggleButton
-                                                    Grid.Column="3"
-                                                    Classes="Icon Ghost"
-                                                    Width="28" Height="28"
-                                                    ToolTip.Tip="Force open in new window"
-                                                    IsChecked="{Binding IsForcedOpenInWindow, Mode=OneWay}"
-                                                    Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).ToggleForceOpenInWindowCommand, FallbackValue={x:Null}}"
-                                                    CommandParameter="{Binding .}">
-                                                    <TextBlock Classes="LucideIcon" Text="" />
-                                                </ToggleButton>
-                                            </Grid>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                                                <!-- Action Data -->
+                                                <Grid ColumnDefinitions="Auto, Auto, *, Auto" VerticalAlignment="Center">
+                                                    <TextBlock Text="> " FontSize="20" VerticalAlignment="Center" IsVisible="{Binding IsSelected}" />
+                                                    <PathIcon
+                                                        Grid.Column="1"
+                                                        Width="18"
+                                                        Height="18"
+                                                        Margin="0,0,12,0"
+                                                        Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}" />
+
+                                                    <TextBlock
+                                                        Grid.Column="2"
+                                                        VerticalAlignment="Center"
+                                                        Text="{Binding Action.Name}" />
+
+                                                    <ToggleButton
+                                                        Grid.Column="3"
+                                                        Classes="Icon Ghost"
+                                                        Width="28" Height="28"
+                                                        ToolTip.Tip="Force open in new window"
+                                                        IsChecked="{Binding IsForcedOpenInWindow, Mode=OneWay}"
+                                                        Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).ToggleForceOpenInWindowCommand, FallbackValue={x:Null}}"
+                                                        CommandParameter="{Binding .}">
+                                                        <TextBlock Classes="LucideIcon" Text="" />
+                                                    </ToggleButton>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </DockPanel>
     </shadui:Card>
 </shadui:Window>

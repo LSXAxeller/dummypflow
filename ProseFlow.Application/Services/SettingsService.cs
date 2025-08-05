@@ -15,7 +15,7 @@ public class SettingsService(IUnitOfWork unitOfWork, ILogger<SettingsService> lo
         var generalSettings = await unitOfWork.Settings.GetGeneralSettingsAsync();
         if (generalSettings == null)
         {
-            logger.LogError("General settings record not found in the database. Ensure it is seeded.");
+            logger.LogCritical("General settings record not found in the database. Ensure it is seeded.");
             throw new InvalidOperationException(
                 "General settings record not found in the database. Ensure it is seeded.");
         }
@@ -39,7 +39,7 @@ public class SettingsService(IUnitOfWork unitOfWork, ILogger<SettingsService> lo
         var providerSettings = await unitOfWork.Settings.GetProviderSettingsAsync();
         if (providerSettings == null)
         {
-            logger.LogError("Provider settings record not found in the database. Ensure it is seeded.");
+            logger.LogCritical("Provider settings record not found in the database. Ensure it is seeded.");
             throw new InvalidOperationException(
                 "Provider settings record not found in the database. Ensure it is seeded.");
         }

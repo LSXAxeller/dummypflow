@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels"
+    xmlns:models="clr-namespace:ProseFlow.Core.Models;assembly=ProseFlow.Core"
     x:DataType="vm:MainViewModel"
     mc:Ignorable="d"
     d:DesignWidth="1920"
@@ -131,6 +132,12 @@
 
                 <shadui:Sidebar.Footer>
                     <StackPanel Spacing="8" Margin="0,0,0,16">
+                        <!-- App version number -->
+                        <TextBlock Text="{x:Static models:Constants.AppVersion}"
+                                   Classes="Small Muted"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding #Toggler.IsChecked}" />
+                        
                         <!-- Toggle button to expand/collapse the sidebar -->
                         <ToggleButton
                             Name="Toggler"
@@ -144,12 +151,6 @@
                                 <TextBlock Classes="LucideIcon" Text="" />
                             </Viewbox>
                         </ToggleButton>
-
-                        <!-- App version number -->
-                        <TextBlock Text="v0.1.0"
-                                   Classes="Small Muted"
-                                   HorizontalAlignment="Center"
-                                   IsVisible="{Binding #Toggler.IsChecked}" />
                     </StackPanel>
                 </shadui:Sidebar.Footer>
             </shadui:Sidebar>

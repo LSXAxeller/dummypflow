@@ -1,9 +1,13 @@
-﻿using System;
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Windows;
+using System;
+using System.Linq;
 using Window = ShadUI.Window;
 
 namespace ProseFlow.UI.Views.Windows;
@@ -41,14 +45,24 @@ public partial class FloatingActionMenuWindow : Window
             case Key.Enter:
                 vm.ConfirmSelectionCommand.Execute(null);
                 e.Handled = true;
-                Close();
+                if (vm.ShouldClose) Close(); 
                 break;
             case Key.Up:
-                vm.SelectPreviousActionCommand.Execute(null);
+                vm.SelectPreviousItemCommand.Execute(null);
+                ScrollSelectedItemIntoView();
                 e.Handled = true;
                 break;
             case Key.Down:
-                vm.SelectNextActionCommand.Execute(null);
+                vm.SelectNextItemCommand.Execute(null);
+                ScrollSelectedItemIntoView();
+                e.Handled = true;
+                break;
+            case Key.Left:
+                vm.CollapseSelectedItemCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.Right:
+                vm.ExpandSelectedItemCommand.Execute(null);
                 e.Handled = true;
                 break;
         }
@@ -57,5 +71,108 @@ public partial class FloatingActionMenuWindow : Window
     private void WindowBase_OnDeactivated(object? sender, EventArgs e)
     {
         Close();
+    }
+
+    /// <summary>
+    /// Finds the UI element corresponding to the currently selected item in the ViewModel
+    /// and ensures it is visible within the ScrollViewer.
+    /// </summary>
+    private void ScrollSelectedItemIntoView()
+    {
+        if (DataContext is not FloatingActionMenuViewModel vm || vm.SelectedItem is null)
+        {
+            return;
+        }
+        
+        // Use multiple dispatcher calls to ensure the visual tree is fully updated
+        Dispatcher.UIThread.Post(() =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                TryScrollSelectedItemIntoView(vm);
+            }, DispatcherPriority.Render);
+        }, DispatcherPriority.Render);
+    }
+
+    private void TryScrollSelectedItemIntoView(FloatingActionMenuViewModel vm)
+    {
+        try
+        {
+            // Find the control that represents the selected item
+            var selectedControl = this.GetVisualDescendants()
+                .OfType<Control>()
+                .FirstOrDefault(c => c.DataContext == vm.SelectedItem);
+
+            if (selectedControl == null)
+            {
+                // Fallback: try BringIntoView
+                var selectedContainer = this.GetVisualDescendants()
+                    .OfType<Control>()
+                    .FirstOrDefault(c => c.DataContext == vm.SelectedItem);
+                selectedContainer?.BringIntoView();
+                return;
+            }
+
+            var scrollViewer = this.FindControl<ScrollViewer>("ActionListScrollViewer");
+            if (scrollViewer == null) return;
+
+            // Force layout update to ensure accurate measurements
+            selectedControl.InvalidateMeasure();
+            selectedControl.InvalidateArrange();
+            
+            // Get the scroll viewer's content (the ItemsControl)
+            var scrollContent = scrollViewer.Content as Control;
+            if (scrollContent == null) return;
+
+            // Calculate control position relative to the scroll content
+            var controlPosition = selectedControl.TranslatePoint(new Point(0, 0), scrollContent);
+            if (!controlPosition.HasValue) return;
+
+            var controlTop = controlPosition.Value.Y;
+            var controlBottom = controlTop + selectedControl.Bounds.Height;
+            
+            var viewportHeight = scrollViewer.Viewport.Height;
+            var currentScrollTop = scrollViewer.Offset.Y;
+            var currentScrollBottom = currentScrollTop + viewportHeight;
+            
+            const double margin = 20; // Increased margin for better visibility
+            
+            double newScrollY = currentScrollTop;
+            
+            // Check if control is above the visible area
+            if (controlTop < currentScrollTop + margin)
+            {
+                newScrollY = Math.Max(0, controlTop - margin);
+            }
+            // Check if control is below the visible area
+            else if (controlBottom > currentScrollBottom - margin)
+            {
+                newScrollY = Math.Max(0, controlBottom - viewportHeight + margin);
+            }
+            
+            // Only scroll if we need to
+            if (Math.Abs(newScrollY - currentScrollTop) > 1)
+            {
+                scrollViewer.Offset = scrollViewer.Offset.WithY(newScrollY);
+                
+                // For the last few items, ensure we scroll to the very bottom if needed
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var maxScrollY = Math.Max(0, scrollContent.Bounds.Height - viewportHeight);
+                    if (newScrollY >= maxScrollY - 10) // Close to bottom
+                    {
+                        scrollViewer.Offset = scrollViewer.Offset.WithY(maxScrollY);
+                    }
+                }, DispatcherPriority.Background);
+            }
+        }
+        catch (Exception)
+        {
+            // Final fallback: use BringIntoView
+            var selectedContainer = this.GetVisualDescendants()
+                .OfType<Control>()
+                .FirstOrDefault(c => c.DataContext == vm.SelectedItem);
+            selectedContainer?.BringIntoView();
+        }
     }
 }

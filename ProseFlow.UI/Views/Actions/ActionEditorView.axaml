@@ -5,8 +5,9 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
     x:DataType="vm:ActionEditorViewModel"
-
-    Width="600" Height="650"
+    DataContextChanged="Window_OnDataContextChanged"
+    
+    Width="600" Height="700"
     Margin="125"
     WindowStartupLocation="CenterOwner"
     CanResize="False"
@@ -24,13 +25,19 @@
         </shadui:Card.Header>
 
         <ScrollViewer Margin="20">
-
             <!-- Main Form Content -->
             <StackPanel Spacing="16">
                 <TextBox
                     shadui:ControlAssist.Label="Action Name"
                     Text="{Binding Action.Name}"
                     Watermark="e.g., Make More Formal" />
+
+                <ComboBox
+                    shadui:ControlAssist.Label="Group"
+                    DisplayMemberBinding="{Binding Name}"
+                    ItemsSource="{Binding AvailableGroups}"
+                    PlaceholderText="Select a group..."
+                    SelectedItem="{Binding SelectedActionGroup}" />
 
                 <TextBox
                     shadui:ControlAssist.Label="Prefix (Optional)"

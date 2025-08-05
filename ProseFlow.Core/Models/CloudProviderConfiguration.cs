@@ -1,14 +1,13 @@
-﻿using ProseFlow.Core.Enums;
+﻿using ProseFlow.Core.Abstracts;
+using ProseFlow.Core.Enums;
 
 namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Represents a single, user-configured cloud provider instance (e.g., an OpenAI account, a Groq account).
 /// </summary>
-public class CloudProviderConfiguration
+public class CloudProviderConfiguration : EntityBase
 {
-    public int Id { get; set; }
-    
     /// <summary>
     /// A user-defined name for this configuration, e.g., "My Personal OpenAI".
     /// </summary>

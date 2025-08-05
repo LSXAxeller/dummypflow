@@ -1,12 +1,12 @@
-﻿namespace ProseFlow.Core.Models;
+﻿using ProseFlow.Core.Abstracts;
+
+namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Stores settings related to AI providers, handling Local LLM settings and the global service type choice.
 /// </summary>
-public class ProviderSettings
+public class ProviderSettings : EntityBase
 {
-    public int Id { get; set; }
-
     #region Local Model Settings
 
     /// <summary>

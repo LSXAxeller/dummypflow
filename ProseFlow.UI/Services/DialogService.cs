@@ -7,6 +7,8 @@ using ProseFlow.Application.Services;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.Views.Actions;
 using Microsoft.Extensions.DependencyInjection;
+using ProseFlow.UI.Models;
+using ProseFlow.UI.ViewModels.Dialogs;
 using ShadUI;
 using Window = Avalonia.Controls.Window;
 
@@ -89,5 +91,22 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
             .Dismissible()
             .Show();
         
+    }
+    
+    public Task<InputDialogResult> ShowInputDialogAsync(string title, string message, string confirmButtonText, string? initialValue = null)
+    {
+        var tcs = new TaskCompletionSource<InputDialogResult>();
+        
+        var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
+        var inputViewModel = serviceProvider.GetRequiredService<InputDialogViewModel>();
+        inputViewModel.Initialize(title, message, confirmButtonText, initialValue);
+
+        dialogManager.CreateDialog(inputViewModel)
+            .Dismissible()
+            .WithSuccessCallback(vm => tcs.SetResult(new InputDialogResult(true, vm.InputText)))
+            .WithCancelCallback(() => tcs.SetResult(new InputDialogResult(false, null)))
+            .Show();
+
+        return tcs.Task;
     }
 }

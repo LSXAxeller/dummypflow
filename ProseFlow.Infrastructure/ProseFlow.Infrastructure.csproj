@@ -18,14 +18,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="LlmTornado" Version="3.7.14"/>
+        <PackageReference Include="LlmTornado" Version="3.7.22" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7"/>
         <PackageReference Include="SharpHook" Version="6.2.0"/>
         <PackageReference Include="TextCopy" Version="6.2.1"/>
 
-        <PackageReference Include="LLamaSharp" Version="0.21.0"/>
-        <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.21.0"/>
+        <PackageReference Include="LLamaSharp" Version="0.24.0"/>
+        <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.24.0"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(IsLinux)' == 'true' Or $(RuntimeIdentifier.StartsWith('linux'))">

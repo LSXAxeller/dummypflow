@@ -23,8 +23,16 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ActionGroupId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("ApplicationContext")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("ExplainChanges")
@@ -52,9 +60,47 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("ActionGroupId");
+
                     b.ToTable("Actions");
+                });
+
+            modelBuilder.Entity("ProseFlow.Core.Models.ActionGroup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ActionGroups");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Name = "General",
+                            SortOrder = 0
+                        });
                 });
 
             modelBuilder.Entity("ProseFlow.Core.Models.CloudProviderConfiguration", b =>
@@ -69,6 +115,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
 
                     b.Property<string>("BaseUrl")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsEnabled")
@@ -91,6 +140,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<float>("Temperature")
                         .HasColumnType("REAL");
 
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("CloudProviderConfigurations");
@@ -104,6 +156,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
 
                     b.Property<string>("ActionMenuHotkey")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("LaunchAtLogin")
@@ -120,6 +175,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("GeneralSettings");
@@ -129,6 +187,7 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         {
                             Id = 1,
                             ActionMenuHotkey = "Ctrl+J",
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             LaunchAtLogin = false,
                             SmartPasteHotkey = "Ctrl+Shift+V",
                             Theme = "System"
@@ -143,6 +202,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
 
                     b.Property<string>("ActionName")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("InputText")
@@ -160,6 +222,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("History");
@@ -170,6 +235,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("FallbackServiceType")
                         .IsRequired()
@@ -207,6 +275,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("ProviderSettings");
@@ -215,6 +286,7 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         new
                         {
                             Id = 1,
+                            CreatedAtUtc = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             FallbackServiceType = "None",
                             LocalCpuCores = 4,
                             LocalModelContextSize = 4096,
@@ -238,11 +310,17 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<long>("CompletionTokens")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Month")
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("PromptTokens")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Year")
                         .HasColumnType("INTEGER");
@@ -253,6 +331,22 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("UsageStatistics");
+                });
+
+            modelBuilder.Entity("ProseFlow.Core.Models.Action", b =>
+                {
+                    b.HasOne("ProseFlow.Core.Models.ActionGroup", "ActionGroup")
+                        .WithMany("Actions")
+                        .HasForeignKey("ActionGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionGroup");
+                });
+
+            modelBuilder.Entity("ProseFlow.Core.Models.ActionGroup", b =>
+                {
+                    b.Navigation("Actions");
                 });
 #pragma warning restore 612, 618
         }

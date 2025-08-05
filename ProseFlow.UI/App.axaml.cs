@@ -32,6 +32,8 @@ using ShadUI;
 using Avalonia.Platform;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using ProseFlow.Application.Interfaces;
+using ProseFlow.UI.ViewModels.Dialogs;
+using ProseFlow.UI.Views.Dialogs;
 
 namespace ProseFlow.UI;
 
@@ -105,6 +107,11 @@ public class App : Avalonia.Application
         osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
 
         SubscribeToAppEvents();
+        
+        
+        // Setup Dialogs
+        var dialogManager = Services.GetRequiredService<DialogManager>();
+        dialogManager.Register<InputDialogView, InputDialogViewModel>();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -366,6 +373,7 @@ public class App : Avalonia.Application
         services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<GeneralViewModel>();
         services.AddTransient<HistoryViewModel>();
+        services.AddTransient<InputDialogViewModel>();
 
         return services.BuildServiceProvider();
     }

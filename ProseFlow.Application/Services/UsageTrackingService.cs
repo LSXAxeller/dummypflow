@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 
@@ -8,7 +9,7 @@ namespace ProseFlow.Application.Services;
 /// Manages reading, writing, and updating token usage statistics.
 /// </summary>
 public class UsageTrackingService(
-    IUnitOfWork unitOfWork,
+    IServiceScopeFactory scopeFactory,
     ILogger<UsageTrackingService> logger) : IDisposable
 {
     private readonly SemaphoreSlim _usageLock = new(1, 1);
@@ -55,20 +56,24 @@ public class UsageTrackingService(
         try
         {
             var now = DateTime.UtcNow;
-            if (now.Year != _currentMonthUsage.Year || now.Month != _currentMonthUsage.Month) 
+            if (now.Year != _currentMonthUsage.Year || now.Month != _currentMonthUsage.Month)
                 _currentMonthUsage = await GetOrCreateCurrentUsageStatisticAsync();
 
             _currentMonthUsage.PromptTokens += promptTokens;
             _currentMonthUsage.CompletionTokens += completionTokens;
 
+            using var scope = scopeFactory.CreateScope();
+            await using var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             try
             {
+                // The _currentMonthUsage object is detached; Update() re-attaches it.
                 unitOfWork.UsageStatistics.Update(_currentMonthUsage);
                 await unitOfWork.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to save usage data to database. In-memory values were updated but may be out of sync.");
+                logger.LogError(ex,
+                    "Failed to save usage data to database. In-memory values were updated but may be out of sync.");
             }
         }
         finally
@@ -89,6 +94,8 @@ public class UsageTrackingService(
             _currentMonthUsage.PromptTokens = 0;
             _currentMonthUsage.CompletionTokens = 0;
 
+            using var scope = scopeFactory.CreateScope();
+            await using var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             unitOfWork.UsageStatistics.Update(_currentMonthUsage);
             await unitOfWork.SaveChangesAsync();
         }
@@ -97,7 +104,7 @@ public class UsageTrackingService(
             _usageLock.Release();
         }
     }
-    
+
     /// <summary>
     /// Disposes the semaphore.
     /// </summary>
@@ -113,15 +120,19 @@ public class UsageTrackingService(
     /// </summary>
     private async Task<UsageStatistic> GetOrCreateCurrentUsageStatisticAsync()
     {
+        // This method performs a complete, isolated transaction (read and potential write).
+        using var scope = scopeFactory.CreateScope();
+        await using var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
         var now = DateTime.UtcNow;
         var usage = await unitOfWork.UsageStatistics.GetByDateAsync(now.Year, now.Month);
         if (usage is not null)
             return usage;
-        
+
         // If no record exists for the current month, create one.
         logger.LogInformation("No usage record for {Month}/{Year}. Creating a new one.", now.Month, now.Year);
         var newUsage = new UsageStatistic { Year = now.Year, Month = now.Month };
-        
+
         await unitOfWork.UsageStatistics.AddAsync(newUsage);
         await unitOfWork.SaveChangesAsync();
 

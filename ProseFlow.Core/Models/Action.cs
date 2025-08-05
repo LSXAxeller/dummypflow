@@ -1,12 +1,12 @@
-﻿namespace ProseFlow.Core.Models;
+﻿using ProseFlow.Core.Abstracts;
+
+namespace ProseFlow.Core.Models;
 
 /// <summary>
 /// Represents a user-defined AI task or "Action".
 /// </summary>
-public class Action
+public class Action : EntityBase
 {
-    public int Id { get; set; }
-
     /// <summary>
     /// The unique, user-facing name of the action (e.g., "Proofread", "Summarize").
     /// </summary>
@@ -45,7 +45,17 @@ public class Action
     public List<string> ApplicationContext { get; set; } = [];
 
     /// <summary>
-    /// The display order of the action in the Floating Action Menu.
+    /// The display order of the action within its group.
     /// </summary>
     public int SortOrder { get; set; }
+    
+    /// <summary>
+    /// The foreign key for the group this action belongs to.
+    /// </summary>
+    public int ActionGroupId { get; set; } = 1;
+    
+    /// <summary>
+    /// The navigation property for the group.
+    /// </summary>
+    public ActionGroup? ActionGroup { get; set; }
 }

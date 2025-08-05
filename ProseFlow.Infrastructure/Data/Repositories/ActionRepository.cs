@@ -9,7 +9,7 @@ public class ActionRepository(AppDbContext context) : Repository<Action>(context
     /// <inheritdoc />
     public async Task<List<Action>> GetAllOrderedAsync()
     {
-        return await Context.Actions.OrderBy(a => a.SortOrder).ToListAsync();
+        return await Context.Actions.OrderBy(a => a.SortOrder).Include(a => a.ActionGroup).ToListAsync();
     }
     
     /// <inheritdoc />
@@ -32,10 +32,7 @@ public class ActionRepository(AppDbContext context) : Repository<Action>(context
         for (var i = 0; i < orderedActions.Count; i++)
         {
             var actionToUpdate = await Context.Actions.FindAsync(orderedActions[i].Id);
-            if (actionToUpdate != null)
-            {
-                actionToUpdate.SortOrder = i;
-            }
+            if (actionToUpdate != null) actionToUpdate.SortOrder = i;
         }
     }
 }

@@ -9,7 +9,7 @@ namespace ProseFlow.Core.Interfaces.Repositories;
 public interface IRepository<TEntity> where TEntity : class
 {
     Task<List<TEntity>> GetAllAsync();
-    Task<TEntity?> GetByIdAsync(int id);
+    Task<TEntity?> GetByIdAsync(int id, bool asNoTracking = false);
     Task<List<TEntity>> GetByExpressionAsync(Expression<Func<TEntity, bool>> expression);
     Task AddAsync(TEntity entity);
     void Update(TEntity entity);

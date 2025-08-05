@@ -10,6 +10,12 @@ public partial class ActionGroupViewModel(string name) : ViewModelBase
 {
     [ObservableProperty]
     private string _name = name;
+    
+    [ObservableProperty]
+    private bool _isExpanded = true;
+    
+    [ObservableProperty]
+    private bool _isSelected;
 
     public ObservableCollection<ActionItemViewModel> Actions { get; init; } = [];
 }

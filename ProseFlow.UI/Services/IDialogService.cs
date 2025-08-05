@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using ProseFlow.UI.Models;
 
 namespace ProseFlow.UI.Services;
 
@@ -50,5 +51,15 @@ public interface IDialogService
     /// <param name="onCancel">The asynchronous action to perform if the user cancels.</param>
     /// <returns>True if the user confirmed; otherwise, false.</returns>
     void ShowConfirmationDialogAsync(string title, string message, Func<Task>? onConfirm = null, Func<Task>? onCancel = null);
+    
+    /// <summary>
+    /// Shows a dialog to get a single string input from the user.
+    /// </summary>
+    /// <param name="title">The title of the dialog.</param>
+    /// <param name="message">The message/prompt to display to the user.</param>
+    /// <param name="confirmButtonText">The text for the confirmation button (e.g., "Create", "Rename").</param>
+    /// <param name="initialValue">An optional initial value for the input box.</param>
+    /// <returns>A result object indicating success and the entered text.</returns>
+    Task<InputDialogResult> ShowInputDialogAsync(string title, string message, string confirmButtonText, string? initialValue = null);
     
 }
