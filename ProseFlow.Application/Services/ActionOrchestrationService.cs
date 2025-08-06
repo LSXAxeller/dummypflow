@@ -2,6 +2,7 @@
 using ProseFlow.Application.Events;
 using ProseFlow.Core.Interfaces;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using ProseFlow.Application.DTOs;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
@@ -16,15 +17,17 @@ public class ActionOrchestrationService : IDisposable
     private readonly IOsService _osService;
     private readonly IReadOnlyDictionary<string, IAiProvider> _providers;
     private readonly ILocalSessionService _localSessionService;
+    private readonly ILogger<ActionOrchestrationService> _logger;
 
 
     public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IOsService osService,
-        IEnumerable<IAiProvider> providers, ILocalSessionService localSessionService)
+        IEnumerable<IAiProvider> providers, ILocalSessionService localSessionService, ILogger<ActionOrchestrationService> logger)
     {
         _scopeFactory = scopeFactory;
         _osService = osService;
         _localSessionService = localSessionService;
         _providers = providers.ToDictionary(p => p.Name, p => p, StringComparer.OrdinalIgnoreCase);
+        _logger = logger;
     }
 
     public void Initialize()
@@ -146,18 +149,24 @@ public class ActionOrchestrationService : IDisposable
                     var providerStopwatch = Stopwatch.StartNew();
 
                     // Call the provider with the entire conversation history
-                    var aiResponse = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
-                    var aiOutput = aiResponse.Content;
-                    
+                    var (aiOutput, promptTokens, completionTokens, providerName, tokensPerSecond) = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
+
                     providerStopwatch.Stop();
                     
                     // Add the provider's response to the history for the next turn
                     conversationHistory.Add(new ChatMessage("assistant", aiOutput));
 
                     // Log to DB
-                    await LogToHistoryAsync(request.ActionToExecute.Name, aiResponse.ProviderName,
-                        conversationHistory.Last(m => m.Role == "user").Content, aiOutput,
-                        aiResponse.PromptTokens, aiResponse.CompletionTokens, providerStopwatch.Elapsed.TotalMilliseconds);
+                    await LogToHistoryAsync(
+                        actionName: request.ActionToExecute.Name,
+                        providerType: provider.Name,
+                        modelUsed: providerName,
+                        input: conversationHistory.Last(m => m.Role == "user").Content,
+                        output: aiOutput,
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        latencyMs: providerStopwatch.Elapsed.TotalMilliseconds,
+                        inferenceSpeed: tokensPerSecond);
 
                     // Parse and show the result window
                     var (mainOutput, explanation) = ParseOutput(aiOutput, request.ActionToExecute.ExplainChanges);
@@ -185,13 +194,21 @@ public class ActionOrchestrationService : IDisposable
                 
                 // Start a stopwatch for the provider to get latency
                 var providerStopwatch = Stopwatch.StartNew();
-
+                
                 // Call provider with the initial history [system, user]
-                var response = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
-                var output = response.Content;
+                var (output, promptTokens, completionTokens, providerName, tokensPerSecond) = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
 
                 providerStopwatch.Stop();
-                await LogToHistoryAsync(request.ActionToExecute.Name, response.ProviderName, initialUserContent, output, response.PromptTokens, response.CompletionTokens, providerStopwatch.Elapsed.TotalMilliseconds);
+                await LogToHistoryAsync(
+                    actionName: request.ActionToExecute.Name,
+                    providerType: provider.Name,
+                    modelUsed: providerName,
+                    input: initialUserContent,
+                    output: output,
+                    promptTokens: promptTokens,
+                    completionTokens: completionTokens,
+                    latencyMs: providerStopwatch.Elapsed.TotalMilliseconds,
+                    inferenceSpeed: tokensPerSecond);
                 await _osService.PasteTextAsync(output);
             }
 
@@ -203,6 +220,8 @@ public class ActionOrchestrationService : IDisposable
         catch (Exception ex)
         {
             stopwatch.Stop();
+            _logger.LogError(ex, "Error executing action: {ActionName}", request.ActionToExecute.Name);
+            
             // Provide a user-friendly message but log the detailed exception for debugging.
             var displayMessage = ex is InvalidOperationException ? ex.Message : "An unexpected error occurred.";
             AppEvents.RequestNotification($"Error: {displayMessage}", NotificationType.Error);
@@ -245,13 +264,13 @@ public class ActionOrchestrationService : IDisposable
 
     }
 
-    private async Task LogToHistoryAsync(string actionName, string providerName, string input, string output, long promptTokens, long completionTokens, double latencyMs)
+    private async Task LogToHistoryAsync(string actionName, string providerType, string modelUsed, string input, string output, long promptTokens, long completionTokens, double latencyMs, double inferenceSpeed)
     {
         try
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
             var historyService = scope.ServiceProvider.GetRequiredService<HistoryService>();
-            await historyService.AddHistoryEntryAsync(actionName, providerName, input, output, promptTokens, completionTokens, latencyMs);
+            await historyService.AddHistoryEntryAsync(actionName, providerType, modelUsed, input, output, promptTokens, completionTokens, latencyMs, inferenceSpeed);
         }
         catch (Exception ex)
         {

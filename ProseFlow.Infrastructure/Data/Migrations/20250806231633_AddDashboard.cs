@@ -24,12 +24,26 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                 nullable: false,
                 defaultValue: 0.0);
 
+            migrationBuilder.AddColumn<string>(
+                name: "ModelUsed",
+                table: "History",
+                type: "TEXT",
+                nullable: false,
+                defaultValue: "");
+
             migrationBuilder.AddColumn<long>(
                 name: "PromptTokens",
                 table: "History",
                 type: "INTEGER",
                 nullable: false,
                 defaultValue: 0L);
+
+            migrationBuilder.AddColumn<double>(
+                name: "TokensPerSecond",
+                table: "History",
+                type: "REAL",
+                nullable: false,
+                defaultValue: 0.0);
         }
 
         /// <inheritdoc />
@@ -44,7 +58,15 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                 table: "History");
 
             migrationBuilder.DropColumn(
+                name: "ModelUsed",
+                table: "History");
+
+            migrationBuilder.DropColumn(
                 name: "PromptTokens",
+                table: "History");
+
+            migrationBuilder.DropColumn(
+                name: "TokensPerSecond",
                 table: "History");
         }
     }

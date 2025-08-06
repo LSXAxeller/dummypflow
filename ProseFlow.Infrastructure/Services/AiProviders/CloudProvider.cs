@@ -8,6 +8,7 @@ using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
+using System.Text;
 using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
@@ -64,6 +65,7 @@ public class CloudProvider(
                     Model = config.Model,
                     Temperature = config.Temperature,
                     Messages = tornadoMessages,
+                    Stream = true,
                     CancellationToken = cancellationToken
                 };
                 
@@ -72,22 +74,53 @@ public class CloudProvider(
                     ? new TornadoApi(new Uri(config.BaseUrl), config.ApiKey)
                     : api;
                 
-                var response = await conversationApi.Chat.CreateChatCompletion(request);
+                var fullContent = new StringBuilder();
+                long promptTokens = 0;
+                long completionTokens = 0;
+                var stopwatch = new Stopwatch();
 
-                long promptTokens = response?.Usage?.PromptTokens ?? 0;
-                long completionTokens = response?.Usage?.CompletionTokens ?? 0;
-
+                var stream = conversationApi.Chat.StreamChatEnumerable(request);
+                
+                stopwatch.Start();
+                await foreach (var chunk in stream.WithCancellation(cancellationToken))
+                {
+                    // Aggregate content from response chunks
+                    if (chunk.Choices?.FirstOrDefault()?.Delta?.Content is { } contentPart) fullContent.Append(contentPart);
+                    
+                    // Aggregate usage data. The final counts are often in the last chunks.
+                    if (chunk.Usage is not null)
+                    {
+                        promptTokens = chunk.Usage.PromptTokens;
+                        completionTokens = chunk.Usage.CompletionTokens;
+                    }
+                }
+                stopwatch.Stop();
+                
                 // Persist monthly aggregate usage
-                if (response?.Usage is not null) await usageService.AddUsageAsync(promptTokens, completionTokens);
+                if (promptTokens > 0 || completionTokens > 0) await usageService.AddUsageAsync(promptTokens, completionTokens);
             
-                if (response is { Choices.Count: > 0 } && response.Choices[0].Message != null && !string.IsNullOrWhiteSpace(response.Choices[0].Message!.Content))
-                    return new AiResponse(response.Choices[0].Message!.Content!, promptTokens, completionTokens, config.Name);
+                if (fullContent.Length > 0)
+                {
+                    double tokensPerSecond = 0;
+                    switch (completionTokens)
+                    {
+                        case > 0 when stopwatch.Elapsed.TotalSeconds > 0:
+                            tokensPerSecond = completionTokens / stopwatch.Elapsed.TotalSeconds;
+                            break;
+                        // Log if we can't calculate TPS despite having tokens
+                        case > 0:
+                            logger.LogWarning("Could not calculate Tokens Per Second for provider '{ProviderName}'. Elapsed time was zero.", config.Name);
+                            break;
+                    }
+                    
+                    return new AiResponse(fullContent.ToString(), promptTokens, completionTokens, config.Name, tokensPerSecond);
+                }
             }
             catch (Exception ex)
             {
                 var errorMessage = $"Provider '{config.Name}' failed: {ex.Message}. Trying next provider...";
                 AppEvents.RequestNotification(errorMessage, NotificationType.Warning);
-                logger.LogError(errorMessage);
+                logger.LogError(ex, "Provider '{ConfigName}' failed.", config.Name);
             }
         }
         

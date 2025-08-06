@@ -1,81 +1,107 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
 using ProseFlow.Application.DTOs.Dashboard;
 using ProseFlow.Application.Services;
-using ProseFlow.Infrastructure.Services.AiProviders.Local;
+using SkiaSharp;
+
 
 namespace ProseFlow.UI.ViewModels.Dashboard;
 
-public partial class LocalDashboardViewModel : DashboardTabViewModelBase, IDisposable
+public partial class LocalDashboardViewModel(DashboardService dashboardService) : DashboardViewModelBase
 {
-    private readonly DashboardService _dashboardService;
-    private readonly LocalModelManagerService _modelManager;
-
     public override string Title => "Local";
-
+    
     // KPIs
     [ObservableProperty] private long _totalLocalTokens;
-    [ObservableProperty] private double _averageInferenceSpeed;
-    [ObservableProperty] private string _ramUsage = "N/A";
     [ObservableProperty] private int _totalLocalActions;
     
-    // Data Grid
-    [ObservableProperty] private ObservableCollection<ActionUsageDto> _topActions = [];
-    
-    public LocalDashboardViewModel(DashboardService dashboardService, LocalModelManagerService modelManager)
-    {
-        _dashboardService = dashboardService;
-        _modelManager = modelManager;
-        
-        _modelManager.StateChanged += OnModelStateChanged;
-    }
-    
-    private void OnModelStateChanged()
-    {
-        // TODO: Implement real-time hardware monitoring
-    }
-    
+    // TODO: Implement an actual hardware monitoring
+    // Live Metrics (placeholders for now)
+    [ObservableProperty] private string _vramUsage = "N/A";
+    [ObservableProperty] private string _inferenceSpeed = "N/A";
+
+    // Grid
+    public ObservableCollection<ActionUsageDto> TopLocalActions { get; } = [];
+
     protected override async Task LoadDataAsync()
     {
         IsLoading = true;
         var (startDate, endDate) = GetDateRange();
-        
-        var localHistoryTask = _dashboardService.GetHistoryByDateRangeAsync(startDate, endDate, "Local");
-        var topActionsTask = _dashboardService.GetTopActionsAsync(startDate, endDate, "Local", 10);
-        
-        await Task.WhenAll(localHistoryTask, topActionsTask);
-        
-        var localHistory = await localHistoryTask;
+
+        var dailyUsageTask = dashboardService.GetDailyUsageAsync(startDate, endDate, "Local");
+        var topActionsTask = dashboardService.GetTopActionsAsync(startDate, endDate, "Local");
+
+        await Task.WhenAll(dailyUsageTask, topActionsTask);
+
+        var dailyUsage = await dailyUsageTask;
 
         // Update KPIs
-        TotalLocalActions = localHistory.Count;
-        if (TotalLocalActions > 0)
-        {
-            TotalLocalTokens = localHistory.Sum(e => e.PromptTokens + e.CompletionTokens);
-            
-            // Calculate inference speed in tokens per second
-            var totalLatencySeconds = localHistory.Sum(e => e.LatencyMs) / 1000.0;
-            AverageInferenceSpeed = totalLatencySeconds > 0 ? localHistory.Sum(e => e.CompletionTokens) / totalLatencySeconds : 0;
-        }
-        else
-        {
-            TotalLocalTokens = 0;
-            AverageInferenceSpeed = 0;
-        }
-        
-        // Update Data Grid
-        TopActions.Clear();
-        foreach (var action in await topActionsTask) TopActions.Add(action);
+        TotalLocalTokens = dailyUsage.Sum(d => d.PromptTokens + d.CompletionTokens);
+        TotalLocalActions = await dashboardService.GetTotalUsageCountAsync(startDate, endDate, "Local");
+        InferenceSpeed = $"{dailyUsage.Average(d => d.TokensPerSecond):F2} T/s";
 
+        // Update Grid
+        TopLocalActions.Clear();
+        foreach (var action in await topActionsTask)
+        {
+            TopLocalActions.Add(action);
+        }
+
+        // Update Chart
+        UpdateUsageChart(dailyUsage);
+        
         IsLoading = false;
     }
 
-    public void Dispose()
+    private void UpdateUsageChart(System.Collections.Generic.List<DailyUsageDto> dailyUsage)
     {
-        _modelManager.StateChanged -= OnModelStateChanged;
-        GC.SuppressFinalize(this);
+        Series =
+        [
+            new ColumnSeries<long>
+            {
+                Name = "Prompt Tokens",
+                Values = dailyUsage.Select(d => d.PromptTokens).ToList(),
+                Stroke = null,
+                Fill = new SolidColorPaint(SKColor.Parse("#16a34a")), // Green for local
+                MaxBarWidth = 40,
+                Rx = 4,
+                Ry = 4
+            },
+
+            new ColumnSeries<long>
+            {
+                Name = "Completion Tokens",
+                Values = dailyUsage.Select(d => d.CompletionTokens).ToList(),
+                Stroke = null,
+                Fill = new SolidColorPaint(SKColor.Parse("#a8a29e")),
+                MaxBarWidth = 40,
+                Rx = 4,
+                Ry = 4
+            }
+        ];
+
+        XAxes =
+        [
+            new Axis
+            {
+                Labels = dailyUsage.Select(d => d.Date.ToString("MMM d")).ToList(),
+                LabelsRotation = 0,
+                TextSize = 12,
+                SeparatorsPaint = new SolidColorPaint(SKColors.Transparent)
+            }
+        ];
+
+        YAxes =
+        [
+            new Axis
+            {
+                TextSize = 12,
+                SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f }
+            }
+        ];
     }
 }

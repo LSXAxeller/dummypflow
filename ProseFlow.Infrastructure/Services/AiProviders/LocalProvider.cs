@@ -1,14 +1,13 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using LLama;
 using LLama.Batched;
 using LLama.Sampling;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
-using ProseFlow.Infrastructure.Data;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
@@ -64,7 +63,7 @@ public class LocalProvider(
         try
         {
             // Format the prompt
-            var formattedPrompt = BuildPrompt(messages, executor.Model, isNewSession: conversation.TokenCount == 0);
+            var formattedPrompt = BuildPrompt(messages, executor.Model, isNewSession: conversation.TokenCount == 0, settings);
             
             // Prompt the model
             var promptTokens = executor.Context.Tokenize(formattedPrompt);
@@ -77,8 +76,17 @@ public class LocalProvider(
             var responseBuilder = new StringBuilder();
             var sampler = new DefaultSamplingPipeline { Temperature = settings.LocalModelTemperature };
             var decoder = new StreamingTokenDecoder(executor.Context);
+            var stopwatch = new Stopwatch();
             
+            // Periodic TPS measurement
+            var tpsMeasurements = new List<double>();
+            const double measurementIntervalSeconds = 1.0;
+            var lastMeasurementTime = TimeSpan.Zero;
+            long lastMeasurementTokens = 0;
+
             var maxTokensToGenerate = settings.LocalModelMaxTokens;
+            
+            stopwatch.Start();
             for (var i = 0; i < maxTokensToGenerate; i++)
             {
                 if (cancellationToken.IsCancellationRequested) break;
@@ -95,10 +103,44 @@ public class LocalProvider(
                 responseBuilder.Append(decoder.Read());
                 
                 conversation.Prompt(token);
+                
+                var elapsed = stopwatch.Elapsed;
+                if ((elapsed - lastMeasurementTime).TotalSeconds >= measurementIntervalSeconds)
+                {
+                    var timeDelta = (elapsed - lastMeasurementTime).TotalSeconds;
+                    var tokenDelta = completionTokenCount - lastMeasurementTokens;
+
+                    if (timeDelta > 0)
+                    {
+                        var intervalTps = tokenDelta / timeDelta;
+                        tpsMeasurements.Add(intervalTps);
+                    }
+
+                    lastMeasurementTime = elapsed;
+                    lastMeasurementTokens = completionTokenCount;
+                }
             }
-            
-            logger.LogInformation("Local inference completed, generated {CharCount} characters.", responseBuilder.Length);
-            return new AiResponse(responseBuilder.ToString().Trim(), promptTokenCount, completionTokenCount, Path.GetFileNameWithoutExtension(settings.LocalModelPath));
+            stopwatch.Stop();
+
+            var averageTps = tpsMeasurements.Count != 0 ? tpsMeasurements.Average() : completionTokenCount > 0 && stopwatch.Elapsed.TotalSeconds > 0
+                ? completionTokenCount / stopwatch.Elapsed.TotalSeconds
+                : 0;
+
+            logger.LogInformation(
+                "Local inference completed. Generated {CompletionTokens} tokens in {ElapsedMilliseconds} ms. Average TPS: {TokensPerSecond:F2}",
+                completionTokenCount, stopwatch.ElapsedMilliseconds, averageTps);
+
+            return new AiResponse(
+                responseBuilder.ToString().Trim(), 
+                promptTokenCount, 
+                completionTokenCount, 
+                Path.GetFileNameWithoutExtension(settings.LocalModelPath),
+                averageTps);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Local inference failed.");
+            throw;
         }
         finally
         {
@@ -113,32 +155,43 @@ public class LocalProvider(
     /// <param name="messages">The list of chat messages.</param>
     /// <param name="model">The loaded LLamaWeights model containing the template.</param>
     /// <param name="isNewSession">If true, the entire history is rendered. If false, only the last user message is rendered.</param>
-    private string BuildPrompt(IEnumerable<ChatMessage> messages, LLamaWeights model, bool isNewSession)
+    private string BuildPrompt(IEnumerable<ChatMessage> messages, LLamaWeights model, bool isNewSession, ProviderSettings settings)
     {
-        var messageList = messages.ToList();
-        var template = new LLamaTemplate(model.NativeHandle);
-        
-        if (isNewSession)
-        {
-            // For a new conversation, build the entire history.
-            foreach (var message in messageList)
-            {
-                template.Add(message.Role, message.Content);
-            }
-        }
-        else
-        {
-            // For an existing conversation, just append the latest user message.
-            var lastUserMessage = messageList.LastOrDefault(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase));
-            if (lastUserMessage != null) template.Add("user", lastUserMessage.Content);
-        }
-        
-        // Always add the start token for the assistant's turn.
-        template.AddAssistant = true;
 
-        var result = Encoding.UTF8.GetString(template.Apply());
-        template.Clear();
-        
-        return result;
+        try
+        {
+            var messageList = messages.ToList();
+            var template = new LLamaTemplate(model.NativeHandle);
+
+            if (isNewSession)
+            {
+                // For a new conversation, build the entire history.
+                foreach (var message in messageList)
+                {
+                    template.Add(message.Role, message.Content);
+                }
+            }
+            else
+            {
+                // For an existing conversation, just append the latest user message.
+                var lastUserMessage =
+                    messageList.LastOrDefault(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase));
+                if (lastUserMessage != null) template.Add("user", lastUserMessage.Content);
+            }
+
+            // Always add the start token for the assistant's turn.
+            template.AddAssistant = true;
+
+            var result = Encoding.UTF8.GetString(template.Apply());
+            template.Clear();
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to build prompt: {Path.GetFileNameWithoutExtension(settings.LocalModelPath)} model's embedded prompt template is missing or incorrect.";
+            logger.LogCritical(ex,  errorMessage);
+            throw new InvalidOperationException(errorMessage, ex);
+        }
     }
 }

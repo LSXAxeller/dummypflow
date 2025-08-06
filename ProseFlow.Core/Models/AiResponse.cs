@@ -7,4 +7,5 @@
 /// <param name="PromptTokens">The number of tokens used in the prompt.</param>
 /// <param name="CompletionTokens">The number of tokens generated in the completion.</param>
 /// <param name="ProviderName">The name of the AI provider that generated the response (e.g., "OpenAI").</param>
-public record AiResponse(string Content, long PromptTokens, long CompletionTokens, string ProviderName);
+/// <param name="TokensPerSecond">The estimated number of tokens generated per second.</param>
+public record AiResponse(string Content, long PromptTokens, long CompletionTokens, string ProviderName, double TokensPerSecond);

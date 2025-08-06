@@ -1,27 +1,60 @@
-﻿<UserControl x:Class="ProseFlow.UI.Views.Dashboard.LocalDashboardView"
-             xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
-             xmlns:vm="using:ProseFlow.UI.ViewModels.Dashboard"
-             x:DataType="vm:LocalDashboardViewModel">
-    <DockPanel LastChildFill="True">
-        <ComboBox DockPanel.Dock="Top" HorizontalAlignment="Right" Margin="0,0,0,16"
-                  ItemsSource="{Binding DateRanges}" SelectedItem="{Binding SelectedDateRange}" Width="200" />
+﻿<UserControl
+    x:Class="ProseFlow.UI.Views.Dashboard.LocalDashboardView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:ProseFlow.UI.ViewModels.Dashboard"
+    xmlns:controls="using:ProseFlow.UI.Controls.Dashboard"
+    xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:avalonia="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
+    mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+    x:DataType="vm:LocalDashboardViewModel">
 
-        <ScrollViewer>
-            <StackPanel Spacing="16">
-                <shadui:Card>
-                    <shadui:Card.Header><shadui:CardTitle>Top Local Actions</shadui:CardTitle></shadui:Card.Header>
-                    <DataGrid ItemsSource="{Binding TopActions}" AutoGenerateColumns="False" IsReadOnly="True">
+    <ScrollViewer>
+        <StackPanel Spacing="24">
+            <!-- Header -->
+            <DockPanel>
+                <ComboBox DockPanel.Dock="Right" ItemsSource="{Binding DateRanges}"
+                          SelectedItem="{Binding SelectedDateRange}" Width="150" />
+            </DockPanel>
+
+            <!-- KPI Cards -->
+            <UniformGrid Columns="4" ColumnSpacing="16">
+                <controls:OverviewCard Title="Total Local Tokens" Value="{Binding TotalLocalTokens, StringFormat='N0'}" />
+                <controls:OverviewCard Title="Total Local Actions"
+                                       Value="{Binding TotalLocalActions, StringFormat='N0'}" />
+                <controls:OverviewCard Title="Avg. Inference Speed"
+                                       Value="{Binding InferenceSpeed}" />
+                <controls:OverviewCard Title="VRAM Usage (Live)" Value="{Binding VramUsage}" />
+            </UniformGrid>
+
+            <Grid ColumnDefinitions="1*, 2*" ColumnSpacing="16">
+                <!-- Left Column: Top Actions -->
+                <shadui:Card Grid.Column="0">
+                    <shadui:Card.Header>
+                        <shadui:CardTitle>Top Local Actions</shadui:CardTitle>
+                    </shadui:Card.Header>
+                    <DataGrid ItemsSource="{Binding TopLocalActions}" AutoGenerateColumns="False"
+                              CanUserReorderColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Action" Binding="{Binding ActionName}" Width="*" />
-                            <DataGridTextColumn Header="Uses" Binding="{Binding UsageCount}" />
-                            <DataGridTextColumn Header="Avg Tokens" Binding="{Binding AverageTokens, StringFormat='N0'}" />
+                            <DataGridTextColumn Header="Uses" Binding="{Binding UsageCount}" Width="Auto" />
+                            <DataGridTextColumn Header="Avg Tokens"
+                                                Binding="{Binding AverageTokens, StringFormat='N0'}" Width="Auto" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </shadui:Card>
-                <!-- KPIs for local usage could go here if desired -->
-            </StackPanel>
-        </ScrollViewer>
-    </DockPanel>
+
+                <!-- Right Column: Chart -->
+                <shadui:Card Grid.Column="1">
+                    <shadui:Card.Header>
+                        <shadui:CardTitle>Local Token Usage (Prompt vs Completion)</shadui:CardTitle>
+                    </shadui:Card.Header>
+                    <avalonia:CartesianChart Series="{Binding Series}" XAxes="{Binding XAxes}" YAxes="{Binding YAxes}"
+                                             Height="300" Margin="12,0,12,12" LegendPosition="Bottom" />
+                </shadui:Card>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

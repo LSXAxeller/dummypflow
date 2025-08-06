@@ -368,17 +368,23 @@ public class App : Avalonia.Application
 
         // Add ViewModels
         services.AddSingleton<MainViewModel>();
+        services.AddSingleton<TrayIconViewModel>();
+
+        // Dashboard ViewModels
         services.AddTransient<DashboardViewModel>();
-        services.AddTransient<OverviewDashboardView>();
+        services.AddTransient<OverviewDashboardViewModel>();
         services.AddTransient<CloudDashboardViewModel>();
         services.AddTransient<LocalDashboardViewModel>();
-        services.AddSingleton<TrayIconViewModel>();
+
+        // Other Page ViewModels
         services.AddTransient<ActionsViewModel>();
-        services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<ProvidersViewModel>();
-        services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
+        
+        // Editor/Dialog ViewModels
+        services.AddTransient<ActionEditorViewModel>();
+        services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<InputDialogViewModel>();
 
         return services.BuildServiceProvider();

@@ -11,7 +11,7 @@ using ProseFlow.Infrastructure.Data;
 namespace ProseFlow.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250805233832_AddDashboard")]
+    [Migration("20250806231633_AddDashboard")]
     partial class AddDashboard
     {
         /// <inheritdoc />
@@ -220,6 +220,10 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<double>("LatencyMs")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("ModelUsed")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("OutputText")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -233,6 +237,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("TEXT");
+
+                    b.Property<double>("TokensPerSecond")
+                        .HasColumnType("REAL");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("TEXT");

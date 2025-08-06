@@ -217,6 +217,10 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<double>("LatencyMs")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("ModelUsed")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("OutputText")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -230,6 +234,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("TEXT");
+
+                    b.Property<double>("TokensPerSecond")
+                        .HasColumnType("REAL");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("TEXT");

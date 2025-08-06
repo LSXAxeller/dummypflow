@@ -28,10 +28,15 @@ public class HistoryEntry : EntityBase
     public required string OutputText { get; set; }
 
     /// <summary>
-    /// The name of the AI provider that processed the request (e.g., "Cloud").
+    /// The high-level type of the AI provider that processed the request (e.g., "Cloud", "Local").
     /// </summary>
     public required string ProviderUsed { get; set; }
-    
+
+    /// <summary>
+    /// The specific model used for the request (e.g., "gpt-4o", "llama-3-8b.gguf").
+    /// </summary>
+    public string ModelUsed { get; set; } = string.Empty;
+
     /// <summary>
     /// The number of tokens in the prompt sent to the AI.
     /// </summary>
@@ -41,9 +46,14 @@ public class HistoryEntry : EntityBase
     /// The number of tokens in the completion received from the AI.
     /// </summary>
     public long CompletionTokens { get; set; }
-    
+
     /// <summary>
     /// The time taken for the AI provider to respond, in milliseconds.
     /// </summary>
     public double LatencyMs { get; set; }
+
+    /// <summary>
+    /// The estimated number of tokens generated per second.
+    /// </summary>
+    public double TokensPerSecond { get; set; }
 }
