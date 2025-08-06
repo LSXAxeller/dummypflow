@@ -13,9 +13,9 @@ using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
 
-namespace ProseFlow.UI.ViewModels.General;
+namespace ProseFlow.UI.ViewModels.Settings;
 
-public partial class GeneralViewModel(SettingsService settingsService, ActionManagementService actionService, IOsService osService) : ViewModelBase
+public partial class SettingsViewModel(SettingsService settingsService, ActionManagementService actionService, IOsService osService) : ViewModelBase
 {
     public override string Title => "Settings";
     public override string Icon => "\uE158";

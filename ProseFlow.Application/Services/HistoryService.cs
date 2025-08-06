@@ -12,7 +12,8 @@ public class HistoryService(IServiceScopeFactory scopeFactory)
     /// <summary>
     /// Adds a new entry to the history.
     /// </summary>
-    public Task AddHistoryEntryAsync(string actionName, string providerUsed, string input, string output)
+    public Task AddHistoryEntryAsync(string actionName, string providerUsed, string input, string output,
+        long promptTokens, long completionTokens, double latencyMs)
     {
         return ExecuteCommandAsync(async unitOfWork =>
         {
@@ -22,11 +23,24 @@ public class HistoryService(IServiceScopeFactory scopeFactory)
                 ActionName = actionName,
                 ProviderUsed = providerUsed,
                 InputText = input,
-                OutputText = output
+                OutputText = output,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                LatencyMs = latencyMs
             };
 
             await unitOfWork.History.AddAsync(entry);
         });
+    }
+
+    public Task<List<HistoryEntry>> GetRecentHistoryAsync(int count = 10)
+    {
+        return ExecuteQueryAsync(unitOfWork => unitOfWork.History.GetRecentAsync(count));
+    }
+
+    public Task<List<HistoryEntry>> GetHistoryByDateRangeAsync(DateTime startDate, DateTime endDate)
+    {
+        return ExecuteQueryAsync(unitOfWork => unitOfWork.History.GetByDateRangeAsync(startDate, endDate));
     }
 
     /// <summary>

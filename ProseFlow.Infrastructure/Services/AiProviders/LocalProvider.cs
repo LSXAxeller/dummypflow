@@ -26,7 +26,7 @@ public class LocalProvider(
     public string Name => "Local";
     public ProviderType Type => ProviderType.Local;
 
-    public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
+    public async Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
     {
         var settings = await unitOfWork.Settings.GetProviderSettingsAsync()
                        ?? throw new InvalidOperationException("Provider settings not found in the database.");
@@ -42,7 +42,7 @@ public class LocalProvider(
         }
 
         var executor = modelManager.Executor;
-
+        
         // Determine if we are using a persistent session or creating a temporary one.
         Conversation? conversation;
         bool isTemporarySession;
@@ -67,8 +67,11 @@ public class LocalProvider(
             var formattedPrompt = BuildPrompt(messages, executor.Model, isNewSession: conversation.TokenCount == 0);
             
             // Prompt the model
-            var tokens = executor.Context.Tokenize(formattedPrompt);
-            conversation.Prompt(tokens);
+            var promptTokens = executor.Context.Tokenize(formattedPrompt);
+            conversation.Prompt(promptTokens);
+
+            var promptTokenCount = promptTokens.Length;
+            long completionTokenCount = 0;
             
             // Perform the inference loop
             var responseBuilder = new StringBuilder();
@@ -85,6 +88,7 @@ public class LocalProvider(
                 if (!conversation.RequiresSampling) continue;
                 
                 var token = sampler.Sample(executor.Context.NativeHandle, conversation.GetSampleIndex());
+                completionTokenCount++;
                 if (token.IsEndOfGeneration(executor.Model.NativeHandle)) break;
                 
                 decoder.Add(token);
@@ -94,7 +98,7 @@ public class LocalProvider(
             }
             
             logger.LogInformation("Local inference completed, generated {CharCount} characters.", responseBuilder.Length);
-            return responseBuilder.ToString().Trim();
+            return new AiResponse(responseBuilder.ToString().Trim(), promptTokenCount, completionTokenCount, Path.GetFileNameWithoutExtension(settings.LocalModelPath));
         }
         finally
         {

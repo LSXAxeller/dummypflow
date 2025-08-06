@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
+using ProseFlow.Core.Models;
 using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
@@ -23,7 +24,7 @@ public class CloudProvider(
     public string Name => "Cloud";
     public ProviderType Type => ProviderType.Cloud;
 
-    public async Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
+    public async Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
     {
         var enabledConfigs = (await providerService.GetConfigurationsAsync())
             .Where(c => c.IsEnabled)
@@ -73,10 +74,14 @@ public class CloudProvider(
                 
                 var response = await conversationApi.Chat.CreateChatCompletion(request);
 
-                if (response?.Usage is not null) await usageService.AddUsageAsync(response.Usage.PromptTokens, response.Usage.CompletionTokens);
+                long promptTokens = response?.Usage?.PromptTokens ?? 0;
+                long completionTokens = response?.Usage?.CompletionTokens ?? 0;
+
+                // Persist monthly aggregate usage
+                if (response?.Usage is not null) await usageService.AddUsageAsync(promptTokens, completionTokens);
             
-                if (response is { Choices.Count: > 0  } && response.Choices[0].Message != null && !string.IsNullOrWhiteSpace(response.Choices[0].Message!.Content))
-                    return response.Choices[0].Message!.Content!;
+                if (response is { Choices.Count: > 0 } && response.Choices[0].Message != null && !string.IsNullOrWhiteSpace(response.Choices[0].Message!.Content))
+                    return new AiResponse(response.Choices[0].Message!.Content!, promptTokens, completionTokens, config.Name);
             }
             catch (Exception ex)
             {

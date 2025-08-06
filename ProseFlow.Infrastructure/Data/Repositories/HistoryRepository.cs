@@ -11,6 +11,24 @@ public class HistoryRepository(AppDbContext context) : Repository<HistoryEntry>(
     {
         return await Context.History.OrderByDescending(h => h.Timestamp).ToListAsync();
     }
+    
+    /// <inheritdoc />
+    public async Task<List<HistoryEntry>> GetRecentAsync(int count)
+    {
+        return await Context.History
+            .OrderByDescending(h => h.Timestamp)
+            .Take(count)
+            .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task<List<HistoryEntry>> GetByDateRangeAsync(DateTime startDate, DateTime endDate)
+    {
+        return await Context.History
+            .Where(h => h.Timestamp >= startDate && h.Timestamp <= endDate)
+            .OrderByDescending(h => h.Timestamp)
+            .ToListAsync();
+    }
 
     /// <inheritdoc />
     public async Task ClearAllAsync()

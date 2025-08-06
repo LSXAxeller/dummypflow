@@ -1,0 +1,13 @@
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
+
+namespace ProseFlow.UI.Views.Dashboard;
+
+public partial class CloudDashboardView : UserControl
+{
+    public CloudDashboardView()
+    {
+        InitializeComponent();
+    }
+}

@@ -14,7 +14,7 @@ using ProseFlow.Infrastructure.Services.Os;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.ViewModels;
 using ProseFlow.UI.ViewModels.Actions;
-using ProseFlow.UI.ViewModels.General;
+using ProseFlow.UI.ViewModels.Settings;
 using ProseFlow.UI.ViewModels.History;
 using ProseFlow.UI.ViewModels.Providers;
 using ProseFlow.UI.ViewModels.Windows;
@@ -32,6 +32,7 @@ using ShadUI;
 using Avalonia.Platform;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using ProseFlow.Application.Interfaces;
+using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Dialogs;
 using ProseFlow.UI.Views.Dialogs;
 
@@ -353,6 +354,7 @@ public class App : Avalonia.Application
 
         // Add Application Services
         services.AddSingleton<ActionOrchestrationService>();
+        services.AddScoped<DashboardService>();
         services.AddScoped<ActionManagementService>();
         services.AddScoped<SettingsService>();
         services.AddScoped<HistoryService>();
@@ -366,12 +368,16 @@ public class App : Avalonia.Application
 
         // Add ViewModels
         services.AddSingleton<MainViewModel>();
+        services.AddTransient<DashboardViewModel>();
+        services.AddTransient<OverviewDashboardView>();
+        services.AddTransient<CloudDashboardViewModel>();
+        services.AddTransient<LocalDashboardViewModel>();
         services.AddSingleton<TrayIconViewModel>();
         services.AddTransient<ActionsViewModel>();
         services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<ProvidersViewModel>();
         services.AddTransient<CloudProviderEditorViewModel>();
-        services.AddTransient<GeneralViewModel>();
+        services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
         services.AddTransient<InputDialogViewModel>();
 

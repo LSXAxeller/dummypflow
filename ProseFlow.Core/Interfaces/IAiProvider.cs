@@ -25,5 +25,5 @@ public interface IAiProvider
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <param name="sessionId">Optional conversational session identifier.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the AI-generated text.</returns>
-    Task<string> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null);
+    Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null);
 }

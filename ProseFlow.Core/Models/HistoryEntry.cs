@@ -31,4 +31,19 @@ public class HistoryEntry : EntityBase
     /// The name of the AI provider that processed the request (e.g., "Cloud").
     /// </summary>
     public required string ProviderUsed { get; set; }
+    
+    /// <summary>
+    /// The number of tokens in the prompt sent to the AI.
+    /// </summary>
+    public long PromptTokens { get; set; }
+
+    /// <summary>
+    /// The number of tokens in the completion received from the AI.
+    /// </summary>
+    public long CompletionTokens { get; set; }
+    
+    /// <summary>
+    /// The time taken for the AI provider to respond, in milliseconds.
+    /// </summary>
+    public double LatencyMs { get; set; }
 }

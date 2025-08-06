@@ -141,16 +141,23 @@ public class ActionOrchestrationService : IDisposable
                             return;
                         }
                     }
+                    
+                    // Start a stopwatch for the provider to get latency
+                    var providerStopwatch = Stopwatch.StartNew();
 
                     // Call the provider with the entire conversation history
-                    var aiOutput = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
-
+                    var aiResponse = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
+                    var aiOutput = aiResponse.Content;
+                    
+                    providerStopwatch.Stop();
+                    
                     // Add the provider's response to the history for the next turn
                     conversationHistory.Add(new ChatMessage("assistant", aiOutput));
 
                     // Log to DB
-                    await LogToHistoryAsync(request.ActionToExecute.Name, provider.Name,
-                        conversationHistory.Last(m => m.Role == "user").Content, aiOutput);
+                    await LogToHistoryAsync(request.ActionToExecute.Name, aiResponse.ProviderName,
+                        conversationHistory.Last(m => m.Role == "user").Content, aiOutput,
+                        aiResponse.PromptTokens, aiResponse.CompletionTokens, providerStopwatch.Elapsed.TotalMilliseconds);
 
                     // Parse and show the result window
                     var (mainOutput, explanation) = ParseOutput(aiOutput, request.ActionToExecute.ExplainChanges);
@@ -175,11 +182,16 @@ public class ActionOrchestrationService : IDisposable
                     AppEvents.RequestNotification("No valid AI provider configured.", NotificationType.Error);
                     return;
                 }
+                
+                // Start a stopwatch for the provider to get latency
+                var providerStopwatch = Stopwatch.StartNew();
 
                 // Call provider with the initial history [system, user]
-                var output = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
+                var response = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
+                var output = response.Content;
 
-                await LogToHistoryAsync(request.ActionToExecute.Name, nameof(provider.Type), initialUserContent, output);
+                providerStopwatch.Stop();
+                await LogToHistoryAsync(request.ActionToExecute.Name, response.ProviderName, initialUserContent, output, response.PromptTokens, response.CompletionTokens, providerStopwatch.Elapsed.TotalMilliseconds);
                 await _osService.PasteTextAsync(output);
             }
 
@@ -233,13 +245,13 @@ public class ActionOrchestrationService : IDisposable
 
     }
 
-    private async Task LogToHistoryAsync(string actionName, string providerName, string input, string output)
+    private async Task LogToHistoryAsync(string actionName, string providerName, string input, string output, long promptTokens, long completionTokens, double latencyMs)
     {
         try
         {
             await using var scope = _scopeFactory.CreateAsyncScope();
             var historyService = scope.ServiceProvider.GetRequiredService<HistoryService>();
-            await historyService.AddHistoryEntryAsync(actionName, providerName, input, output);
+            await historyService.AddHistoryEntryAsync(actionName, providerName, input, output, promptTokens, completionTokens, latencyMs);
         }
         catch (Exception ex)
         {

@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="ProseFlow.UI.Views.Dashboard.DashboardView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ProseFlow.UI.ViewModels.Dashboard"
+             x:DataType="vm:DashboardViewModel">
+    <DockPanel LastChildFill="True">
+        <TextBlock Classes="h2" Text="Dashboard" Margin="48,24" DockPanel.Dock="Top" />
+
+        <TabControl Margin="48,0,48,24" ItemsSource="{Binding TabViewModels}">
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Title}" />
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+        </TabControl>
+    </DockPanel>
+</UserControl>

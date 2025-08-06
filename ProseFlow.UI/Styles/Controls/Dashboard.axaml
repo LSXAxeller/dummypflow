@@ -1,0 +1,31 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:ProseFlow.UI.Controls.Dashboard"
+        xmlns:shadUi="clr-namespace:ShadUI;assembly=ShadUI">
+    <Style Selector="controls|OverviewCard">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <shadUi:Card>
+                    <shadUi:Card.Content>
+                        <StackPanel Spacing="8">
+                            <!-- Header Section -->
+                            <Grid ColumnDefinitions="*, Auto" VerticalAlignment="Center">
+                                <TextBlock Classes="Small" Text="{TemplateBinding Title}" />
+                                <PathIcon Grid.Column="1"
+                                          Data="{TemplateBinding Icon}"
+                                          Width="16" Height="16"
+                                          Foreground="{DynamicResource MutedColor}" />
+                            </Grid>
+
+                            <!-- Content Section -->
+                            <TextBlock Classes="h3" Text="{TemplateBinding Value}" />
+
+                            <!-- Footer Section -->
+                            <TextBlock Classes="Caption Muted" Text="{TemplateBinding Hint}" />
+                        </StackPanel>
+                    </shadUi:Card.Content>
+                </shadUi:Card>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

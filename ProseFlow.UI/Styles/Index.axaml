@@ -3,4 +3,5 @@
     <StyleInclude Source="avares://ProseFlow.UI/Styles/TextBlock.axaml" />
     <StyleInclude Source="avares://ProseFlow.UI/Styles/Tooltip.axaml" />
     <StyleInclude Source="avares://ProseFlow.UI/Styles/Window.axaml" />
+    <StyleInclude Source="avares://ProseFlow.UI/Styles/Controls/Dashboard.axaml" />
 </Styles>

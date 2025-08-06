@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="ProseFlow.UI.Views.Dashboard.LocalDashboardView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:vm="using:ProseFlow.UI.ViewModels.Dashboard"
+             x:DataType="vm:LocalDashboardViewModel">
+    <DockPanel LastChildFill="True">
+        <ComboBox DockPanel.Dock="Top" HorizontalAlignment="Right" Margin="0,0,0,16"
+                  ItemsSource="{Binding DateRanges}" SelectedItem="{Binding SelectedDateRange}" Width="200" />
+
+        <ScrollViewer>
+            <StackPanel Spacing="16">
+                <shadui:Card>
+                    <shadui:Card.Header><shadui:CardTitle>Top Local Actions</shadui:CardTitle></shadui:Card.Header>
+                    <DataGrid ItemsSource="{Binding TopActions}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Action" Binding="{Binding ActionName}" Width="*" />
+                            <DataGridTextColumn Header="Uses" Binding="{Binding UsageCount}" />
+                            <DataGridTextColumn Header="Avg Tokens" Binding="{Binding AverageTokens, StringFormat='N0'}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </shadui:Card>
+                <!-- KPIs for local usage could go here if desired -->
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

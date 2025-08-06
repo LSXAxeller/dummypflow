@@ -6,7 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using ProseFlow.UI.ViewModels.Actions;
-using ProseFlow.UI.ViewModels.General;
+using ProseFlow.UI.ViewModels.Dashboard;
+using ProseFlow.UI.ViewModels.Settings;
 using ProseFlow.UI.ViewModels.History;
 using ProseFlow.UI.ViewModels.Providers;
 using ShadUI;
@@ -30,9 +31,10 @@ public partial class MainViewModel : ViewModelBase
         _toastManager = toastManager;
         
         // Add instances of all page ViewModels
+        PageViewModels.Add(serviceProvider.GetRequiredService<DashboardViewModel>());
         PageViewModels.Add(serviceProvider.GetRequiredService<ActionsViewModel>());
         PageViewModels.Add(serviceProvider.GetRequiredService<ProvidersViewModel>());
-        PageViewModels.Add(serviceProvider.GetRequiredService<GeneralViewModel>());
+        PageViewModels.Add(serviceProvider.GetRequiredService<SettingsViewModel>());
         PageViewModels.Add(serviceProvider.GetRequiredService<HistoryViewModel>());
 
         // Set the initial page

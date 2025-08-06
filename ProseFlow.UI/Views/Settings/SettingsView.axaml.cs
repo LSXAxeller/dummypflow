@@ -1,17 +1,17 @@
-﻿using Avalonia.Controls;
+﻿using System.Collections.Generic;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using ProseFlow.UI.ViewModels.General;
-using System.Collections.Generic;
+using ProseFlow.UI.ViewModels.Settings;
 
-namespace ProseFlow.UI.Views.General;
+namespace ProseFlow.UI.Views.Settings;
 
-public partial class GeneralView : UserControl
+public partial class SettingsView : UserControl
 {
     private bool _isRecordingHotkey;
     private const string RecordingPrompt = "Press a key combination...";
     
-    public GeneralView()
+    public SettingsView()
     {
         InitializeComponent();
     }
@@ -36,7 +36,7 @@ public partial class GeneralView : UserControl
         
         _isRecordingHotkey = false;
 
-        if (DataContext is GeneralViewModel { Settings: not null } vm)
+        if (DataContext is SettingsViewModel { Settings: not null } vm)
         {
             // If the user clicked away without setting a key, restore the original value.
             if (textBox.Text == RecordingPrompt)
@@ -83,7 +83,7 @@ public partial class GeneralView : UserControl
         var hotkeyString = string.Join("+", parts);
 
         // Update the view model directly
-        if (DataContext is GeneralViewModel { Settings: not null } vm && vm.Settings.ActionMenuHotkey != RecordingPrompt && vm.Settings.SmartPasteHotkey != RecordingPrompt)
+        if (DataContext is SettingsViewModel { Settings: not null } vm && vm.Settings.ActionMenuHotkey != RecordingPrompt && vm.Settings.SmartPasteHotkey != RecordingPrompt)
         {
             switch (textBox.Name)
             {

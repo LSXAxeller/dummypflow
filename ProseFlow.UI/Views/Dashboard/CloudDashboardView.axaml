@@ -1,0 +1,38 @@
+﻿<UserControl x:Class="ProseFlow.UI.Views.Dashboard.CloudDashboardView"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:vm="using:ProseFlow.UI.ViewModels.Dashboard"
+             x:DataType="vm:CloudDashboardViewModel">
+    <DockPanel LastChildFill="True">
+        <ComboBox DockPanel.Dock="Top" HorizontalAlignment="Right" Margin="0,0,0,16"
+                  ItemsSource="{Binding DateRanges}" SelectedItem="{Binding SelectedDateRange}" Width="200" />
+                  
+        <ScrollViewer>
+            <StackPanel Spacing="16">
+                <!-- Data Grids -->
+                <shadui:Card>
+                    <shadui:Card.Header><shadui:CardTitle>Top Cloud Actions</shadui:CardTitle></shadui:Card.Header>
+                    <DataGrid ItemsSource="{Binding TopActions}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Action" Binding="{Binding ActionName}" Width="*" />
+                            <DataGridTextColumn Header="Uses" Binding="{Binding UsageCount}" />
+                            <DataGridTextColumn Header="Avg Tokens" Binding="{Binding AverageTokens, StringFormat='N0'}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </shadui:Card>
+                <shadui:Card>
+                    <shadui:Card.Header><shadui:CardTitle>Provider Performance</shadui:CardTitle></shadui:Card.Header>
+                    <DataGrid ItemsSource="{Binding ProviderPerformance}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Provider" Binding="{Binding ProviderName}" Width="*" />
+                            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="*" />
+                            <DataGridTextColumn Header="Uses" Binding="{Binding UsageCount}" />
+                            <DataGridTextColumn Header="Avg Latency (ms)" Binding="{Binding AverageLatencyMs, StringFormat='N0'}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </shadui:Card>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
