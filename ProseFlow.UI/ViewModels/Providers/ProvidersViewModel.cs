@@ -7,6 +7,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lucide.Avalonia;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
@@ -25,7 +26,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly UsageTrackingService _usageService;
 
     public override string Title => "Providers";
-    public override string Icon => "\uE157";
+    public override LucideIconKind Icon => LucideIconKind.Cloud;
     
     [ObservableProperty]
     private ProviderSettings? _settings;

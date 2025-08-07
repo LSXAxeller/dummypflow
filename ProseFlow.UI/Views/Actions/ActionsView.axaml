@@ -13,46 +13,58 @@
     <UserControl.Resources>
         <c:BoolToOutputTargetConverter x:Key="BoolToOutputTargetConverter" />
         <c:StringToIconConverter x:Key="StringToIconConverter" />
-        
+
         <!-- Group Header -->
         <ControlTheme x:Key="ActionGroupHeaderTheme" TargetType="DataGridRowGroupHeader">
             <Setter Property="MinHeight" Value="48" />
             <Setter Property="Background" Value="{DynamicResource CardBackgroundColor}" />
             <Setter Property="Template">
                 <ControlTemplate x:DataType="collections:DataGridCollectionViewGroup">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
-                        <DataGridFrozenGrid Name="PART_Root" ColumnDefinitions="Auto,Auto,*" MinHeight="{TemplateBinding MinHeight}">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="0,0,0,1">
+                        <DataGridFrozenGrid Name="PART_Root" ColumnDefinitions="Auto,Auto,*"
+                                            MinHeight="{TemplateBinding MinHeight}">
                             <!-- Indent Spacer -->
                             <Rectangle Name="PART_IndentSpacer" Grid.Column="0" />
-                            
+
                             <!-- Expander Button -->
-                            <ToggleButton Name="PART_ExpanderButton" Grid.Column="1" Theme="{StaticResource DataGridRowGroupExpanderButtonTheme}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                            
+                            <ToggleButton Name="PART_ExpanderButton" Grid.Column="1"
+                                          Theme="{StaticResource DataGridRowGroupExpanderButtonTheme}"
+                                          Margin="12,0,0,0" VerticalAlignment="Center" />
+
                             <!-- Group Content: Name, Count, and Actions Dropdown -->
-                            <Grid Grid.Column="2" Margin="12,0" VerticalAlignment="Center" Cursor="SizeAll">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="2" Margin="12,0" VerticalAlignment="Center" Cursor="SizeAll"
+                                  ColumnDefinitions="*,Auto">
 
                                 <!-- Group Name and Item Count (aligned left) -->
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
+                                            VerticalAlignment="Center">
                                     <TextBlock FontWeight="Medium" Text="{Binding Key}" />
                                     <TextBlock Classes="Muted" Text="{Binding ItemCount, StringFormat=({0})}" />
                                 </StackPanel>
 
                                 <!-- Group Actions Dropdown -->
-                                <shadui:SimpleDropdown Grid.Column="1" Classes="Icon Grid" PopupPlacement="BottomEdgeAlignedRight" PopupWidth="150" Cursor="Arrow">
+                                <shadui:SimpleDropdown Grid.Column="1" Classes="Ghost"
+                                                       PopupPlacement="BottomEdgeAlignedRight" PopupWidth="150"
+                                                       Cursor="Arrow">
                                     <shadui:SimpleDropdown.TriggerContent>
-                                        <TextBlock Classes="LucideIcon" Text="" />
+                                        <LucideIcon Size="16" Kind="Command" />
                                     </shadui:SimpleDropdown.TriggerContent>
-                                    <Button Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditGroupCommand, FallbackValue={x:Null}}" CommandParameter="{Binding Key}">
-                                        <shadui:ButtonAssist.Icon><TextBlock Classes="LucideIcon" Text="" /></shadui:ButtonAssist.Icon>
+                                    <Button
+                                        Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditGroupCommand, FallbackValue={x:Null}}"
+                                        CommandParameter="{Binding Key}">
+                                        <shadui:ButtonAssist.Icon>
+                                            <LucideIcon Size="18" Kind="Pen" />
+                                        </shadui:ButtonAssist.Icon>
                                         Rename
                                     </Button>
                                     <Separator />
-                                    <Button Classes="DestructiveMenu" Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteGroupCommand, FallbackValue={x:Null}}" CommandParameter="{Binding Key}">
-                                        <shadui:ButtonAssist.Icon><TextBlock Classes="LucideIcon" Text="" /></shadui:ButtonAssist.Icon>
+                                    <Button Classes="DestructiveMenu"
+                                            Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteGroupCommand, FallbackValue={x:Null}}"
+                                            CommandParameter="{Binding Key}">
+                                        <shadui:ButtonAssist.Icon>
+                                            <LucideIcon Size="18" Kind="Trash2" />
+                                        </shadui:ButtonAssist.Icon>
                                         Delete
                                     </Button>
                                 </shadui:SimpleDropdown>
@@ -68,7 +80,8 @@
         <!-- Page Header -->
         <StackPanel Margin="48,24" DockPanel.Dock="Top" Spacing="4">
             <TextBlock Classes="h2" Text="Manage Actions" />
-            <TextBlock Classes="p" Text="Create, edit, and organize the AI actions that power ProseFlow." TextWrapping="Wrap" />
+            <TextBlock Classes="p" Text="Create, edit, and organize the AI actions that power ProseFlow."
+                       TextWrapping="Wrap" />
         </StackPanel>
 
         <!-- Main Content -->
@@ -78,25 +91,25 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Classes="Primary" Command="{Binding AddActionCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="Plus" />
                             <TextBlock Text="New Action" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Primary" Command="{Binding AddGroupCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="Group" />
                             <TextBlock Text="New Group" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Outline" Command="{Binding ImportActionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="Download" />
                             <TextBlock Text="Import from JSON" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Outline" Command="{Binding ExportActionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="Upload" />
                             <TextBlock Text="Export to JSON" />
                         </StackPanel>
                     </Button>
@@ -110,13 +123,13 @@
                     CanUserSortColumns="False" GridLinesVisibility="Horizontal" IsReadOnly="True"
                     HeadersVisibility="Column"
                     RowGroupTheme="{StaticResource ActionGroupHeaderTheme}">
-                    
+
                     <DataGrid.Columns>
                         <!-- Drag Handle Column -->
                         <DataGridTemplateColumn Width="40">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Classes="LucideIcon Muted" Text="" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="Drag to reorder" Cursor="SizeAll" />
+                                    <LucideIcon Size="18" Kind="MoveVertical" ToolTip.Tip="Drag and drop to reorder actions." />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -126,7 +139,8 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="core:Action">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <PathIcon Width="16" Height="16" Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}" />
+                                        <PathIcon Width="16" Height="16"
+                                                  Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}" />
                                         <TextBlock Text="{Binding Name}" />
                                     </StackPanel>
                                 </DataTemplate>
@@ -134,23 +148,35 @@
                         </DataGridTemplateColumn>
 
                         <!-- Default Output Column -->
-                        <DataGridTextColumn Width="150" Binding="{Binding OpenInWindow, Converter={StaticResource BoolToOutputTargetConverter}, DataType=core:Action}" Header="Default Output" />
-                        
+                        <DataGridTextColumn Width="150"
+                                            Binding="{Binding OpenInWindow, Converter={StaticResource BoolToOutputTargetConverter}, DataType=core:Action}"
+                                            Header="Default Output" />
+
                         <!-- Actions Column (with Dropdown) -->
-                        <DataGridTemplateColumn Width="100" Header="Actions">
+                        <DataGridTemplateColumn Width="Auto" Header="Actions">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <shadui:SimpleDropdown HorizontalAlignment="Center" VerticalAlignment="Center" Classes="Icon Grid" PopupPlacement="BottomEdgeAlignedLeft" PopupWidth="150">
+                                    <shadui:SimpleDropdown HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Classes="Ghost" PopupPlacement="BottomEdgeAlignedLeft"
+                                                           PopupWidth="150">
                                         <shadui:SimpleDropdown.TriggerContent>
-                                            <TextBlock Classes="LucideIcon" Text="" />
+                                            <LucideIcon Size="16" Kind="Command" />
                                         </shadui:SimpleDropdown.TriggerContent>
-                                        <Button Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
-                                            <shadui:ButtonAssist.Icon><TextBlock Classes="LucideIcon" Text="" /></shadui:ButtonAssist.Icon>
+                                        <Button
+                                            Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}"
+                                            CommandParameter="{Binding .}">
+                                            <shadui:ButtonAssist.Icon>
+                                                <LucideIcon Size="18" Kind="Pen" />
+                                            </shadui:ButtonAssist.Icon>
                                             Edit
                                         </Button>
                                         <Separator />
-                                        <Button Classes="DestructiveMenu" Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}" CommandParameter="{Binding .}">
-                                            <shadui:ButtonAssist.Icon><TextBlock Classes="LucideIcon" Text="" /></shadui:ButtonAssist.Icon>
+                                        <Button Classes="DestructiveMenu"
+                                                Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}"
+                                                CommandParameter="{Binding .}">
+                                            <shadui:ButtonAssist.Icon>
+                                                <LucideIcon Size="18" Kind="Trash2" />
+                                            </shadui:ButtonAssist.Icon>
                                             Delete
                                         </Button>
                                     </shadui:SimpleDropdown>

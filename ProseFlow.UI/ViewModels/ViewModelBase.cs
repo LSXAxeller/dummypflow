@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
+using Lucide.Avalonia;
 using Microsoft.Extensions.Logging;
 
 namespace ProseFlow.UI.ViewModels;
@@ -9,7 +10,7 @@ namespace ProseFlow.UI.ViewModels;
 public interface IPageViewModel : INotifyPropertyChanged
 {
     string Title { get; }
-    string Icon { get; }
+    LucideIconKind Icon { get; }
     bool IsSelected { get; set; }
 
     Task OnNavigatedToAsync();
@@ -18,7 +19,7 @@ public interface IPageViewModel : INotifyPropertyChanged
 public abstract partial class ViewModelBase : ObservableObject, IPageViewModel
 {
     public virtual string Title { get; set; } = string.Empty;
-    public virtual string Icon => "\uE115"; // Default icon
+    public virtual LucideIconKind Icon => LucideIconKind.Atom;
     
     protected ILogger Logger { get; } = Ioc.Default.GetRequiredService<ILogger<ViewModelBase>>();
 

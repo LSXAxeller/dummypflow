@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using Lucide.Avalonia;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
 using ProseFlow.UI.Services;
@@ -12,7 +13,7 @@ public partial class HistoryViewModel(
     IDialogService dialogService) : ViewModelBase
 {
     public override string Title => "History";
-    public override string Icon => "\uE1F5";
+    public override LucideIconKind Icon => LucideIconKind.History;
 
     public ObservableCollection<HistoryEntry> HistoryEntries { get; } = [];
 

@@ -21,12 +21,14 @@
 
             <!-- KPI Cards -->
             <UniformGrid Columns="4" ColumnSpacing="16">
-                <controls:OverviewCard Title="Total Cloud Tokens" Value="{Binding TotalCloudTokens, StringFormat='N0'}" />
-                <controls:OverviewCard Title="Total Cloud Actions"
+                <controls:OverviewCard Title="Total Cloud Tokens" Icon="Cloud"
+                                       Value="{Binding TotalCloudTokens, StringFormat='N0'}" />
+                <controls:OverviewCard Title="Total Cloud Actions" Icon="Activity"
                                        Value="{Binding TotalCloudActions, StringFormat='N0'}" />
-                <controls:OverviewCard Title="Avg. Inference Speed"
+                <controls:OverviewCard Title="Avg. Inference Speed" Icon="Gauge"
                                        Value="{Binding InferenceSpeed}" />
-                <controls:OverviewCard Title="Most Used Provider" Value="{Binding MostUsedProvider}" />
+                <controls:OverviewCard Title="Most Used Provider" Icon="Server"
+                                       Value="{Binding MostUsedProvider}" />
             </UniformGrid>
 
             <!-- Chart -->

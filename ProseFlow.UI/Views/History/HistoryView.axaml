@@ -22,7 +22,7 @@
                 Classes="Destructive"
                 Command="{Binding ClearHistoryCommand}">
                 <shadui:ButtonAssist.Icon>
-                    <TextBlock Classes="LucideIcon" Text="" />
+                    <LucideIcon Size="18" Kind="Trash" />
                 </shadui:ButtonAssist.Icon>
                 Clear History
             </Button>
@@ -42,9 +42,9 @@
                 <!-- No History Message -->
                 <Border IsVisible="{Binding !HistoryEntries.Count}">
                     <StackPanel Margin="0,80" Spacing="16" HorizontalAlignment="Center">
-                        <TextBlock Classes="LucideIcon h1 Muted" Text="" TextAlignment="Center" />
-                        <TextBlock Classes="h4 Muted" Text="No History Yet" />
-                        <TextBlock Classes="p Muted" Text="Your recent interactions will appear here." />
+                        <LucideIcon Size="36" Kind="History" Width="64" Height="64" HorizontalAlignment="Center" />
+                        <TextBlock Classes="h4 Muted" Text="No History Yet" HorizontalAlignment="Center" />
+                        <TextBlock Classes="p Muted" Text="Your recent interactions will appear here." HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>
 

@@ -28,7 +28,7 @@
                 Command="{Binding SaveCommand}"
                 HorizontalAlignment="Right">
                 <shadui:ButtonAssist.Icon>
-                    <TextBlock Classes="LucideIcon" Text="" />
+                    <LucideIcon Size="18" Kind="Save" />
                 </shadui:ButtonAssist.Icon>
                 Save Changes
             </Button>
@@ -41,7 +41,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <LucideIcon Size="24" Kind="Keyboard"/>
                             <StackPanel>
                                 <shadui:CardTitle>Hotkeys</shadui:CardTitle>
                                 <shadui:CardDescription>Configure global shortcuts for key actions.</shadui:CardDescription>
@@ -70,7 +70,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <LucideIcon Size="24" Kind="Workflow"/>
                             <StackPanel>
                                 <shadui:CardTitle>Behavior</shadui:CardTitle>
                                 <shadui:CardDescription>Adjust how ProseFlow works and integrates.</shadui:CardDescription>
@@ -96,7 +96,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Classes="LucideIcon h3" Text="" />
+                            <LucideIcon Size="24" Kind="Palette"/>
                             <StackPanel>
                                 <shadui:CardTitle>Appearance</shadui:CardTitle>
                                 <shadui:CardDescription>Change the look and feel of the application.</shadui:CardDescription>

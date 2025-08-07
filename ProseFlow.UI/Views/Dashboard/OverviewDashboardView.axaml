@@ -20,9 +20,9 @@
 
             <!-- KPI Cards -->
             <UniformGrid Columns="3" ColumnSpacing="16">
-                <controls:OverviewCard Title="Total Actions" Value="{Binding TotalActionsExecuted, StringFormat='N0'}" Hint="Cloud + Local" />
-                <controls:OverviewCard Title="Cloud Tokens" Value="{Binding TotalCloudTokens, StringFormat='N0'}" Hint="In selected period" />
-                <controls:OverviewCard Title="Local Tokens" Value="{Binding TotalLocalTokens, StringFormat='N0'}" Hint="In selected period" />
+                <controls:OverviewCard Title="Total Actions" Icon="Activity" Value="{Binding TotalActionsExecuted, StringFormat='N0'}" Hint="Cloud + Local" />
+                <controls:OverviewCard Title="Cloud Tokens" Icon="Cloud" Value="{Binding TotalCloudTokens, StringFormat='N0'}" Hint="In selected period" />
+                <controls:OverviewCard Title="Local Tokens" Icon="HardDrive" Value="{Binding TotalLocalTokens, StringFormat='N0'}" Hint="In selected period" />
             </UniformGrid>
             
             <!-- Main Grid -->

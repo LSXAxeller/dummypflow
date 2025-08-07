@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
-        <PackageReference Include="LlmTornado" Version="3.7.22" />
+        <PackageReference Include="LlmTornado" Version="3.7.25" />
         <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.7"/>
         <PackageReference Include="SharpHook" Version="6.2.0"/>

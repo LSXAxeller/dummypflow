@@ -52,11 +52,41 @@
                     TextWrapping="Wrap"
                     Watermark="You are a helpful assistant that..." />
 
-                <TextBox
-                    shadui:ControlAssist.Label="Icon Path"
-                    shadui:ControlAssist.Hint="Provide an icon path, raw SVG path data (e.g., `M12 2L...`), or the full XML content of an SVG file, leave empty for default."
-                    Text="{Binding Action.Icon}"
-                    Watermark="SVG path (e.g., M5 5h14v14h-14z) / avares://.../icon.svg" />
+                <!-- Icon -->
+                <StackPanel>
+                    <TextBlock Classes="Label" Text="Icon" Margin="0,0,0,4"/>
+                    <TabControl SelectedIndex="{Binding SelectedIconTab}">
+                        <TabItem Header="Built-in">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12" Margin="0,8">
+                                <ComboBox
+                                    Grid.Column="0"
+                                    ItemsSource="{Binding LucideIcons}"
+                                    SelectedItem="{Binding SelectedLucideIcon}"/>
+                                <Border Grid.Column="1" Width="36" Height="36"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                                        CornerRadius="{DynamicResource MdCornerRadius}">
+                                    <PathIcon Width="20" Height="20"
+                                              Data="{Binding SelectedLucideIcon, Converter={StaticResource StringToIconConverter}}"/>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Custom">
+                             <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12" Margin="0,8">
+                                <TextBox
+                                    Grid.Column="0"
+                                    shadui:ControlAssist.Hint="Provide an icon path, raw SVG path data (e.g., `M12 2L...`), or the full XML content of an SVG file."
+                                    Text="{Binding Action.Icon}"
+                                    Watermark="SVG path, avares:// URI, or full svg xml..." />
+                                <Border Grid.Column="1" Width="36" Height="36"
+                                        BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                                        CornerRadius="{DynamicResource MdCornerRadius}">
+                                    <PathIcon Width="20" Height="20"
+                                              Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}"/>
+                                </Border>
+                             </Grid>
+                        </TabItem>
+                    </TabControl>
+                </StackPanel>
 
                 <TextBox
                     shadui:ControlAssist.Label="Application Context (Optional)"
@@ -89,7 +119,7 @@
                     CommandParameter="{Binding $parent[Window]}"
                     IsCancel="True">
                     <shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="LucideIcon" Text="" />
+                        <LucideIcon Size="18" Kind="X" />
                     </shadui:ButtonAssist.Icon>
                     Cancel
                 </Button>
@@ -99,7 +129,7 @@
                     CommandParameter="{Binding $parent[Window]}"
                     IsDefault="True">
                     <shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="LucideIcon" Text="" />
+                        <LucideIcon Size="18" Kind="Save" />
                     </shadui:ButtonAssist.Icon>
                     Save
                 </Button>

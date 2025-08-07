@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Lucide.Avalonia;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ProseFlow.UI.ViewModels.Dashboard;
@@ -9,7 +10,7 @@ namespace ProseFlow.UI.ViewModels.Dashboard;
 public partial class DashboardViewModel : ViewModelBase, IDisposable
 {
     public override string Title => "Dashboard";
-    public override string Icon => "\uE038";
+    public override LucideIconKind Icon => LucideIconKind.LayoutDashboard;
 
     [ObservableProperty]
     private int _selectedTabIndex;

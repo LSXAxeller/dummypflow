@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
+using Lucide.Avalonia;
 
 namespace ProseFlow.UI.Controls.Dashboard;
 
@@ -33,10 +34,10 @@ public class OverviewCard : TemplatedControl
         set => SetValue(HintProperty, value);
     }
 
-    public static readonly StyledProperty<Geometry> IconProperty =
-        AvaloniaProperty.Register<OverviewCard, Geometry>(nameof(Icon));
+    public static readonly StyledProperty<LucideIconKind> IconProperty =
+        AvaloniaProperty.Register<OverviewCard, LucideIconKind>(nameof(Icon));
 
-    public Geometry Icon
+    public LucideIconKind Icon
     {
         get => GetValue(IconProperty);
         set => SetValue(IconProperty, value);

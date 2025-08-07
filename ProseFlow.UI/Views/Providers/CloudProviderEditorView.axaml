@@ -55,18 +55,15 @@
                         shadui:ControlAssist.Hint="e.g., gpt-4o, llama3-70b-8192"
                         Text="{Binding Config.Model}"
                         Watermark="gpt-4o" />
-                    
+
                     <StackPanel>
                         <TextBlock Text="Temperature" FontSize="16" />
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                             <Slider
                                 Grid.Column="0"
-                                VerticalAlignment="Center"
-                                Maximum="2"
-                                Minimum="0"
-                                TickFrequency="0.1"
-                                Ticks="20"
-                                TickPlacement="Outside"
+                                VerticalAlignment="Center" Maximum="2" Minimum="0"
+                                TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                TickPlacement="BottomRight"
                                 Value="{Binding ConfigTemperature}" />
                             <TextBox
                                 Grid.Column="1"
@@ -83,7 +80,7 @@
                     <TextBlock FontSize="16" Text="Status" FontWeight="Medium" VerticalAlignment="Center" />
                     <ToggleSwitch IsChecked="{Binding Config.IsEnabled}" />
                 </StackPanel>
-                
+
                 <StackPanel
                     HorizontalAlignment="Right"
                     Orientation="Horizontal"
@@ -94,7 +91,7 @@
                         CommandParameter="{Binding $parent[Window]}"
                         IsCancel="True">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="X" />
                         </shadui:ButtonAssist.Icon>
                         Cancel
                     </Button>
@@ -104,13 +101,13 @@
                         CommandParameter="{Binding $parent[Window]}"
                         IsDefault="True">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="" />
+                            <LucideIcon Size="18" Kind="Save" />
                         </shadui:ButtonAssist.Icon>
                         Save
                     </Button>
                 </StackPanel>
             </Grid>
-            
+
         </shadui:Card.Footer>
     </shadui:Card>
 </shadui:Window>

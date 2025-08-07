@@ -56,9 +56,9 @@
                         Command="{Binding ToggleServiceTypeCommand}"
                         ToolTip.Tip="Toggle AI Service Type for this run">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="&#xe0ec;" />
+                            <LucideIcon Size="18" Kind="Globe" />
                         </shadui:ButtonAssist.Icon>
-                        <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" />
+                        <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" Margin="4,0,0,0" />
                     </Button>
                     <Button
                         HorizontalAlignment="Right"
@@ -66,7 +66,7 @@
                         Command="{Binding OpenSettingsCommand}"
                         ToolTip.Tip="Open Settings">
                         <shadui:ButtonAssist.Icon>
-                            <TextBlock Classes="LucideIcon" Text="&#xe158;" />
+                            <LucideIcon Size="18" Kind="Settings" />
                         </shadui:ButtonAssist.Icon>
                     </Button>
                 </DockPanel>
@@ -170,7 +170,7 @@
                                                         IsChecked="{Binding IsForcedOpenInWindow, Mode=OneWay}"
                                                         Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).ToggleForceOpenInWindowCommand, FallbackValue={x:Null}}"
                                                         CommandParameter="{Binding .}">
-                                                        <TextBlock Classes="LucideIcon" Text="" />
+                                                        <LucideIcon Size="18" Kind="ExternalLink" />
                                                     </ToggleButton>
                                                 </Grid>
                                             </Button>

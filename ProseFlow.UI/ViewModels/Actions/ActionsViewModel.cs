@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lucide.Avalonia;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
@@ -19,7 +20,7 @@ public partial class ActionsViewModel(
     IDialogService dialogService) : ViewModelBase
 {
     public override string Title => "Actions";
-    public override string Icon => "\uE35B";
+    public override LucideIconKind Icon => LucideIconKind.Workflow;
 
     private List<ActionGroup> _actionGroupsList = [];
     private readonly ObservableCollection<Action> _allActions = [];

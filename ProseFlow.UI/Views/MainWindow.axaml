@@ -15,7 +15,7 @@
     Title="ProseFlow"
     Icon="/Assets/avalonia-logo.ico"
     Width="1920" Height="1080"
-    MinWidth="800" MinHeight="700"
+    MinWidth="960" MinHeight="740"
     WindowStartupLocation="CenterScreen"
 
     TitleFontWeight="SemiBold"
@@ -64,7 +64,7 @@
                 Command="{Binding SwitchThemeCommand}"
                 CornerRadius="{DynamicResource MdCornerRadius}"
                 ToolTip.Tip="Switch Theme">
-                <TextBlock Classes="LucideIcon" Text="" />
+                <LucideIcon Size="18" Kind="Moon" />
             </Button>
         </StackPanel>
     </shadui:Window.RightWindowTitleBarContent>
@@ -122,7 +122,7 @@
                                 CommandParameter="{Binding .}">
                                 <shadui:SidebarItem.Icon>
                                     <Viewbox>
-                                        <TextBlock Classes="LucideIcon" Text="{Binding Icon}" />
+                                        <LucideIcon Size="18" Kind="{Binding Icon}" />
                                     </Viewbox>
                                 </shadui:SidebarItem.Icon>
                             </shadui:SidebarItem>
@@ -148,7 +148,7 @@
                             CornerRadius="{DynamicResource LgCornerRadius}"
                             Theme="{DynamicResource SideTogglerTheme}">
                             <Viewbox>
-                                <TextBlock Classes="LucideIcon" Text="" />
+                                <LucideIcon Size="24" Kind="Menu" />
                             </Viewbox>
                         </ToggleButton>
                     </StackPanel>

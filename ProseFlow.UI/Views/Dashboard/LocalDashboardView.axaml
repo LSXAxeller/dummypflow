@@ -38,9 +38,9 @@
 
                 <!-- KPI Cards -->
                 <UniformGrid Columns="2" ColumnSpacing="16">
-                    <controls:OverviewCard Title="Total Local Tokens"
+                    <controls:OverviewCard Title="Total Local Tokens" Icon="HardDrive"
                                            Value="{Binding TotalLocalTokens, StringFormat='N0'}" />
-                    <controls:OverviewCard Title="Total Local Actions"
+                    <controls:OverviewCard Title="Total Local Actions" Icon="Activity"
                                            Value="{Binding TotalLocalActions, StringFormat='N0'}" />
                 </UniformGrid>
 

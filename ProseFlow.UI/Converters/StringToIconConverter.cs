@@ -5,18 +5,21 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Lucide.Avalonia;
 
 namespace ProseFlow.UI.Converters;
 
 /// <summary>
 /// Converts a string into a renderable StreamGeometry icon by intelligently detecting the input format.
 /// Supported formats:
-/// 1. Full SVG XML content (e.g., "<svg>...</svg>").
-/// 2. A URI to an asset (e.g., "avares://...") or a URL ("http://...").
-/// 3. An absolute filesystem path to an SVG file.
-/// 4. Raw SVG path data (e.g., "M12 2L2 22h20z").
+/// 1. A LucideIconKind enum name (e.g., "Pen", "Save").
+/// 2. Full SVG XML content (e.g., "<svg>...</svg>").
+/// 3. A URI to an asset (e.g., "avares://...") or a URL ("http://...").
+/// 4. An absolute filesystem path to an SVG file.
+/// 5. Raw SVG path data (e.g., "M12 2L2 22h20z").
 /// If the input is invalid or the format is unrecognized, a default icon is returned.
 /// </summary>
 public partial class StringToIconConverter : IValueConverter
@@ -31,16 +34,31 @@ public partial class StringToIconConverter : IValueConverter
     // Cache the default icon to avoid reloading and reparsing it repeatedly.
     private static StreamGeometry? _defaultIcon;
 
+    // Cache for the reflection-based method call
+    private static MethodInfo? _createGeometryStringMethod;
+
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is not string inputPath || string.IsNullOrWhiteSpace(inputPath))
+        var inputString = value as string;
+
+        // Also handle direct binding of LucideIconKind for convenience (e.g., in previews)
+        if (value is LucideIconKind directKind) inputString = directKind.ToString();
+
+        if (string.IsNullOrWhiteSpace(inputString))
             return GetDefaultIcon();
 
         try
         {
-            var path = inputPath.Trim();
+            // 1. Check if the input is a valid LucideIconKind enum name
+            if (Enum.TryParse<LucideIconKind>(inputString, true, out var kind))
+            {
+                var pathData = GetPathDataFromLucideKind(kind);
+                return StreamGeometry.Parse(pathData);
+            }
+
+            var path = inputString.Trim();
             
-            // Use a switch expression for clean, pattern-based format detection.
+            // 2. Check if the input is a valid SVG path
             return path switch
             {
                 // 1. Full SVG content
@@ -62,10 +80,39 @@ public partial class StringToIconConverter : IValueConverter
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ERROR] Failed to convert icon from string '{inputPath}'. {ex.Message}");
+            Debug.WriteLine($"[ERROR] Failed to convert icon from string '{inputString}'. {ex.Message}");
             return GetDefaultIcon();
         }
     }
+    
+    /// <summary>
+    /// Uses reflection to call the internal CreateGeometryString method from the Lucide.Avalonia library.
+    /// This is necessary because the path data for each icon is not publicly exposed.
+    /// </summary>
+    private static string GetPathDataFromLucideKind(LucideIconKind kind)
+    {
+        try
+        {
+            if (_createGeometryStringMethod is null)
+            {
+                // Find the type and method once and cache it for performance.
+                var iconToGeometryType = typeof(LucideIcon).Assembly.GetType("Lucide.Avalonia.IconToGeometry");
+                if (iconToGeometryType is null) throw new InvalidOperationException("Lucide.Avalonia.IconToGeometry type not found.");
+
+                _createGeometryStringMethod = iconToGeometryType.GetMethod("CreateGeometryString", BindingFlags.Public | BindingFlags.Static);
+                if (_createGeometryStringMethod is null) throw new InvalidOperationException("CreateGeometryString method not found in IconToGeometry.");
+            }
+            
+            // Invoke the static method with the enum value.
+            return (string?)_createGeometryStringMethod.Invoke(null, [kind]) ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[ERROR] Reflection failed for LucideIconKind '{kind}': {ex.Message}");
+            return string.Empty; // Return empty path on failure
+        }
+    }
+
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {

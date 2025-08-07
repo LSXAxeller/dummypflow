@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Lucide.Avalonia;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
@@ -18,7 +19,7 @@ namespace ProseFlow.UI.ViewModels.Settings;
 public partial class SettingsViewModel(SettingsService settingsService, ActionManagementService actionService, IOsService osService) : ViewModelBase
 {
     public override string Title => "Settings";
-    public override string Icon => "\uE158";
+    public override LucideIconKind Icon => LucideIconKind.Settings;
 
     [ObservableProperty]
     private GeneralSettings? _settings;
