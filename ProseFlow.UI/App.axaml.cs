@@ -32,6 +32,7 @@ using ShadUI;
 using Avalonia.Platform;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using ProseFlow.Application.Interfaces;
+using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Dialogs;
 using ProseFlow.UI.Views.Dialogs;
@@ -53,6 +54,9 @@ public class App : Avalonia.Application
         Services = ConfigureServices();
         Ioc.Default.ConfigureServices(Services);
 
+        // Initialize local model native manager
+        var nativeManager = Services.GetRequiredService<LocalNativeManager>();
+        nativeManager.Initialize();
 
         // Ensure database is created and migrated on startup
         await using (var scope = Services.CreateAsyncScope())
@@ -108,8 +112,8 @@ public class App : Avalonia.Application
         osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
 
         SubscribeToAppEvents();
-        
-        
+
+
         // Setup Dialogs
         var dialogManager = Services.GetRequiredService<DialogManager>();
         dialogManager.Register<InputDialogView, InputDialogViewModel>();
@@ -174,7 +178,7 @@ public class App : Avalonia.Application
         // Define a converter for the menu item header
         var modelStatusToHeaderConverter = new FuncValueConverter<bool, string>(isLoaded =>
             isLoaded ? "Unload Local Model" : "Load Local Model");
-        
+
         var providerTypeToHeaderConverter = new FuncValueConverter<string, string>(providerType =>
             $"Set Primary Provider ({providerType})");
 
@@ -341,7 +345,7 @@ public class App : Avalonia.Application
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite($"Data Source={Path.Combine(proseFlowDataPath, "proseflow.db")}"));
-        
+
         // Add Infrastructure Services
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddSingleton<ApiKeyProtector>();
@@ -351,6 +355,8 @@ public class App : Avalonia.Application
         services.AddSingleton<IAiProvider, CloudProvider>();
         services.AddSingleton<IAiProvider, LocalProvider>();
         services.AddSingleton<IOsService, OsService>();
+        services.AddSingleton<HardwareMonitoringService>();
+        services.AddSingleton<LocalNativeManager>();
 
         // Add Application Services
         services.AddSingleton<ActionOrchestrationService>();
@@ -381,7 +387,7 @@ public class App : Avalonia.Application
         services.AddTransient<ProvidersViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
-        
+
         // Editor/Dialog ViewModels
         services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<CloudProviderEditorViewModel>();
@@ -389,7 +395,7 @@ public class App : Avalonia.Application
 
         return services.BuildServiceProvider();
     }
-    
+
     private void OnApplicationExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)
     {
         if (Services is null) return;
@@ -397,14 +403,15 @@ public class App : Avalonia.Application
         var logger = Services.GetService<ILogger<App>>();
         logger?.LogInformation("Application exit requested. Cleaning up resources...");
 
-        // Dispose the OS service to stop the SharpHook thread.
-        var osService = Services.GetService<IOsService>();
-        osService?.Dispose();
+        // Dispose the MainViewModel, which will cascade disposals down the ViewModel tree
+        if (sender is IClassicDesktopStyleApplicationLifetime { MainWindow.DataContext: IDisposable disposable })
+            disposable.Dispose();
 
-        // Also, as a best practice, unload the local model to free GPU/RAM.
-        var modelManager = Services.GetService<LocalModelManagerService>();
-        modelManager?.UnloadModel();
-    
+        // Dispose singleton infrastructure services
+        Services.GetService<HardwareMonitoringService>()?.Dispose();
+        Services.GetService<IOsService>()?.Dispose();
+        Services.GetService<LocalModelManagerService>()?.UnloadModel();
+
         logger?.LogInformation("Cleanup complete. Application will now exit.");
     }
 }

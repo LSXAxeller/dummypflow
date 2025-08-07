@@ -2,6 +2,7 @@
 using LLama.Batched;
 using LLama.Common;
 using Microsoft.Extensions.Logging;
+using ProseFlow.Application.Events;
 using ProseFlow.Core.Models;
 using Action = System.Action;
 
@@ -72,6 +73,7 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
             var errorMessage = $"Failed to load model: {ex.Message}";
             UpdateState(ModelStatus.Error, errorMessage);
             UnloadModel(); // Clean up any partially loaded resources
+            AppEvents.RequestNotification("Failed to load local model, please check the logs.", NotificationType.Error);
         }
     }
 

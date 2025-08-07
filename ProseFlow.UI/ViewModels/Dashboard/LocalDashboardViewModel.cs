@@ -1,39 +1,108 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using ProseFlow.Application.DTOs.Dashboard;
 using ProseFlow.Application.Services;
+using ProseFlow.Core.Models;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
+using ProseFlow.Infrastructure.Services.Monitoring;
 using SkiaSharp;
 
 
 namespace ProseFlow.UI.ViewModels.Dashboard;
 
-public partial class LocalDashboardViewModel(DashboardService dashboardService) : DashboardViewModelBase
+public partial class LocalDashboardViewModel : DashboardViewModelBase, IDisposable
 {
+    private readonly DashboardService _dashboardService;
+    private readonly HardwareMonitoringService _hardwareMonitoringService;
+    private readonly LocalNativeManager _localNativeManager;
+
     public override string Title => "Local";
-    
+
     // KPIs
     [ObservableProperty] private long _totalLocalTokens;
     [ObservableProperty] private int _totalLocalActions;
-    
-    // TODO: Implement an actual hardware monitoring
-    // Live Metrics (placeholders for now)
-    [ObservableProperty] private string _vramUsage = "N/A";
+
+    // Live Hardware Metrics
+    [ObservableProperty] private double _cpuUsagePercent;
+    [ObservableProperty] private double _ramUsageGb;
+    [ObservableProperty] private double _totalRamGb;
+    [ObservableProperty] private double _ramUsagePercent;
+    [ObservableProperty] private double _gpuUsagePercent;
+    [ObservableProperty] private double _vramUsageGb;
+    [ObservableProperty] private double _totalVramGb;
+    [ObservableProperty] private double _vramFreeGb;
+    [ObservableProperty] private double _vramUsagePercent;
+
+    // Inference Metrics
     [ObservableProperty] private string _inferenceSpeed = "N/A";
 
     // Grid
     public ObservableCollection<ActionUsageDto> TopLocalActions { get; } = [];
+    
+    // Log Console
+    public ObservableCollection<LogEntry> LlmLogs { get; } = [];
+
+    public LocalDashboardViewModel(DashboardService dashboardService, HardwareMonitoringService hardwareMonitoringService, LocalNativeManager localNativeManager)
+    {
+        _dashboardService = dashboardService;
+        _hardwareMonitoringService = hardwareMonitoringService;
+        _localNativeManager = localNativeManager;
+        
+        // Subscribe to hardware updates and set initial state
+        _hardwareMonitoringService.MetricsUpdated += OnMetricsUpdated;
+        OnMetricsUpdated(_hardwareMonitoringService.GetCurrentMetrics()); // Load initial data
+        
+        // Subscribe to log updates and set initial state
+        _localNativeManager.LogMessageReceived += OnLogMessageReceived;
+        foreach (var log in _localNativeManager.GetLogHistory())
+        {
+            LlmLogs.Add(log);
+        }
+    }
+
+    private void OnMetricsUpdated(HardwareMetrics metrics)
+    {
+        // Must marshal to UI thread for bindings to update safely
+        Dispatcher.UIThread.Post(() =>
+        {
+            CpuUsagePercent = metrics.CpuUsagePercent;
+            RamUsageGb = metrics.RamUsedGb;
+            TotalRamGb = metrics.RamTotalGb;
+            RamUsagePercent = metrics.RamUsagePercent;
+            GpuUsagePercent = metrics.GpuUsagePercent;
+            VramUsageGb = metrics.VramUsedGb;
+            TotalVramGb = metrics.VramTotalGb;
+            VramFreeGb = metrics.VramTotalGb > 0 ? Math.Round(metrics.VramTotalGb - metrics.VramUsedGb, 1) : 0;
+            VramUsagePercent = metrics.VramUsagePercent;
+        });
+    }
+    
+    private void OnLogMessageReceived(LogEntry logEntry)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            LlmLogs.Add(logEntry);
+            // Trim the collection to prevent UI performance degradation
+            if (LlmLogs.Count > 500)
+            {
+                LlmLogs.RemoveAt(0);
+            }
+        });
+    }
 
     protected override async Task LoadDataAsync()
     {
         IsLoading = true;
         var (startDate, endDate) = GetDateRange();
 
-        var dailyUsageTask = dashboardService.GetDailyUsageAsync(startDate, endDate, "Local");
-        var topActionsTask = dashboardService.GetTopActionsAsync(startDate, endDate, "Local");
+        var dailyUsageTask = _dashboardService.GetDailyUsageAsync(startDate, endDate, "Local");
+        var topActionsTask = _dashboardService.GetTopActionsAsync(startDate, endDate, "Local");
 
         await Task.WhenAll(dailyUsageTask, topActionsTask);
 
@@ -41,7 +110,7 @@ public partial class LocalDashboardViewModel(DashboardService dashboardService) 
 
         // Update KPIs
         TotalLocalTokens = dailyUsage.Sum(d => d.PromptTokens + d.CompletionTokens);
-        TotalLocalActions = await dashboardService.GetTotalUsageCountAsync(startDate, endDate, "Local");
+        TotalLocalActions = await _dashboardService.GetTotalUsageCountAsync(startDate, endDate, "Local");
         InferenceSpeed = $"{dailyUsage.Average(d => d.TokensPerSecond):F2} T/s";
 
         // Update Grid
@@ -53,7 +122,7 @@ public partial class LocalDashboardViewModel(DashboardService dashboardService) 
 
         // Update Chart
         UpdateUsageChart(dailyUsage);
-        
+
         IsLoading = false;
     }
 
@@ -103,5 +172,12 @@ public partial class LocalDashboardViewModel(DashboardService dashboardService) 
                 SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f }
             }
         ];
+    }
+    
+    public void Dispose()
+    {
+        _hardwareMonitoringService.MetricsUpdated -= OnMetricsUpdated;
+        _localNativeManager.LogMessageReceived -= OnLogMessageReceived;
+        GC.SuppressFinalize(this);
     }
 }

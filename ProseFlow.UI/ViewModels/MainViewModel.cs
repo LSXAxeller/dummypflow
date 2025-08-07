@@ -14,7 +14,7 @@ using ShadUI;
 
 namespace ProseFlow.UI.ViewModels;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IDisposable
 {
     [ObservableProperty]
     private DialogManager _dialogManager;
@@ -22,14 +22,14 @@ public partial class MainViewModel : ViewModelBase
     private ToastManager _toastManager;
     [ObservableProperty]
     private IPageViewModel? _currentPage;
-    
+
     public ObservableCollection<IPageViewModel> PageViewModels { get; } = [];
 
     public MainViewModel(IServiceProvider serviceProvider, DialogManager dialogManager, ToastManager toastManager)
     {
         _dialogManager = dialogManager;
         _toastManager = toastManager;
-        
+
         // Add instances of all page ViewModels
         PageViewModels.Add(serviceProvider.GetRequiredService<DashboardViewModel>());
         PageViewModels.Add(serviceProvider.GetRequiredService<ActionsViewModel>());
@@ -40,7 +40,7 @@ public partial class MainViewModel : ViewModelBase
         // Set the initial page
         Navigate(PageViewModels.FirstOrDefault());
     }
-    
+
     [RelayCommand]
     public void Navigate(IPageViewModel? page)
     {
@@ -49,7 +49,7 @@ public partial class MainViewModel : ViewModelBase
             CurrentPage = page;
         }
     }
-    
+
     partial void OnCurrentPageChanged(IPageViewModel? value)
     {
         if (value is null) return;
@@ -73,8 +73,20 @@ public partial class MainViewModel : ViewModelBase
         if (Avalonia.Application.Current is null) return;
 
         var currentTheme = Avalonia.Application.Current.RequestedThemeVariant;
-        Avalonia.Application.Current.RequestedThemeVariant = currentTheme == ThemeVariant.Dark 
-            ? ThemeVariant.Light 
+        Avalonia.Application.Current.RequestedThemeVariant = currentTheme == ThemeVariant.Dark
+            ? ThemeVariant.Light
             : ThemeVariant.Dark;
+    }
+
+    public void Dispose()
+    {
+        foreach (var page in PageViewModels)
+        {
+            if (page is IDisposable disposablePage)
+            {
+                disposablePage.Dispose();
+            }
+        }
+        GC.SuppressFinalize(this);
     }
 }

@@ -6,14 +6,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ProseFlow.UI.ViewModels.Dashboard;
 
-public partial class DashboardViewModel : ViewModelBase
+public partial class DashboardViewModel : ViewModelBase, IDisposable
 {
     public override string Title => "Dashboard";
     public override string Icon => "\uE038";
-    
+
     [ObservableProperty]
     private int _selectedTabIndex;
-    
+
     public ObservableCollection<DashboardViewModelBase> Tabs { get; } = [];
 
     public DashboardViewModel(IServiceProvider serviceProvider)
@@ -40,5 +40,17 @@ public partial class DashboardViewModel : ViewModelBase
         {
             _ = Tabs[value].OnNavigatedToAsync();
         }
+    }
+
+    public void Dispose()
+    {
+        foreach (var tab in Tabs)
+        {
+            if (tab is IDisposable disposableTab)
+            {
+                disposableTab.Dispose();
+            }
+        }
+        GC.SuppressFinalize(this);
     }
 }
