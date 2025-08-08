@@ -23,7 +23,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [ObservableProperty] private object? _selectedItem;
     [ObservableProperty] private string _currentServiceTypeName;
 
-    public bool ShouldClose { get; private set; } = false;
+    public bool ShouldClose { get; private set; }
 
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
 
@@ -43,13 +43,27 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     
     partial void OnSelectedItemChanged(object? oldValue, object? newValue)
     {
-        // Deselect the old item
-        if (oldValue is ActionGroupViewModel oldGroup) oldGroup.IsSelected = false;
-        if (oldValue is ActionItemViewModel oldAction) oldAction.IsSelected = false;
+        switch (oldValue)
+        {
+            // Deselect the old item
+            case ActionGroupViewModel oldGroup:
+                oldGroup.IsSelected = false;
+                break;
+            case ActionItemViewModel oldAction:
+                oldAction.IsSelected = false;
+                break;
+        }
 
-        // Select the new item
-        if (newValue is ActionGroupViewModel newGroup) newGroup.IsSelected = true;
-        if (newValue is ActionItemViewModel newAction) newAction.IsSelected = true;
+        switch (newValue)
+        {
+            // Select the new item
+            case ActionGroupViewModel newGroup:
+                newGroup.IsSelected = true;
+                break;
+            case ActionItemViewModel newAction:
+                newAction.IsSelected = true;
+                break;
+        }
     }
     
     private void FilterAndGroupActions()
@@ -161,7 +175,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SelectAndConfirmItem(object? item)
+    internal void SelectAndConfirmItem(object? item)
     {
         if (item is null) return;
         SelectedItem = item;

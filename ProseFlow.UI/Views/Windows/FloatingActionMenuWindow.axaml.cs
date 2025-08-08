@@ -8,6 +8,7 @@ using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Windows;
 using System;
 using System.Linq;
+using Avalonia.Interactivity;
 using Window = ShadUI.Window;
 
 namespace ProseFlow.UI.Views.Windows;
@@ -174,5 +175,12 @@ public partial class FloatingActionMenuWindow : Window
                 .FirstOrDefault(c => c.DataContext == vm.SelectedItem);
             selectedContainer?.BringIntoView();
         }
+    }
+
+    private void ActionButton_OnPointerPressed(object? sender, RoutedEventArgs  e)
+    {
+        if (sender is not Button { DataContext: ActionItemViewModel action } || DataContext is not FloatingActionMenuViewModel vm) return;
+        vm.SelectAndConfirmItem(action);
+        Close();
     }
 }

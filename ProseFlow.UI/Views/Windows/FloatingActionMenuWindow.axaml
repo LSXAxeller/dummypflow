@@ -129,8 +129,7 @@
                                                 Classes="ListItem"
                                                 IsVisible="True"
                                                 ClickMode="Press"
-                                                Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).SelectAndConfirmItemCommand, FallbackValue={x:Null}}"
-                                                CommandParameter="{Binding .}"
+                                                Click="ActionButton_OnPointerPressed"
                                                 Classes.IsSelected="{Binding IsSelected}">
 
                                                 <Button.Styles>

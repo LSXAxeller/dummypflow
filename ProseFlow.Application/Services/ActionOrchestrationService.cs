@@ -19,7 +19,6 @@ public class ActionOrchestrationService : IDisposable
     private readonly ILocalSessionService _localSessionService;
     private readonly ILogger<ActionOrchestrationService> _logger;
 
-
     public ActionOrchestrationService(IServiceScopeFactory scopeFactory, IOsService osService,
         IEnumerable<IAiProvider> providers, ILocalSessionService localSessionService, ILogger<ActionOrchestrationService> logger)
     {
@@ -65,9 +64,7 @@ public class ActionOrchestrationService : IDisposable
         {
             var settings = await unitOfWork.Settings.GetGeneralSettingsAsync();
             if (settings.SmartPasteActionId is null)
-            {
                 return new { Action = (Action?)null, IsConfigured = false };
-            }
 
             var action = (await unitOfWork.Actions
                 .GetByExpressionAsync(a => a.Id == settings.SmartPasteActionId.Value)).FirstOrDefault();
@@ -93,7 +90,7 @@ public class ActionOrchestrationService : IDisposable
 
     private async Task ProcessRequestAsync(ActionExecutionRequest request)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var overallStopwatch = Stopwatch.StartNew();
         AppEvents.RequestNotification("Processing...", NotificationType.Info);
 
         // Local stateful session ID (If local provider is used)
@@ -111,30 +108,28 @@ public class ActionOrchestrationService : IDisposable
             // Initialize the conversation transcript
             var conversationHistory = new List<ChatMessage>();
 
-            // Add the system prompt (the main rules). This stays constant.
+            // Add the system prompt (the main rules).
             var systemInstruction = request.ActionToExecute.ExplainChanges
                 ? $"{request.ActionToExecute.Instruction}\n\nIMPORTANT: After your main response, add a section that starts with '---EXPLANATION---' and explain the changes you made."
                 : request.ActionToExecute.Instruction;
             conversationHistory.Add(new ChatMessage("system", systemInstruction));
-
-            // Add the initial user input
-            var initialUserContent = $"{request.ActionToExecute.Prefix}{userInput}";
-            conversationHistory.Add(new ChatMessage("user", initialUserContent));
-
+            conversationHistory.Add(new ChatMessage("user", $"{request.ActionToExecute.Prefix}{userInput}"));
 
             if (request.ForceOpenInWindow || request.ActionToExecute.OpenInWindow)
             {
-                // Windowed processing
+                // Windowed processing loop
                 while (true)
                 {
-                    var provider = await GetProviderAsync(request.ProviderOverride);
-                    if (provider is null)
+                    var executionResult = await ExecuteRequestWithFallbackAsync(conversationHistory, request.ProviderOverride, localSessionId);
+
+                    if (executionResult is null)
                     {
-                        AppEvents.RequestNotification("No valid AI provider configured.", NotificationType.Error);
-                        return;
+                        // Both primary and fallback failed, or no providers are configured.
+                        AppEvents.RequestNotification("All available AI providers failed.", NotificationType.Error);
+                        break;
                     }
-                    
-                    if ((provider.Type == ProviderType.Local || provider.Name == "Local") && localSessionId is null)
+
+                    if (executionResult.Value.Provider.Type == ProviderType.Local && localSessionId is null)
                     {
                         // If this is the first turn in a windowed local session. Create a new session.
                         localSessionId = _localSessionService.StartSession();
@@ -144,85 +139,71 @@ public class ActionOrchestrationService : IDisposable
                             return;
                         }
                     }
-                    
-                    // Start a stopwatch for the provider to get latency
-                    var providerStopwatch = Stopwatch.StartNew();
 
-                    // Call the provider with the entire conversation history
-                    var (aiOutput, promptTokens, completionTokens, providerName, tokensPerSecond) = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None, localSessionId);
-
-                    providerStopwatch.Stop();
-                    
-                    // Add the provider's response to the history for the next turn
-                    conversationHistory.Add(new ChatMessage("assistant", aiOutput));
+                    var (aiResponse, provider, latencyMs) = executionResult.Value;
+                    conversationHistory.Add(new ChatMessage("assistant", aiResponse.Content));
 
                     // Log to DB
                     await LogToHistoryAsync(
                         actionName: request.ActionToExecute.Name,
                         providerType: provider.Name,
-                        modelUsed: providerName,
+                        modelUsed: aiResponse.ProviderName,
                         input: conversationHistory.Last(m => m.Role == "user").Content,
-                        output: aiOutput,
-                        promptTokens: promptTokens,
-                        completionTokens: completionTokens,
-                        latencyMs: providerStopwatch.Elapsed.TotalMilliseconds,
-                        inferenceSpeed: tokensPerSecond);
+                        output: aiResponse.Content,
+                        promptTokens: aiResponse.PromptTokens,
+                        completionTokens: aiResponse.CompletionTokens,
+                        latencyMs: latencyMs,
+                        inferenceSpeed: aiResponse.TokensPerSecond);
 
                     // Parse and show the result window
-                    var (mainOutput, explanation) = ParseOutput(aiOutput, request.ActionToExecute.ExplainChanges);
+                    var (mainOutput, explanation) = ParseOutput(aiResponse.Content, request.ActionToExecute.ExplainChanges);
 
                     // Show the window and wait for the user to either close it or request a refinement
                     var windowData = new ResultWindowData(request.ActionToExecute.Name, mainOutput, explanation);
                     var refinementRequest = await AppEvents.RequestResultWindowAsync(windowData);
 
                     if (refinementRequest is null)
-                        break; // User closed the window. Exit loop.
+                        break; // User closed the window
 
-                    // User wants to refine. Add their new instruction to the history.
                     conversationHistory.Add(new ChatMessage("user", refinementRequest.NewInstruction));
                 }
             }
             else
             {
                 // In-Place execution
-                var provider = await GetProviderAsync(request.ProviderOverride);
-                if (provider is null)
+                var executionResult = await ExecuteRequestWithFallbackAsync(conversationHistory, request.ProviderOverride);
+
+                if (executionResult is null)
                 {
-                    AppEvents.RequestNotification("No valid AI provider configured.", NotificationType.Error);
+                    AppEvents.RequestNotification("All available AI providers failed.", NotificationType.Error);
                     return;
                 }
-                
-                // Start a stopwatch for the provider to get latency
-                var providerStopwatch = Stopwatch.StartNew();
-                
-                // Call provider with the initial history [system, user]
-                var (output, promptTokens, completionTokens, providerName, tokensPerSecond) = await provider.GenerateResponseAsync(conversationHistory, CancellationToken.None);
 
-                providerStopwatch.Stop();
+                var (aiResponse, provider, latencyMs) = executionResult.Value;
+
                 await LogToHistoryAsync(
                     actionName: request.ActionToExecute.Name,
                     providerType: provider.Name,
-                    modelUsed: providerName,
-                    input: initialUserContent,
-                    output: output,
-                    promptTokens: promptTokens,
-                    completionTokens: completionTokens,
-                    latencyMs: providerStopwatch.Elapsed.TotalMilliseconds,
-                    inferenceSpeed: tokensPerSecond);
-                await _osService.PasteTextAsync(output);
+                    modelUsed: aiResponse.ProviderName,
+                    input: conversationHistory.Last(m => m.Role == "user").Content,
+                    output: aiResponse.Content,
+                    promptTokens: aiResponse.PromptTokens,
+                    completionTokens: aiResponse.CompletionTokens,
+                    latencyMs: latencyMs,
+                    inferenceSpeed: aiResponse.TokensPerSecond);
+                
+                await _osService.PasteTextAsync(aiResponse.Content);
             }
 
-            stopwatch.Stop();
+            overallStopwatch.Stop();
             AppEvents.RequestNotification(
-                $"'{request.ActionToExecute.Name}' completed in {stopwatch.Elapsed.TotalSeconds:F2}s.",
+                $"'{request.ActionToExecute.Name}' completed in {overallStopwatch.Elapsed.TotalSeconds:F2}s.",
                 NotificationType.Success);
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
+            overallStopwatch.Stop();
             _logger.LogError(ex, "Error executing action: {ActionName}", request.ActionToExecute.Name);
-            
-            // Provide a user-friendly message but log the detailed exception for debugging.
             var displayMessage = ex is InvalidOperationException ? ex.Message : "An unexpected error occurred.";
             AppEvents.RequestNotification($"Error: {displayMessage}", NotificationType.Error);
         }
@@ -233,37 +214,84 @@ public class ActionOrchestrationService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Executes an AI request, trying the primary provider first and then the fallback provider upon failure.
+    /// </summary>
+    /// <returns>A tuple containing the response, the successful provider, and latency, or null if all attempts fail.</returns>
+    private async Task<(AiResponse Response, IAiProvider Provider, double LatencyMs)?> ExecuteRequestWithFallbackAsync(
+        List<ChatMessage> messages, string? providerOverride, Guid? sessionId = null)
+    {
+        var settings = await ExecuteQueryAsync(unitOfWork => unitOfWork.Settings.GetProviderSettingsAsync());
+
+        // 1. Determine Primary Provider
+        var primaryProvider = await GetProviderAsync(providerOverride, settings.PrimaryServiceType);
+
+        if (primaryProvider is not null)
+        {
+            try
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var response = await primaryProvider.GenerateResponseAsync(messages, CancellationToken.None, sessionId);
+                stopwatch.Stop();
+                _logger.LogInformation("Primary provider '{ProviderName}' succeeded.", primaryProvider.Name);
+                return (response, primaryProvider, stopwatch.Elapsed.TotalMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Primary provider '{ProviderName}' failed. Attempting fallback.", primaryProvider.Name);
+                AppEvents.RequestNotification($"Primary provider ({primaryProvider.Name}) failed. Trying fallback...", NotificationType.Warning);
+            }
+        }
+
+        // 2. Determine and Try Fallback Provider
+        if (settings.FallbackServiceType.Equals("None", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("No fallback provider is configured.");
+            return null;
+        }
+        
+        var fallbackProvider = await GetProviderAsync(null, settings.FallbackServiceType); // No override for fallback
+
+        if (fallbackProvider is not null && fallbackProvider.Name != primaryProvider?.Name)
+        {
+            try
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var response = await fallbackProvider.GenerateResponseAsync(messages, CancellationToken.None, sessionId);
+                stopwatch.Stop();
+                _logger.LogInformation("Fallback provider '{ProviderName}' succeeded.", fallbackProvider.Name);
+                return (response, fallbackProvider, stopwatch.Elapsed.TotalMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fallback provider '{ProviderName}' also failed.", fallbackProvider.Name);
+            }
+        }
+
+        // 3. Both failed or were not configured
+        return null;
+    }
+    
     private (string MainOutput, string? Explanation) ParseOutput(string rawOutput, bool expectExplanation)
     {
         if (!expectExplanation || !rawOutput.Contains("---EXPLANATION---")) return (rawOutput.Trim(), null);
         
         var parts = rawOutput.Split(["---EXPLANATION---"], 2, StringSplitOptions.None);
         return (parts[0].Trim(), parts[1].Trim());
-
     }
 
-    private async Task<IAiProvider?> GetProviderAsync(string? providerOverride)
+    private Task<IAiProvider?> GetProviderAsync(string? providerOverride, string serviceType)
     {
-        var settings = await ExecuteQueryAsync(unitOfWork => unitOfWork.Settings.GetProviderSettingsAsync());
-
-        // Handle runtime user override from the Floating Action Menu
         if (!string.IsNullOrWhiteSpace(providerOverride) &&
             _providers.TryGetValue(providerOverride, out var overriddenProvider))
-            return overriddenProvider;
+            return Task.FromResult<IAiProvider?>(overriddenProvider);
 
-        // Use the primary service type from settings
-        if (_providers.TryGetValue(settings.PrimaryServiceType, out var primaryProvider))
-            return primaryProvider;
+        if (_providers.TryGetValue(serviceType, out var provider))
+            return Task.FromResult<IAiProvider?>(provider);
 
-        // Use the fallback service type if primary fails
-        if (!_providers.TryGetValue(settings.FallbackServiceType, out var fallbackProvider)) return null;
-        
-        AppEvents.RequestNotification($"Primary service type '{settings.PrimaryServiceType}' not available. Using fallback.",
-            NotificationType.Warning);
-        return fallbackProvider;
-
+        return Task.FromResult<IAiProvider?>(null);
     }
-
+    
     private async Task LogToHistoryAsync(string actionName, string providerType, string modelUsed, string input, string output, long promptTokens, long completionTokens, double latencyMs, double inferenceSpeed)
     {
         try
@@ -274,8 +302,8 @@ public class ActionOrchestrationService : IDisposable
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ERROR] Failed to log history: {ex.Message}");
-            AppEvents.RequestNotification("Failed to log history", NotificationType.Warning);
+            _logger.LogError(ex, "Failed to log history entry.");
+            AppEvents.RequestNotification("Failed to log to history", NotificationType.Warning);
         }
     }
 
