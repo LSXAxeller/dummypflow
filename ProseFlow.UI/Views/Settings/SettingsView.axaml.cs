@@ -37,15 +37,11 @@ public partial class SettingsView : UserControl
         _isRecordingHotkey = false;
 
         if (DataContext is SettingsViewModel { Settings: not null } vm)
-        {
             // If the user clicked away without setting a key, restore the original value.
             if (textBox.Text == RecordingPrompt)
-            {
                 textBox.Text = textBox.Name == nameof(ActionMenuHotkeyBox)
                     ? vm.Settings.ActionMenuHotkey
                     : vm.Settings.SmartPasteHotkey;
-            }
-        }
     }
     
     /// <summary>

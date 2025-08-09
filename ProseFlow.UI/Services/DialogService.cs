@@ -3,29 +3,52 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
-using ProseFlow.Application.Services;
-using ProseFlow.UI.ViewModels.Actions;
-using ProseFlow.UI.Views.Actions;
 using Microsoft.Extensions.DependencyInjection;
+using ProseFlow.Application.DTOs.Models;
+using ProseFlow.Application.Services;
 using ProseFlow.UI.Models;
+using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Dialogs;
+using ProseFlow.UI.ViewModels.Providers;
+using ProseFlow.UI.Views.Actions;
+using ProseFlow.UI.Views.Dialogs;
 using ShadUI;
+using Action = ProseFlow.Core.Models.Action;
 using Window = Avalonia.Controls.Window;
 
 namespace ProseFlow.UI.Services;
 
 public class DialogService(IServiceProvider serviceProvider) : IDialogService
 {
-    private static Window? GetMainWindow()
+    private static Window? GetWindow(bool topLevel = true)
     {
         return Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
+            ? topLevel ? desktop.Windows.FirstOrDefault(x => x.IsActive && x != desktop.MainWindow) ?? desktop.MainWindow : desktop.MainWindow
             : null;
+    }
+    
+    public async Task OpenUrlAsync(string url)
+    {
+        var mainWindow = GetWindow(false);
+        if (mainWindow is null) return;
+        
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && 
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            await mainWindow.Launcher.LaunchUriAsync(new Uri(url));
+        }
+        else
+        {
+            var storageItem = (IStorageItem?)await mainWindow.StorageProvider.TryGetFolderFromPathAsync(url) ?? 
+                              await mainWindow.StorageProvider.TryGetFileFromPathAsync(url);
+            
+            if (storageItem != null) await mainWindow.Launcher.LaunchFileAsync(storageItem);
+        }
     }
     
     public async Task<string?> ShowOpenFileDialogAsync(string title, string filterName, params string[] filterExtensions)
     {
-        var mainWindow = GetMainWindow();
+        var mainWindow = GetWindow(false);
         if (mainWindow is null) return null;
 
         var result = await mainWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -40,7 +63,7 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
 
     public async Task<string?> ShowSaveFileDialogAsync(string title, string defaultFileName, string filterName, params string[] filterExtensions)
     {
-        var mainWindow = GetMainWindow();
+        var mainWindow = GetWindow(false);
         if (mainWindow is null) return null;
 
         var result = await mainWindow.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
@@ -54,9 +77,9 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return result?.TryGetLocalPath();
     }
 
-    public async Task<bool> ShowActionEditorDialogAsync(Core.Models.Action action)
+    public async Task<bool> ShowActionEditorDialogAsync(Action action)
     {
-        var mainWindow = GetMainWindow();
+        var mainWindow = GetWindow(false);
         if (mainWindow is null) return false;
         
         var actionService = serviceProvider.GetRequiredService<ActionManagementService>();
@@ -67,7 +90,7 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return await editorWindow.ShowDialog<bool>(mainWindow);
     }
 
-    public void ShowConfirmationDialog(string title, string message, Action? onConfirm = null, Action? onCancel = null)
+    public void ShowConfirmationDialog(string title, string message, System.Action? onConfirm = null, System.Action? onCancel = null)
     {
         var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
         dialogManager
@@ -108,5 +131,38 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
             .Show();
 
         return tcs.Task;
+    }
+    
+    public Task ShowModelLibraryDialogAsync()
+    {
+        var tcs = new TaskCompletionSource();
+        
+        var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
+        var modelLibraryViewModel = serviceProvider.GetRequiredService<ModelLibraryViewModel>();
+        dialogManager
+            .CreateDialog(modelLibraryViewModel)
+            .Dismissible()
+            .WithMinWidth(900).WithMaxWidth(900)
+            .WithSuccessCallback(vm =>
+            {
+                vm.OnClosing();
+                tcs.SetResult();
+            })
+            .WithCancelCallback(() => tcs.SetResult())
+            .Show();
+        
+        return tcs.Task;
+    }
+    
+    public async Task<CustomModelImportData?> ShowImportModelDialogAsync()
+    {
+        var mainWindow = GetWindow();
+        if (mainWindow is null) return null;
+
+        var importViewModel = serviceProvider.GetRequiredService<CustomModelImportViewModel>();
+        var importWindow = new CustomModelImportView { DataContext = importViewModel };
+        
+        _ = importWindow.ShowDialog(mainWindow);
+        return await importViewModel.CompletionSource.Task;
     }
 }

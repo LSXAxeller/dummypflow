@@ -51,16 +51,10 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
         // Load available groups for the dropdown
         AvailableGroups.Clear();
         var groups = await actionService.GetActionGroupsAsync();
-        foreach (var group in groups)
-        {
-            AvailableGroups.Add(group);
-        }
+        foreach (var group in groups) AvailableGroups.Add(group);
 
         SelectedActionGroup = AvailableGroups.FirstOrDefault(g => g.Id == Action.ActionGroupId);
-        if (SelectedActionGroup is null && AvailableGroups.Count > 0)
-        {
-            SelectedActionGroup = AvailableGroups.FirstOrDefault(g => g.Id == 1) ?? AvailableGroups[0];
-        }
+        if (SelectedActionGroup is null && AvailableGroups.Count > 0) SelectedActionGroup = AvailableGroups.FirstOrDefault(g => g.Id == 1) ?? AvailableGroups[0];
 
         // Determine the initial state of the icon selection
         if (Enum.TryParse<LucideIconKind>(Action.Icon, true, out var kind))
@@ -85,19 +79,14 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
     partial void OnSelectedLucideIconChanged(LucideIconKind value)
     {
         // Only update if the built-in tab is active
-        if (SelectedIconTab == 0)
-        {
-            Action.Icon = value.ToString();
-        }
+        if (SelectedIconTab == 0) Action.Icon = value.ToString();
     }
 
     // When the user switches tabs, ensure the Action model reflects the right source.
     partial void OnSelectedIconTabChanged(int value)
     {
         if (value == 0) // Switched to "Built-in"
-        {
             Action.Icon = SelectedLucideIcon.ToString();
-        }
     }
 
     [RelayCommand]

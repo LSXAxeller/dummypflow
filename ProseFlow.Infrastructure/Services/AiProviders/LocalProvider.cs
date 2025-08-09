@@ -63,7 +63,7 @@ public class LocalProvider(
         try
         {
             // Format the prompt
-            var formattedPrompt = BuildPrompt(messages, executor.Model, isNewSession: conversation.TokenCount == 0, settings);
+            var formattedPrompt = BuildPrompt(messages, executor.Model, conversation.TokenCount == 0, settings);
             
             // Prompt the model
             var promptTokens = executor.Context.Tokenize(formattedPrompt);
@@ -155,6 +155,7 @@ public class LocalProvider(
     /// <param name="messages">The list of chat messages.</param>
     /// <param name="model">The loaded LLamaWeights model containing the template.</param>
     /// <param name="isNewSession">If true, the entire history is rendered. If false, only the last user message is rendered.</param>
+    /// <param name="settings">The provider settings containing the model path and parameters.</param>
     private string BuildPrompt(IEnumerable<ChatMessage> messages, LLamaWeights model, bool isNewSession, ProviderSettings settings)
     {
 
@@ -166,10 +167,7 @@ public class LocalProvider(
             if (isNewSession)
             {
                 // For a new conversation, build the entire history.
-                foreach (var message in messageList)
-                {
-                    template.Add(message.Role, message.Content);
-                }
+                foreach (var message in messageList) template.Add(message.Role, message.Content);
             }
             else
             {

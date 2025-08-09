@@ -246,6 +246,51 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.ToTable("History");
                 });
 
+            modelBuilder.Entity("ProseFlow.Core.Models.LocalModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Creator")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("FileSizeGb")
+                        .HasColumnType("REAL");
+
+                    b.Property<bool>("IsManaged")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FilePath")
+                        .IsUnique();
+
+                    b.ToTable("LocalModels");
+                });
+
             modelBuilder.Entity("ProseFlow.Core.Models.ProviderSettings", b =>
                 {
                     b.Property<int>("Id")

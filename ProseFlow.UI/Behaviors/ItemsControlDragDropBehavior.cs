@@ -1,8 +1,8 @@
-﻿using Avalonia;
+﻿using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
-using System.Windows.Input;
 
 namespace ProseFlow.UI.Behaviors;
 
@@ -17,8 +17,15 @@ public class ItemsControlDragDropBehavior : AvaloniaObject
         AvaloniaProperty.RegisterAttached<ItemsControlDragDropBehavior, Control, ICommand>(
             "ReorderCommand", coerce: OnCommandChanged);
 
-    public static ICommand GetReorderCommand(Control element) => element.GetValue(ReorderCommandProperty);
-    public static void SetReorderCommand(Control element, ICommand value) => element.SetValue(ReorderCommandProperty, value);
+    public static ICommand GetReorderCommand(Control element)
+    {
+        return element.GetValue(ReorderCommandProperty);
+    }
+
+    public static void SetReorderCommand(Control element, ICommand value)
+    {
+        element.SetValue(ReorderCommandProperty, value);
+    }
 
     /// <summary>
     /// Called when the ReorderCommand property is attached to a Control.
@@ -50,9 +57,9 @@ public class ItemsControlDragDropBehavior : AvaloniaObject
         if (!e.GetCurrentPoint(control).Properties.IsLeftButtonPressed) return;
         
         // Don't start a drag if clicking on a button.
-        if ((e.Source as Control)?.FindAncestorOfType<Button>(includeSelf: true) is not null) return;
+        if ((e.Source as Control)?.FindAncestorOfType<Button>(true) is not null) return;
 
-        var itemsControl = control.FindAncestorOfType<ItemsControl>(includeSelf: true);
+        var itemsControl = control.FindAncestorOfType<ItemsControl>(true);
         if (itemsControl is null) return;
 
         // Find the item container that was clicked.
@@ -84,7 +91,7 @@ public class ItemsControlDragDropBehavior : AvaloniaObject
     {
         if (sender is not Control control) return;
 
-        var itemsControl = control.FindAncestorOfType<ItemsControl>(includeSelf: true);
+        var itemsControl = control.FindAncestorOfType<ItemsControl>(true);
         if (itemsControl is null) return;
 
         // Find the target container.
@@ -102,10 +109,7 @@ public class ItemsControlDragDropBehavior : AvaloniaObject
         // Execute the command on the ViewModel.
         var command = GetReorderCommand(control);
         var parameter = (draggedItem, targetItem);
-        if (command.CanExecute(parameter))
-        {
-            command.Execute(parameter);
-        }
+        if (command.CanExecute(parameter)) command.Execute(parameter);
     }
     
     /// <summary>
@@ -115,10 +119,7 @@ public class ItemsControlDragDropBehavior : AvaloniaObject
     {
         while (element != null)
         {
-            if (element is { } control && itemsControl.IndexFromContainer(control) != -1)
-            {
-                return control;
-            }
+            if (element is { } control && itemsControl.IndexFromContainer(control) != -1) return control;
             element = element.Parent as Control;
         }
         return null;

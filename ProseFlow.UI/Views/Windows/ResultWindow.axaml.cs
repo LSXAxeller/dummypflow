@@ -8,7 +8,7 @@ namespace ProseFlow.UI.Views.Windows;
 
 public partial class ResultWindow : Window
 {
-    private bool _isClosing = false;
+    private bool _isClosing;
     
     public ResultWindow()
     {

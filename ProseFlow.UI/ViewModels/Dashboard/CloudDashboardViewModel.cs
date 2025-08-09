@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -42,22 +43,16 @@ public partial class CloudDashboardViewModel(DashboardService dashboardService) 
         
         // Update KPIs
         TotalCloudTokens = dailyUsage.Sum(d => d.PromptTokens + d.CompletionTokens);
-        TotalCloudActions = (await dashboardService.GetTotalUsageCountAsync(startDate, endDate, "Cloud"));
+        TotalCloudActions = await dashboardService.GetTotalUsageCountAsync(startDate, endDate, "Cloud");
         MostUsedProvider = performance.FirstOrDefault()?.ProviderName ?? "N/A";
         InferenceSpeed = $"{dailyUsage.Average(d => d.TokensPerSecond):F2} T/s";
 
         // Update Grids
         TopCloudActions.Clear();
-        foreach (var action in await topActionsTask)
-        {
-            TopCloudActions.Add(action);
-        }
+        foreach (var action in await topActionsTask) TopCloudActions.Add(action);
 
         ProviderPerformance.Clear();
-        foreach (var p in performance)
-        {
-            ProviderPerformance.Add(p);
-        }
+        foreach (var p in performance) ProviderPerformance.Add(p);
 
         // Update Chart
         UpdateUsageChart(dailyUsage);
@@ -65,7 +60,7 @@ public partial class CloudDashboardViewModel(DashboardService dashboardService) 
         IsLoading = false;
     }
 
-    private void UpdateUsageChart(System.Collections.Generic.List<DailyUsageDto> dailyUsage)
+    private void UpdateUsageChart(List<DailyUsageDto> dailyUsage)
     {
         Series =
         [

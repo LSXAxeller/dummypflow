@@ -1,41 +1,46 @@
+using System;
+using System.IO;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data;
+using Avalonia.Data.Converters;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ProseFlow.Application.Events;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Infrastructure.Data;
 using ProseFlow.Infrastructure.Security;
 using ProseFlow.Infrastructure.Services.AiProviders;
+using ProseFlow.Infrastructure.Services.AiProviders.Local;
+using ProseFlow.Infrastructure.Services.Models;
+using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.Infrastructure.Services.Os;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.ViewModels;
 using ProseFlow.UI.ViewModels.Actions;
-using ProseFlow.UI.ViewModels.Settings;
-using ProseFlow.UI.ViewModels.History;
-using ProseFlow.UI.ViewModels.Providers;
-using ProseFlow.UI.ViewModels.Windows;
-using ProseFlow.UI.Views.Windows;
-using System;
-using System.IO;
-using Avalonia.Controls;
-using Avalonia.Data.Converters;
-using Avalonia.Threading;
-using Microsoft.Extensions.Logging;
-using ProseFlow.Infrastructure.Services.AiProviders.Local;
-using ProseFlow.UI.Views;
-using Serilog;
-using ShadUI;
-using Avalonia.Platform;
-using CommunityToolkit.Mvvm.DependencyInjection;
-using ProseFlow.Application.Interfaces;
-using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Dialogs;
+using ProseFlow.UI.ViewModels.Downloads;
+using ProseFlow.UI.ViewModels.History;
+using ProseFlow.UI.ViewModels.Providers;
+using ProseFlow.UI.ViewModels.Settings;
+using ProseFlow.UI.ViewModels.Windows;
+using ProseFlow.UI.Views;
 using ProseFlow.UI.Views.Dialogs;
+using ProseFlow.UI.Views.Providers;
+using ProseFlow.UI.Views.Windows;
+using Serilog;
+using Serilog.Events;
+using ShadUI;
 
 namespace ProseFlow.UI;
 
@@ -117,6 +122,7 @@ public class App : Avalonia.Application
         // Setup Dialogs
         var dialogManager = Services.GetRequiredService<DialogManager>();
         dialogManager.Register<InputDialogView, InputDialogViewModel>();
+        dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -146,10 +152,7 @@ public class App : Avalonia.Application
 
             // Create and set up the system tray icon
             _trayIcon = CreateTrayIcon();
-            if (_trayIcon is not null)
-            {
-                TrayIcon.SetIcons(this, [_trayIcon]);
-            }
+            if (_trayIcon is not null) TrayIcon.SetIcons(this, [_trayIcon]);
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -160,19 +163,29 @@ public class App : Avalonia.Application
         if (Services is null) return null;
 
         var trayVm = Services.GetRequiredService<TrayIconViewModel>();
+        var mainVm = Services.GetRequiredService<MainViewModel>();
 
         // Wire up the event to show the main window
         trayVm.ShowMainWindowRequested += () =>
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: not null } desktop)
-            {
                 // Ensure we're on the UI thread before showing the window
                 Dispatcher.UIThread.Post(() =>
                 {
                     desktop.MainWindow.Show();
                     desktop.MainWindow.Activate();
                 });
-            }
+        };
+
+        trayVm.ShowDownloadsRequested += () =>
+        {
+             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: not null } desktop)
+                 Dispatcher.UIThread.Post(() =>
+                 {
+                     desktop.MainWindow.Show();
+                     desktop.MainWindow.Activate();
+                     mainVm.ShowDownloadsPopupCommand.Execute(null);
+                 });
         };
 
         // Define a converter for the menu item header
@@ -181,6 +194,8 @@ public class App : Avalonia.Application
 
         var providerTypeToHeaderConverter = new FuncValueConverter<string, string>(providerType =>
             $"Set Primary Provider ({providerType})");
+        
+        var downloadCountToHeaderConverter = new FuncValueConverter<int, string>(count => $"Downloads ({count})");
 
         // Build the context menu items
         var openItem = new NativeMenuItem
@@ -193,16 +208,26 @@ public class App : Avalonia.Application
         {
             Command = trayVm.ToggleLocalModelCommand
         };
-        toggleModelItem.Bind(NativeMenuItem.HeaderProperty, new Avalonia.Data.Binding(nameof(trayVm.IsModelLoaded))
+        toggleModelItem.Bind(NativeMenuItem.HeaderProperty, new Binding(nameof(trayVm.IsModelLoaded))
         {
             Source = trayVm,
             Converter = modelStatusToHeaderConverter
         });
-        toggleModelItem.Bind(NativeMenuItem.IsEnabledProperty, new Avalonia.Data.Binding(nameof(trayVm.ManagerStatus))
+        toggleModelItem.Bind(NativeMenuItem.IsEnabledProperty, new Binding(nameof(trayVm.ManagerStatus))
         {
             Source = trayVm,
             Converter = new FuncValueConverter<ModelStatus, bool>(s => s != ModelStatus.Loading)
         });
+        
+        var downloadsItem = new NativeMenuItem
+        {
+            Command = trayVm.ShowDownloadsCommand
+        };
+        downloadsItem.Bind(NativeMenuItem.HeaderProperty,
+            new Binding(nameof(trayVm.ActiveDownloadCount))
+                { Source = trayVm, Converter = downloadCountToHeaderConverter });
+        downloadsItem.Bind(NativeMenuItem.IsVisibleProperty,
+            new Binding(nameof(trayVm.HasActiveDownloads)) { Source = trayVm });
 
         // Provider Type Sub-menu
         var cloudProviderItem = new NativeMenuItem
@@ -212,7 +237,7 @@ public class App : Avalonia.Application
             CommandParameter = "Cloud"
         };
         cloudProviderItem.Bind(NativeMenuItem.IsCheckedProperty,
-            new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+            new Binding(nameof(trayVm.CurrentProviderType))
             {
                 Source = trayVm,
                 Converter = new FuncValueConverter<string, bool>(t => t == "Cloud")
@@ -225,7 +250,7 @@ public class App : Avalonia.Application
             CommandParameter = "Local"
         };
         localProviderItem.Bind(NativeMenuItem.IsCheckedProperty,
-            new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+            new Binding(nameof(trayVm.CurrentProviderType))
             {
                 Source = trayVm,
                 Converter = new FuncValueConverter<string, bool>(t => t == "Local")
@@ -238,7 +263,7 @@ public class App : Avalonia.Application
                 Items = { cloudProviderItem, localProviderItem }
             }
         };
-        setProviderSubMenu.Bind(NativeMenuItem.HeaderProperty, new Avalonia.Data.Binding(nameof(trayVm.CurrentProviderType))
+        setProviderSubMenu.Bind(NativeMenuItem.HeaderProperty, new Binding(nameof(trayVm.CurrentProviderType))
         {
             Source = trayVm,
             Converter = providerTypeToHeaderConverter
@@ -263,6 +288,8 @@ public class App : Avalonia.Application
                     new NativeMenuItemSeparator(),
                     toggleModelItem,
                     setProviderSubMenu,
+                    new NativeMenuItemSeparator(),
+                    downloadsItem,
                     new NativeMenuItemSeparator(),
                     quitItem
                 }
@@ -324,7 +351,7 @@ public class App : Avalonia.Application
         var logPath = Path.Combine(proseFlowDataPath, "logs", "proseflow-.log");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command",
-                Serilog.Events.LogEventLevel.Warning)
+                LogEventLevel.Warning)
             .Enrich.FromLogContext()
 #if DEBUG
             .WriteTo.Debug()
@@ -357,6 +384,11 @@ public class App : Avalonia.Application
         services.AddSingleton<IOsService, OsService>();
         services.AddSingleton<HardwareMonitoringService>();
         services.AddSingleton<LocalNativeManager>();
+        
+        // Model Download Services
+        services.AddSingleton<IModelCatalogService, ModelCatalogService>();
+        services.AddSingleton<IDownloadManager, DownloadManager>();
+        services.AddSingleton<ILocalModelManagementService, LocalModelManagementService>();
 
         // Add Application Services
         services.AddSingleton<ActionOrchestrationService>();
@@ -387,11 +419,19 @@ public class App : Avalonia.Application
         services.AddTransient<ProvidersViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
+        
+        // Download Management ViewModels
+        services.AddTransient<DownloadsPopupViewModel>();
+        services.AddTransient<DownloadTaskViewModel>();
+        services.AddTransient<AvailableModelViewModel>();
+        services.AddTransient<LocalModelViewModel>();
 
         // Editor/Dialog ViewModels
         services.AddTransient<ActionEditorViewModel>();
         services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<InputDialogViewModel>();
+        services.AddTransient<CustomModelImportViewModel>();
+        services.AddTransient<ModelLibraryViewModel>();
 
         return services.BuildServiceProvider();
     }

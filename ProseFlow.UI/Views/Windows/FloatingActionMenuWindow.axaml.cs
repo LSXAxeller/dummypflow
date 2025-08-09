@@ -1,14 +1,13 @@
-﻿using Avalonia;
+﻿using System;
+using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Layout;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Windows;
-using System;
-using System.Linq;
-using Avalonia.Interactivity;
 using Window = ShadUI.Window;
 
 namespace ProseFlow.UI.Views.Windows;
@@ -25,8 +24,8 @@ public partial class FloatingActionMenuWindow : Window
         // Position the window near the mouse cursor
         if (Screens.Primary != null)
             Position = new PixelPoint(
-                (int)(Screens.Primary.WorkingArea.Center.X - (Width / 2)),
-                (int)(Screens.Primary.WorkingArea.Center.Y - (Height / 2) - 100)
+                (int)(Screens.Primary.WorkingArea.Center.X - Width / 2),
+                (int)(Screens.Primary.WorkingArea.Center.Y - Height / 2 - 100)
             );
 
         // Focus the search box for immediate typing
@@ -80,11 +79,8 @@ public partial class FloatingActionMenuWindow : Window
     /// </summary>
     private void ScrollSelectedItemIntoView()
     {
-        if (DataContext is not FloatingActionMenuViewModel vm || vm.SelectedItem is null)
-        {
-            return;
-        }
-        
+        if (DataContext is not FloatingActionMenuViewModel vm || vm.SelectedItem is null) return;
+
         // Use multiple dispatcher calls to ensure the visual tree is fully updated
         Dispatcher.UIThread.Post(() =>
         {
@@ -138,19 +134,14 @@ public partial class FloatingActionMenuWindow : Window
             
             const double margin = 20; // Increased margin for better visibility
             
-            double newScrollY = currentScrollTop;
+            var newScrollY = currentScrollTop;
             
             // Check if control is above the visible area
             if (controlTop < currentScrollTop + margin)
-            {
                 newScrollY = Math.Max(0, controlTop - margin);
-            }
             // Check if control is below the visible area
-            else if (controlBottom > currentScrollBottom - margin)
-            {
-                newScrollY = Math.Max(0, controlBottom - viewportHeight + margin);
-            }
-            
+            else if (controlBottom > currentScrollBottom - margin) newScrollY = Math.Max(0, controlBottom - viewportHeight + margin);
+
             // Only scroll if we need to
             if (Math.Abs(newScrollY - currentScrollTop) > 1)
             {
@@ -161,9 +152,7 @@ public partial class FloatingActionMenuWindow : Window
                 {
                     var maxScrollY = Math.Max(0, scrollContent.Bounds.Height - viewportHeight);
                     if (newScrollY >= maxScrollY - 10) // Close to bottom
-                    {
                         scrollViewer.Offset = scrollViewer.Offset.WithY(maxScrollY);
-                    }
                 }, DispatcherPriority.Background);
             }
         }

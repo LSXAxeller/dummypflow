@@ -1,9 +1,9 @@
-﻿using Avalonia;
+﻿using System.Windows.Input;
+using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
-using System.Windows.Input;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.Behaviors;
@@ -23,8 +23,15 @@ public class AdvancedDataGridDropBehavior : AvaloniaObject
         AvaloniaProperty.RegisterAttached<AdvancedDataGridDropBehavior, DataGrid, ICommand>(
             "Command", coerce: OnCommandChanged);
 
-    public static ICommand GetCommand(DataGrid element) => element.GetValue(CommandProperty);
-    public static void SetCommand(DataGrid element, ICommand value) => element.SetValue(CommandProperty, value);
+    public static ICommand GetCommand(DataGrid element)
+    {
+        return element.GetValue(CommandProperty);
+    }
+
+    public static void SetCommand(DataGrid element, ICommand value)
+    {
+        element.SetValue(CommandProperty, value);
+    }
 
     private static ICommand OnCommandChanged(AvaloniaObject target, ICommand command)
     {
@@ -64,17 +71,14 @@ public class AdvancedDataGridDropBehavior : AvaloniaObject
             }
         }
 
-        if (dragData is not null)
-        {
-            await DragDrop.DoDragDrop(e, dataObject, DragDropEffects.Move);
-        }
+        if (dragData is not null) await DragDrop.DoDragDrop(e, dataObject, DragDropEffects.Move);
     }
 
     private static void OnDragOver(object? sender, DragEventArgs e)
     {
         // Allow drop if we're dragging either an Action or a Group
-        bool isActionDrag = e.Data.Contains(ActionDragKey);
-        bool isGroupDrag = e.Data.Contains(GroupDragKey);
+        var isActionDrag = e.Data.Contains(ActionDragKey);
+        var isGroupDrag = e.Data.Contains(GroupDragKey);
 
         e.DragEffects = isActionDrag || isGroupDrag ? DragDropEffects.Move : DragDropEffects.None;
     }
@@ -96,20 +100,12 @@ public class AdvancedDataGridDropBehavior : AvaloniaObject
         // Determine drop target and execute command
         object? targetItem = null;
         if (targetRow?.DataContext is not null)
-        {
             targetItem = targetRow.DataContext; // Dropped on an Action row
-        }
-        else if (targetGroupHeader?.DataContext is DataGridCollectionViewGroup group && group.Key is not null)
-        {
-            targetItem = group.Key; // Dropped on a Group header
-        }
+        else if (targetGroupHeader?.DataContext is DataGridCollectionViewGroup group && group.Key is not null) targetItem = group.Key; // Dropped on a Group header
 
         if (targetItem is null || ReferenceEquals(draggedItem, targetItem)) return;
 
         var parameter = (dragged: draggedItem, target: targetItem);
-        if (command.CanExecute(parameter))
-        {
-            command.Execute(parameter);
-        }
+        if (command.CanExecute(parameter)) command.Execute(parameter);
     }
 }

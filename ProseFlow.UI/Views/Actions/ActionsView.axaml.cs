@@ -1,11 +1,10 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity; // Required for RoutedEventArgs
-using Avalonia.VisualTree;
 using ProseFlow.Core.Models;
 using ProseFlow.UI.Behaviors;
 using ProseFlow.UI.ViewModels.Actions;
 using ShadUI;
+// Required for RoutedEventArgs
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.Views.Actions;
@@ -63,7 +62,7 @@ public partial class ActionsView : UserControl
     private void GroupCard_Drop(object? sender, DragEventArgs e)
     {
         // Ensure we have all necessary components.
-        if (sender is not Card targetCard || this.DataContext is not ActionsViewModel vm) return;
+        if (sender is not Card targetCard || DataContext is not ActionsViewModel vm) return;
 
         // Get the Action being dragged.
         if (e.Data.Get(nameof(DataGridDragDropBehavior)) is not Action draggedAction) return;

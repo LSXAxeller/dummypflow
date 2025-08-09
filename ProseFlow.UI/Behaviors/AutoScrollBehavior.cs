@@ -19,8 +19,15 @@ public class AutoScrollBehavior : AvaloniaObject
         IsEnabledProperty.Changed.Subscribe(new AnonymousObserver<AvaloniaPropertyChangedEventArgs<bool>>(OnIsEnabledChanged));
     }
 
-    public static bool GetIsEnabled(ScrollViewer element) => element.GetValue(IsEnabledProperty);
-    public static void SetIsEnabled(ScrollViewer element, bool value) => element.SetValue(IsEnabledProperty, value);
+    public static bool GetIsEnabled(ScrollViewer element)
+    {
+        return element.GetValue(IsEnabledProperty);
+    }
+
+    public static void SetIsEnabled(ScrollViewer element, bool value)
+    {
+        element.SetValue(IsEnabledProperty, value);
+    }
 
     private static void OnIsEnabledChanged(AvaloniaPropertyChangedEventArgs<bool> e)
     {
@@ -44,15 +51,10 @@ public class AutoScrollBehavior : AvaloniaObject
             return;
         
         if (itemsControl.Items is INotifyCollectionChanged collection)
-        {
             collection.CollectionChanged += (_, args) =>
             {
-                if (args.Action == NotifyCollectionChangedAction.Add)
-                {
-                    scrollViewer.ScrollToEnd();
-                }
+                if (args.Action == NotifyCollectionChangedAction.Add) scrollViewer.ScrollToEnd();
             };
-        }
     }
 
     private static void OnDetached(object? sender, VisualTreeAttachmentEventArgs e)

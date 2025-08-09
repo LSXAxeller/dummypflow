@@ -8,10 +8,7 @@ public class BoolToOutputTargetConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is bool openInWindow)
-        {
-            return openInWindow ? "New Window" : "In-Place";
-        }
+        if (value is bool openInWindow) return openInWindow ? "New Window" : "In-Place";
         return "Unknown";
     }
 

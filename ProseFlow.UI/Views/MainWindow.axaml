@@ -7,6 +7,7 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels"
     xmlns:models="clr-namespace:ProseFlow.Core.Models;assembly=ProseFlow.Core"
+    xmlns:downloads="clr-namespace:ProseFlow.UI.Views.Downloads"
     x:DataType="vm:MainViewModel"
     mc:Ignorable="d"
     d:DesignWidth="1920"
@@ -137,6 +138,22 @@
                                    Classes="Small Muted"
                                    HorizontalAlignment="Center"
                                    IsVisible="{Binding #Toggler.IsChecked}" />
+
+                        <!-- Downloads Button/Popup -->
+                        <Button Name="DownloadsButton"
+                                HorizontalAlignment="Left"
+                                Padding="8,0" Margin="14,0,0,0"
+                                IsVisible="{Binding HasActiveDownloads}">
+                            <Button.Flyout>
+                                <Flyout Placement="RightEdgeAlignedTop">
+                                    <downloads:DownloadsPopupView DataContext="{Binding DownloadsPopup}" />
+                                </Flyout>
+                            </Button.Flyout>
+                            <Grid>
+                                <LucideIcon Size="18" Kind="Download" />
+                                <TextBlock Text="{Binding ActiveDownloadCount}" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,0,24" />
+                            </Grid>
+                        </Button>
                         
                         <!-- Toggle button to expand/collapse the sidebar -->
                         <ToggleButton

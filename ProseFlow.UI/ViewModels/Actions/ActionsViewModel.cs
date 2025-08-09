@@ -46,11 +46,8 @@ public partial class ActionsViewModel(
             .OrderBy(a => a.ActionGroup!.SortOrder)
             .ThenBy(a => a.SortOrder);
 
-        foreach (var action in sortedActions)
-        {
-            _allActions.Add(action);
-        }
-        
+        foreach (var action in sortedActions) _allActions.Add(action);
+
         // The DataGridCollectionView will respect the pre-sorted order when creating groups.
         var collectionView = new DataGridCollectionView(_allActions);
         collectionView.GroupDescriptions.Add(new DataGridPathGroupDescription("ActionGroup.Name"));
@@ -70,9 +67,9 @@ public partial class ActionsViewModel(
     private async Task AddGroupAsync()
     {
         var result = await dialogService.ShowInputDialogAsync(
-            title: "Create New Group",
-            message: "Enter a name for the new group:",
-            confirmButtonText: "Create");
+            "Create New Group",
+            "Enter a name for the new group:",
+            "Create");
         
         if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
         {
@@ -98,10 +95,10 @@ public partial class ActionsViewModel(
         if (group is null) return;
 
         var result = await dialogService.ShowInputDialogAsync(
-            title: "Rename Group",
-            message: $"Enter a new name for '{group.Name}':",
-            confirmButtonText: "Rename",
-            initialValue: group.Name);
+            "Rename Group",
+            $"Enter a new name for '{group.Name}':",
+            "Rename",
+            group.Name);
         
         if (result.Success && !string.IsNullOrWhiteSpace(result.Text))
         {

@@ -10,4 +10,5 @@ public class Constants
     public const string AppCopyright = "Copyright © 2025 LSXPrime";
     public const string AppLicense = "MIT";
     public const string AppRepository = "https://github.com/LSXPrime/ProseFlow/";
+    public const string ManifestUrl = "http://localhost:8000/ProseFlowCatalog.json"; // "https://raw.githubusercontent.com/LSXPrime/ProseFlow/master/model-manifest.json";
 }

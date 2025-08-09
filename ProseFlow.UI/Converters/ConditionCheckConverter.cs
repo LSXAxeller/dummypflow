@@ -29,20 +29,16 @@ public class ConditionCheckConverter : IValueConverter
         // Split the condition string into parts.
         var parts = conditionString.Split('|', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length is < 3 or > 4)
-        {
             throw new ArgumentException(
                 "Invalid condition string format. Expected 'condition|trueValue|falseValue' or 'condition|trueResult|falseResult'.");
-        }
 
         var conditions = parts[0].Split(';', StringSplitOptions.RemoveEmptyEntries);
         var trueResult = parts.Length >= 2 ? parts[1] : "True";
         var falseResult = parts.Length >= 3 ? parts[2] : "False";
 
         foreach (var condition in conditions)
-        {
             if (!CheckCondition(value, condition))
                 return falseResult;
-        }
 
         return trueResult;
     }

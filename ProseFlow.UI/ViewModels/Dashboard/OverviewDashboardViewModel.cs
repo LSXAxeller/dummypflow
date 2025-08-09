@@ -75,11 +75,8 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
         
         // Update Recent Activity
         RecentActivity.Clear();
-        foreach (var entry in await recentHistoryTask)
-        {
-            RecentActivity.Add(entry);
-        }
-        
+        foreach (var entry in await recentHistoryTask) RecentActivity.Add(entry);
+
         // Update Chart with advanced hover logic
         UpdateUsageChart(allHistory);
         

@@ -25,10 +25,12 @@ public static class AppEvents
     /// <summary>
     /// Invokes the ShowFloatingMenuRequested event.
     /// </summary>
-    public static async Task<ActionExecutionRequest?> RequestFloatingMenuAsync(IEnumerable<Action> availableActions, string activeAppContext) =>
-        ShowFloatingMenuRequested is not null
+    public static async Task<ActionExecutionRequest?> RequestFloatingMenuAsync(IEnumerable<Action> availableActions, string activeAppContext)
+    {
+        return ShowFloatingMenuRequested is not null
             ? await ShowFloatingMenuRequested.Invoke(availableActions, activeAppContext)
             : await Task.FromResult<ActionExecutionRequest?>(null);
+    }
 
 
     /// <summary>
@@ -42,10 +44,13 @@ public static class AppEvents
     /// Invokes the event to show the result window and waits for the user's interaction.
     /// </summary>
     /// <returns>A RefinementRequest if the user wants to refine, otherwise null.</returns>
-    public static async Task<RefinementRequest?> RequestResultWindowAsync(ResultWindowData data) =>
-        ShowResultWindowAndAwaitRefinement is not null
+    public static async Task<RefinementRequest?> RequestResultWindowAsync(ResultWindowData data)
+    {
+        return ShowResultWindowAndAwaitRefinement is not null
             ? await ShowResultWindowAndAwaitRefinement.Invoke(data)
-            : await Task.FromResult<RefinementRequest?>(null); // Graceful failure
+            : await Task.FromResult<RefinementRequest?>(null);
+        // Graceful failure
+    }
 
 
     /// <summary>
@@ -57,6 +62,8 @@ public static class AppEvents
     /// <summary>
     /// Invokes the ShowNotificationRequested event.
     /// </summary>
-    public static void RequestNotification(string message, NotificationType type) =>
+    public static void RequestNotification(string message, NotificationType type)
+    {
         ShowNotificationRequested?.Invoke(message, type);
+    }
 }

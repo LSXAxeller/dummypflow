@@ -20,8 +20,15 @@ public class DataGridGroupDropBehavior : AvaloniaObject
         AvaloniaProperty.RegisterAttached<DataGridGroupDropBehavior, DataGrid, ICommand>(
             "Command", coerce: OnCommandChanged);
 
-    public static ICommand GetCommand(DataGrid element) => element.GetValue(CommandProperty);
-    public static void SetCommand(DataGrid element, ICommand value) => element.SetValue(CommandProperty, value);
+    public static ICommand GetCommand(DataGrid element)
+    {
+        return element.GetValue(CommandProperty);
+    }
+
+    public static void SetCommand(DataGrid element, ICommand value)
+    {
+        element.SetValue(CommandProperty, value);
+    }
 
     /// <summary>
     /// Called when the ReorderCommand property is attached to a DataGrid.
@@ -92,9 +99,6 @@ public class DataGridGroupDropBehavior : AvaloniaObject
         // Execute the command on the ViewModel with the group keys.
         var command = GetCommand(dataGrid);
         var parameter = (dragged: draggedKey, target: targetKey);
-        if (command.CanExecute(parameter))
-        {
-            command.Execute(parameter);
-        }
+        if (command.CanExecute(parameter)) command.Execute(parameter);
     }
 }

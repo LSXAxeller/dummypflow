@@ -1,14 +1,14 @@
-﻿using LlmTornado;
+﻿using System.Diagnostics;
+using System.Text;
+using LlmTornado;
 using LlmTornado.Chat;
 using LlmTornado.Code;
-using ProseFlow.Core.Interfaces;
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
+using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
-using System.Text;
 using ChatMessage = ProseFlow.Core.Models.ChatMessage;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders;
@@ -47,17 +47,16 @@ public class CloudProvider(
         
         // Create the LlmTornado message list from DTO
         var tornadoMessages = messages.Select(m => new LlmTornado.Chat.ChatMessage(
-            role: m.Role switch {
+            m.Role switch {
                 "system" => ChatMessageRoles.System,
                 "user" => ChatMessageRoles.User,
                 "assistant" => ChatMessageRoles.Assistant,
                 _ => ChatMessageRoles.User
             },
-            content: m.Content
+            m.Content
         )).ToList();
 
         foreach (var config in enabledConfigs)
-        {
             try
             {
                 var request = new ChatRequest
@@ -68,7 +67,7 @@ public class CloudProvider(
                     Stream = true,
                     CancellationToken = cancellationToken
                 };
-                
+
                 // If a custom BaseUrl is provided, override the TornadoApi instance for this specific call.
                 var conversationApi = !string.IsNullOrWhiteSpace(config.BaseUrl)
                     ? new TornadoApi(new Uri(config.BaseUrl), config.ApiKey)
@@ -86,7 +85,7 @@ public class CloudProvider(
                 {
                     // Aggregate content from response chunks
                     if (chunk.Choices?.FirstOrDefault()?.Delta?.Content is { } contentPart) fullContent.Append(contentPart);
-                    
+
                     // Aggregate usage data. The final counts are often in the last chunks.
                     if (chunk.Usage is not null)
                     {
@@ -95,7 +94,7 @@ public class CloudProvider(
                     }
                 }
                 stopwatch.Stop();
-                
+
                 // Persist monthly aggregate usage
                 if (promptTokens > 0 || completionTokens > 0) await usageService.AddUsageAsync(promptTokens, completionTokens);
             
@@ -122,8 +121,7 @@ public class CloudProvider(
                 AppEvents.RequestNotification(errorMessage, NotificationType.Warning);
                 logger.LogError(ex, "Provider '{ConfigName}' failed.", config.Name);
             }
-        }
-        
+
         logger.LogError("All configured cloud providers failed to return a valid response.");
         throw new InvalidOperationException("All configured cloud providers failed to return a valid response.");
     }

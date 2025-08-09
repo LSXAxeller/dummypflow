@@ -37,10 +37,16 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         FilterAndGroupActions();
     }
 
-    public Task<ActionExecutionRequest?> WaitForSelectionAsync() => _selectionTcs.Task;
+    public Task<ActionExecutionRequest?> WaitForSelectionAsync()
+    {
+        return _selectionTcs.Task;
+    }
 
-    partial void OnSearchTextChanged(string value) => FilterAndGroupActions();
-    
+    partial void OnSearchTextChanged(string value)
+    {
+        FilterAndGroupActions();
+    }
+
     partial void OnSelectedItemChanged(object? oldValue, object? newValue)
     {
         switch (oldValue)
@@ -80,10 +86,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
             if (searchResults.Count != 0)
             {
                 var searchGroup = new ActionGroupViewModel("Search Results") { IsExpanded = true };
-                foreach (var item in searchResults)
-                {
-                    searchGroup.Actions.Add(item);
-                }
+                foreach (var item in searchResults) searchGroup.Actions.Add(item);
                 ActionGroups.Add(searchGroup);
             }
         }
@@ -118,10 +121,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         foreach (var group in ActionGroups)
         {
             flatList.Add(group);
-            if (group.IsExpanded)
-            {
-                flatList.AddRange(group.Actions);
-            }
+            if (group.IsExpanded) flatList.AddRange(group.Actions);
         }
         return flatList;
     }
@@ -148,9 +148,9 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         if (SelectedItem is ActionItemViewModel actionItem)
         {
             var request = new ActionExecutionRequest(
-                ActionToExecute: actionItem.Action,
-                ForceOpenInWindow: actionItem.IsForcedOpenInWindow,
-                ProviderOverride: CurrentServiceTypeName
+                actionItem.Action,
+                actionItem.IsForcedOpenInWindow,
+                CurrentServiceTypeName
             );
 
             if (!_selectionTcs.Task.IsCompleted)
@@ -222,10 +222,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [RelayCommand]
     private void ExpandSelectedItem()
     {
-        if (SelectedItem is ActionGroupViewModel group)
-        {
-            group.IsExpanded = true;
-        }
+        if (SelectedItem is ActionGroupViewModel group) group.IsExpanded = true;
     }
 
     [RelayCommand]

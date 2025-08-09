@@ -42,7 +42,10 @@ public class LocalNativeManager
     /// <summary>
     /// Gets a snapshot of the most recent log messages.
     /// </summary>
-    public IReadOnlyCollection<LogEntry> GetLogHistory() => _logHistory.ToList();
+    public IReadOnlyCollection<LogEntry> GetLogHistory()
+    {
+        return _logHistory.ToList();
+    }
 
     private void HandleNativeLogMessage(LLamaLogLevel level, string message)
     {
@@ -64,10 +67,7 @@ public class LocalNativeManager
 
         // Add to history and trim if necessary
         _logHistory.Enqueue(logEntry);
-        while (_logHistory.Count > MaxLogHistory)
-        {
-            _logHistory.TryDequeue(out _);
-        }
+        while (_logHistory.Count > MaxLogHistory) _logHistory.TryDequeue(out _);
 
         // Notify subscribers
         LogMessageReceived?.Invoke(logEntry);

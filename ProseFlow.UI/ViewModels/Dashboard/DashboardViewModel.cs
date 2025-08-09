@@ -28,30 +28,21 @@ public partial class DashboardViewModel : ViewModelBase, IDisposable
     public override async Task OnNavigatedToAsync()
     {
         // When the main dashboard page is navigated to, load data for the currently selected tab.
-        if (Tabs.Count > SelectedTabIndex)
-        {
-            await Tabs[SelectedTabIndex].OnNavigatedToAsync();
-        }
+        if (Tabs.Count > SelectedTabIndex) await Tabs[SelectedTabIndex].OnNavigatedToAsync();
     }
 
     partial void OnSelectedTabIndexChanged(int value)
     {
         // When the tab changes, load data for the new tab.
-        if (Tabs.Count > value)
-        {
-            _ = Tabs[value].OnNavigatedToAsync();
-        }
+        if (Tabs.Count > value) _ = Tabs[value].OnNavigatedToAsync();
     }
 
     public void Dispose()
     {
         foreach (var tab in Tabs)
-        {
             if (tab is IDisposable disposableTab)
-            {
                 disposableTab.Dispose();
-            }
-        }
+
         GC.SuppressFinalize(this);
     }
 }

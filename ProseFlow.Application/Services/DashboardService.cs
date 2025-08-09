@@ -19,10 +19,10 @@ public class DashboardService(IUnitOfWork unitOfWork)
         return historyEntries
             .GroupBy(e => DateOnly.FromDateTime(e.Timestamp))
             .Select(g => new DailyUsageDto(
-                Date: g.Key,
-                PromptTokens: g.Sum(e => e.PromptTokens),
-                CompletionTokens: g.Sum(e => e.CompletionTokens),
-                TokensPerSecond: g.Average(e => e.TokensPerSecond)
+                g.Key,
+                g.Sum(e => e.PromptTokens),
+                g.Sum(e => e.CompletionTokens),
+                g.Average(e => e.TokensPerSecond)
             ))
             .OrderBy(d => d.Date)
             .ToList();
@@ -38,9 +38,9 @@ public class DashboardService(IUnitOfWork unitOfWork)
         return historyEntries
             .GroupBy(e => e.ActionName)
             .Select(g => new ActionUsageDto(
-                ActionName: g.Key,
-                UsageCount: g.Count(),
-                AverageTokens: g.Average(e => e.PromptTokens + e.CompletionTokens)
+                g.Key,
+                g.Count(),
+                g.Average(e => e.PromptTokens + e.CompletionTokens)
             ))
             .OrderByDescending(a => a.UsageCount)
             .Take(count)
@@ -81,10 +81,10 @@ public class DashboardService(IUnitOfWork unitOfWork)
             {
                 var entry = g.First();
                 return new ProviderPerformanceDto(
-                    ProviderName: entry.ModelUsed, // Using ModelUsed as the primary name here
-                    Model: entry.ModelUsed,
-                    UsageCount: g.Count(),
-                    AverageLatencyMs: g.Average(e => e.LatencyMs)
+                    entry.ModelUsed, // Using ModelUsed as the primary name here
+                    entry.ModelUsed,
+                    g.Count(),
+                    g.Average(e => e.LatencyMs)
                 );
             })
             .Where(p => p.UsageCount > 0)

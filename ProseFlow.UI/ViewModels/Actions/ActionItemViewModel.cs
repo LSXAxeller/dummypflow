@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.ViewModels.Actions;

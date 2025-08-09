@@ -1,4 +1,5 @@
 ﻿using ProseFlow.Core.Abstracts;
+using ProseFlow.Core.Enums;
 
 namespace ProseFlow.Core.Models;
 
@@ -30,5 +31,5 @@ public class GeneralSettings : EntityBase
     /// <summary>
     /// The application's visual theme ("System", "Light", or "Dark").
     /// </summary>
-    public string Theme { get; set; } = nameof(Enums.ThemeType.System);
+    public string Theme { get; set; } = nameof(ThemeType.System);
 }

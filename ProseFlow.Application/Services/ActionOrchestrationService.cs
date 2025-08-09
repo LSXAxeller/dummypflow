@@ -1,11 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using ProseFlow.Application.Events;
-using ProseFlow.Core.Interfaces;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Application.DTOs;
+using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
+using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
 
@@ -145,15 +145,15 @@ public class ActionOrchestrationService : IDisposable
 
                     // Log to DB
                     await LogToHistoryAsync(
-                        actionName: request.ActionToExecute.Name,
-                        providerType: provider.Name,
-                        modelUsed: aiResponse.ProviderName,
-                        input: conversationHistory.Last(m => m.Role == "user").Content,
-                        output: aiResponse.Content,
-                        promptTokens: aiResponse.PromptTokens,
-                        completionTokens: aiResponse.CompletionTokens,
-                        latencyMs: latencyMs,
-                        inferenceSpeed: aiResponse.TokensPerSecond);
+                        request.ActionToExecute.Name,
+                        provider.Name,
+                        aiResponse.ProviderName,
+                        conversationHistory.Last(m => m.Role == "user").Content,
+                        aiResponse.Content,
+                        aiResponse.PromptTokens,
+                        aiResponse.CompletionTokens,
+                        latencyMs,
+                        aiResponse.TokensPerSecond);
 
                     // Parse and show the result window
                     var (mainOutput, explanation) = ParseOutput(aiResponse.Content, request.ActionToExecute.ExplainChanges);
@@ -182,15 +182,15 @@ public class ActionOrchestrationService : IDisposable
                 var (aiResponse, provider, latencyMs) = executionResult.Value;
 
                 await LogToHistoryAsync(
-                    actionName: request.ActionToExecute.Name,
-                    providerType: provider.Name,
-                    modelUsed: aiResponse.ProviderName,
-                    input: conversationHistory.Last(m => m.Role == "user").Content,
-                    output: aiResponse.Content,
-                    promptTokens: aiResponse.PromptTokens,
-                    completionTokens: aiResponse.CompletionTokens,
-                    latencyMs: latencyMs,
-                    inferenceSpeed: aiResponse.TokensPerSecond);
+                    request.ActionToExecute.Name,
+                    provider.Name,
+                    aiResponse.ProviderName,
+                    conversationHistory.Last(m => m.Role == "user").Content,
+                    aiResponse.Content,
+                    aiResponse.PromptTokens,
+                    aiResponse.CompletionTokens,
+                    latencyMs,
+                    aiResponse.TokensPerSecond);
                 
                 await _osService.PasteTextAsync(aiResponse.Content);
             }
@@ -227,7 +227,6 @@ public class ActionOrchestrationService : IDisposable
         var primaryProvider = await GetProviderAsync(providerOverride, settings.PrimaryServiceType);
 
         if (primaryProvider is not null)
-        {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
@@ -241,7 +240,6 @@ public class ActionOrchestrationService : IDisposable
                 _logger.LogWarning(ex, "Primary provider '{ProviderName}' failed. Attempting fallback.", primaryProvider.Name);
                 AppEvents.RequestNotification($"Primary provider ({primaryProvider.Name}) failed. Trying fallback...", NotificationType.Warning);
             }
-        }
 
         // 2. Determine and Try Fallback Provider
         if (settings.FallbackServiceType.Equals("None", StringComparison.OrdinalIgnoreCase))
@@ -253,7 +251,6 @@ public class ActionOrchestrationService : IDisposable
         var fallbackProvider = await GetProviderAsync(null, settings.FallbackServiceType); // No override for fallback
 
         if (fallbackProvider is not null && fallbackProvider.Name != primaryProvider?.Name)
-        {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
@@ -266,7 +263,6 @@ public class ActionOrchestrationService : IDisposable
             {
                 _logger.LogError(ex, "Fallback provider '{ProviderName}' also failed.", fallbackProvider.Name);
             }
-        }
 
         // 3. Both failed or were not configured
         return null;

@@ -23,10 +23,7 @@ public class LocalSessionService(
         if (modelManager.Status == ModelStatus.Loading)
         {
             logger.LogInformation("Waiting for local model to finish loading before creating a new session.");
-            while (modelManager.Status == ModelStatus.Loading)
-            {
-                Thread.Sleep(100);
-            }
+            while (modelManager.Status == ModelStatus.Loading) Thread.Sleep(100);
         }
         
         if (!modelManager.IsLoaded || modelManager.Executor is null)

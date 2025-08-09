@@ -1,7 +1,7 @@
-﻿using LibreHardwareMonitor.Hardware;
+﻿using System.Timers;
+using LibreHardwareMonitor.Hardware;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Core.Models;
-using System.Timers;
 using Timer = System.Timers.Timer;
 
 namespace ProseFlow.Infrastructure.Services.Monitoring;
@@ -58,7 +58,10 @@ public class HardwareMonitoringService : IDisposable
     /// <summary>
     /// Gets a snapshot of the latest hardware metrics.
     /// </summary>
-    public HardwareMetrics GetCurrentMetrics() => _currentMetrics;
+    public HardwareMetrics GetCurrentMetrics()
+    {
+        return _currentMetrics;
+    }
 
     private void InitializeTotalMetrics()
     {
@@ -105,8 +108,6 @@ public class HardwareMonitoringService : IDisposable
         {
             double cpuUsage = 0;
             double ramUsed = 0;
-            double gpuUsage = 0;
-            double vramUsedMb = 0;
 
             double maxGpuUsage = 0;
             double maxVramUsedMb = 0;
@@ -125,10 +126,10 @@ public class HardwareMonitoringService : IDisposable
                     case HardwareType.GpuNvidia:
                     case HardwareType.GpuAmd:
                     case HardwareType.GpuIntel:
-                        gpuUsage = GetSensorValue(hardware, GpuCoreSensorName, SensorType.Load);
+                        var gpuUsage = GetSensorValue(hardware, GpuCoreSensorName, SensorType.Load);
                         if(gpuUsage > maxGpuUsage) maxGpuUsage = gpuUsage;
 
-                        vramUsedMb = GetSensorValue(hardware, GpuMemoryUsedSensorName, SensorType.SmallData);
+                        var vramUsedMb = GetSensorValue(hardware, GpuMemoryUsedSensorName, SensorType.SmallData);
                         if(vramUsedMb > maxVramUsedMb) maxVramUsedMb = vramUsedMb;
                         break;
                 }
@@ -143,10 +144,10 @@ public class HardwareMonitoringService : IDisposable
             {
                 CpuUsagePercent = Math.Round(cpuUsage, 1),
                 RamUsedGb = Math.Round(ramUsed, 1),
-                RamUsagePercent = (ramTotal > 0) ? Math.Round(ramUsed / ramTotal * 100, 1) : 0,
+                RamUsagePercent = ramTotal > 0 ? Math.Round(ramUsed / ramTotal * 100, 1) : 0,
                 GpuUsagePercent = Math.Round(maxGpuUsage, 1),
                 VramUsedGb = Math.Round(vramUsedGb, 1),
-                VramUsagePercent = vramTotal > 0 ? Math.Round((vramUsedGb / vramTotal) * 100, 1) : 0,
+                VramUsagePercent = vramTotal > 0 ? Math.Round(vramUsedGb / vramTotal * 100, 1) : 0
             };
 
             MetricsUpdated?.Invoke(_currentMetrics);
@@ -167,7 +168,7 @@ public class HardwareMonitoringService : IDisposable
     {
         _timer?.Stop();
         _timer?.Dispose();
-        _computer?.Close();
+        _computer.Close();
         GC.SuppressFinalize(this);
     }
 }

@@ -6,6 +6,7 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Providers"
     xmlns:local="clr-namespace:ProseFlow.Infrastructure.Services.AiProviders.Local;assembly=ProseFlow.Infrastructure"
+    xmlns:core="using:ProseFlow.Core.Models"
     x:DataType="vm:ProvidersViewModel">
 
     <DockPanel LastChildFill="True">
@@ -119,16 +120,23 @@
                     <StackPanel Spacing="16">
                         <!-- Model Path Selection -->
                         <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                            <TextBox
-                                shadui:ControlAssist.Label="Model Path (.gguf)"
-                                Text="{Binding LocalModelPath, Mode=OneWay}"
-                                IsReadOnly="True" />
+                             <ComboBox
+                                shadui:ControlAssist.Label="Selected Model"
+                                ItemsSource="{Binding LocalModels}"
+                                SelectedItem="{Binding SelectedModel}"
+                                PlaceholderText="No model selected. Click 'Manage Models' to add one.">
+                                 <ComboBox.ItemTemplate>
+                                     <DataTemplate DataType="core:LocalModel">
+                                         <TextBlock Text="{Binding Name}" />
+                                     </DataTemplate>
+                                 </ComboBox.ItemTemplate>
+                             </ComboBox>
                             <Button
                                 Grid.Column="1"
                                 VerticalAlignment="Bottom"
                                 Classes="Outline"
-                                Command="{Binding BrowseForModelCommand}"
-                                Content="Browse..." />
+                                Command="{Binding ManageModelsCommand}"
+                                Content="Manage Models..." />
                         </Grid>
 
                         <!-- GPU and CPU Settings -->

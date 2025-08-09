@@ -120,10 +120,7 @@ public class ActionManagementService(IServiceScopeFactory scopeFactory, ILogger<
         return ExecuteCommandAsync(async unitOfWork =>
         {
             var action = await unitOfWork.Actions.GetByIdAsync(actionId);
-            if (action is not null)
-            {
-                unitOfWork.Actions.Delete(action);
-            }
+            if (action is not null) unitOfWork.Actions.Delete(action);
         });
     }
 
@@ -140,10 +137,7 @@ public class ActionManagementService(IServiceScopeFactory scopeFactory, ILogger<
                 .OrderBy(a => a.SortOrder).ToList();
 
             // If moving within the same group, remove the item first to get the correct index
-            if (originalGroupId == targetGroupId)
-            {
-                targetGroupActions.RemoveAll(a => a.Id == actionId);
-            }
+            if (originalGroupId == targetGroupId) targetGroupActions.RemoveAll(a => a.Id == actionId);
 
             // Insert at the new position and update the ActionGroupId
             actionToMove.ActionGroupId = targetGroupId;
@@ -230,10 +224,7 @@ public class ActionManagementService(IServiceScopeFactory scopeFactory, ILogger<
             foreach (var (actionName, dto) in actions)
             {
                 // Skip if an action with this name already exists anywhere
-                if (allExistingActions.Any(a => a.Name.Equals(actionName, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
+                if (allExistingActions.Any(a => a.Name.Equals(actionName, StringComparison.OrdinalIgnoreCase))) continue;
 
                 maxActionSortOrder++;
                 var newAction = new Action

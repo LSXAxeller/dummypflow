@@ -6,7 +6,6 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Windows"
     xmlns:actions="clr-namespace:ProseFlow.UI.ViewModels.Actions"
-    xmlns:local="clr-namespace:ProseFlow.UI.Views.Windows"
     x:DataType="vm:FloatingActionMenuViewModel"
 
     Width="450" SizeToContent="Height"

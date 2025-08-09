@@ -1,6 +1,7 @@
-﻿using System.Diagnostics;
+﻿#region Usings
+
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using ProseFlow.Core.Interfaces;
 using SharpHook;
@@ -13,12 +14,17 @@ using KeyCode = SharpHook.Data.KeyCode;
 using Microsoft.Win32;
 using ProseFlow.Core.Models;
 #endif
+
+
 #if LINUX
 using X11;
 #endif
 #if OSX
+using System.Reflection;
 using MonoMac.AppKit;
 #endif
+
+#endregion
 
 namespace ProseFlow.Infrastructure.Services.Os;
 
@@ -92,10 +98,7 @@ public sealed class OsService : IOsService
         var selectedText = await ClipboardService.GetTextAsync();
 
         // Restore original clipboard content if it existed
-        if (originalClipboardText != null)
-        {
-            await ClipboardService.SetTextAsync(originalClipboardText);
-        }
+        if (originalClipboardText != null) await ClipboardService.SetTextAsync(originalClipboardText);
 
         // If the clipboard has new, non-empty content, it's our selected text.
         return !string.IsNullOrEmpty(selectedText) ? selectedText : null;
@@ -110,10 +113,7 @@ public sealed class OsService : IOsService
 
         // Give the OS a moment to process the paste, then restore the clipboard.
         await Task.Delay(150);
-        if (originalClipboardText != null)
-        {
-            await ClipboardService.SetTextAsync(originalClipboardText);
-        }
+        if (originalClipboardText != null) await ClipboardService.SetTextAsync(originalClipboardText);
     }
 
     public Task<string> GetActiveWindowProcessNameAsync()
@@ -178,7 +178,6 @@ public sealed class OsService : IOsService
         var parts = hotkey.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (var part in parts)
-        {
             // Use a case-insensitive switch for better readability and to handle modifiers.
             switch (part.ToUpperInvariant())
             {
@@ -199,14 +198,10 @@ public sealed class OsService : IOsService
                 default:
                     // The last non-modifier part is assumed to be the key.
                     // SharpHook uses "Vc" prefix for keycodes (e.g., VcJ for 'J').
-                    if (!Enum.TryParse($"Vc{part}", true, out key))
-                    {
-                        key = KeyCode.VcUndefined;
-                    }
+                    if (!Enum.TryParse($"Vc{part}", true, out key)) key = KeyCode.VcUndefined;
 
                     break;
             }
-        }
 
         return (key, modifiers);
     }
@@ -338,7 +333,7 @@ public sealed class OsService : IOsService
 
                 var plistContent = $"""
                                     <?xml version="1.0" encoding="UTF-8"?>
-                                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                                    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
                                     <plist version="1.0">
                                     <dict>
                                         <key>Label</key>

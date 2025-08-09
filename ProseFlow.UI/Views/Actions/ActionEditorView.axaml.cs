@@ -13,9 +13,6 @@ public partial class ActionEditorView : Window
     
     private async void Window_OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (DataContext is ActionEditorViewModel vm)
-        {
-            await vm.OnNavigatedToAsync();
-        }
+        if (DataContext is ActionEditorViewModel vm) await vm.OnNavigatedToAsync();
     }
 }

@@ -59,7 +59,7 @@
                                         Rename
                                     </Button>
                                     <Separator />
-                                    <Button Classes="DestructiveMenu"
+                                    <Button Classes="Destructive"
                                             Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteGroupCommand, FallbackValue={x:Null}}"
                                             CommandParameter="{Binding Key}">
                                         <shadui:ButtonAssist.Icon>
@@ -171,7 +171,7 @@
                                             Edit
                                         </Button>
                                         <Separator />
-                                        <Button Classes="DestructiveMenu"
+                                        <Button Classes="Destructive"
                                                 Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}"
                                                 CommandParameter="{Binding .}">
                                             <shadui:ButtonAssist.Icon>

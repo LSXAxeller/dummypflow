@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,7 +13,6 @@ using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
 using ProseFlow.Infrastructure.Services.Monitoring;
 using SkiaSharp;
-
 
 namespace ProseFlow.UI.ViewModels.Dashboard;
 
@@ -60,10 +60,7 @@ public partial class LocalDashboardViewModel : DashboardViewModelBase, IDisposab
         
         // Subscribe to log updates and set initial state
         _localNativeManager.LogMessageReceived += OnLogMessageReceived;
-        foreach (var log in _localNativeManager.GetLogHistory())
-        {
-            LlmLogs.Add(log);
-        }
+        foreach (var log in _localNativeManager.GetLogHistory()) LlmLogs.Add(log);
     }
 
     private void OnMetricsUpdated(HardwareMetrics metrics)
@@ -89,10 +86,7 @@ public partial class LocalDashboardViewModel : DashboardViewModelBase, IDisposab
         {
             LlmLogs.Add(logEntry);
             // Trim the collection to prevent UI performance degradation
-            if (LlmLogs.Count > 500)
-            {
-                LlmLogs.RemoveAt(0);
-            }
+            if (LlmLogs.Count > 500) LlmLogs.RemoveAt(0);
         });
     }
 
@@ -115,10 +109,7 @@ public partial class LocalDashboardViewModel : DashboardViewModelBase, IDisposab
 
         // Update Grid
         TopLocalActions.Clear();
-        foreach (var action in await topActionsTask)
-        {
-            TopLocalActions.Add(action);
-        }
+        foreach (var action in await topActionsTask) TopLocalActions.Add(action);
 
         // Update Chart
         UpdateUsageChart(dailyUsage);
@@ -126,7 +117,7 @@ public partial class LocalDashboardViewModel : DashboardViewModelBase, IDisposab
         IsLoading = false;
     }
 
-    private void UpdateUsageChart(System.Collections.Generic.List<DailyUsageDto> dailyUsage)
+    private void UpdateUsageChart(List<DailyUsageDto> dailyUsage)
     {
         Series =
         [

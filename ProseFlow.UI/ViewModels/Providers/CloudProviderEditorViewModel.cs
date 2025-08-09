@@ -1,13 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.Events;
+using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
-using System;
-using System.Linq;
-using ProseFlow.Application.Services;
 using Window = ShadUI.Window;
 
 namespace ProseFlow.UI.ViewModels.Providers;

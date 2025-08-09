@@ -62,10 +62,7 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
         
         AvailableActions.Clear();
         var actions = await actionService.GetActionsAsync();
-        foreach (var action in actions)
-        {
-            AvailableActions.Add(action);
-        }
+        foreach (var action in actions) AvailableActions.Add(action);
         SelectedSmartPasteAction = AvailableActions.FirstOrDefault(a => a.Id == Settings.SmartPasteActionId);
     }
     

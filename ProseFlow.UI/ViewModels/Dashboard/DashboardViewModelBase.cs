@@ -18,8 +18,11 @@ public abstract partial class DashboardViewModelBase : ViewModelBase
     [ObservableProperty] private Axis[] _xAxes = [new()];
     [ObservableProperty] private Axis[] _yAxes = [new()];
     
-    partial void OnSelectedDateRangeChanged(string value) => _ = LoadDataAsync();
-    
+    partial void OnSelectedDateRangeChanged(string value)
+    {
+        _ = LoadDataAsync();
+    }
+
     public override async Task OnNavigatedToAsync()
     {
         await LoadDataAsync();

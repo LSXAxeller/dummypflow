@@ -10,6 +10,8 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IHistoryRepository History { get; }
     ISettingsRepository Settings { get; }
     IUsageStatisticRepository UsageStatistics { get; }
+    ILocalModelRepository LocalModels { get; }
+
 
     /// <summary>
     /// Saves all changes made in this unit of work to the underlying database.

@@ -26,10 +26,7 @@ public partial class HistoryViewModel(
     {
         HistoryEntries.Clear();
         var entries = await historyService.GetHistoryAsync();
-        foreach (var entry in entries)
-        {
-            HistoryEntries.Add(entry);
-        }
+        foreach (var entry in entries) HistoryEntries.Add(entry);
     }
 
     [RelayCommand]

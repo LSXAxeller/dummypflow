@@ -61,10 +61,7 @@ public class CloudProviderManagementService(IServiceScopeFactory scopeFactory, I
         return ExecuteCommandAsync(async unitOfWork =>
         {
             var config = await unitOfWork.CloudProviderConfigurations.GetByIdAsync(configId);
-            if (config is not null)
-            {
-                unitOfWork.CloudProviderConfigurations.Delete(config);
-            }
+            if (config is not null) unitOfWork.CloudProviderConfigurations.Delete(config);
         });
     }
 

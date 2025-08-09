@@ -1,13 +1,13 @@
-﻿using Avalonia.Media;
-using Avalonia.Platform;
-using Avalonia.Data.Converters;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
+using Avalonia.Platform;
 using Lucide.Avalonia;
 
 namespace ProseFlow.UI.Converters;
@@ -153,9 +153,7 @@ public partial class StringToIconConverter : IValueConverter
         // StreamGeometry can parse multiple paths if they are combined into a single string.
         var combinedPaths = new StringBuilder();
         foreach (Match match in matches)
-        {
             if (match.Success) combinedPaths.Append(match.Groups[1].Value).Append(' ');
-        }
 
         return StreamGeometry.Parse(combinedPaths.ToString());
     }

@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using Avalonia.Input;
-using ShadUI;
+﻿using ShadUI;
 
 namespace ProseFlow.UI.Views.Providers;
 

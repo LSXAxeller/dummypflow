@@ -1,8 +1,8 @@
-﻿using Avalonia;
+﻿using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.VisualTree;
-using System.Windows.Input;
 
 namespace ProseFlow.UI.Behaviors;
 
@@ -21,8 +21,15 @@ public class DataGridDragDropBehavior : AvaloniaObject
     private static readonly AttachedProperty<DataGrid?> DataGridProperty =
         AvaloniaProperty.RegisterAttached<DataGridDragDropBehavior, Control, DataGrid?>("DataGrid");
 
-    public static ICommand GetReorderCommand(DataGrid element) => element.GetValue(ReorderCommandProperty);
-    public static void SetReorderCommand(DataGrid element, ICommand value) => element.SetValue(ReorderCommandProperty, value);
+    public static ICommand GetReorderCommand(DataGrid element)
+    {
+        return element.GetValue(ReorderCommandProperty);
+    }
+
+    public static void SetReorderCommand(DataGrid element, ICommand value)
+    {
+        element.SetValue(ReorderCommandProperty, value);
+    }
 
     /// <summary>
     /// Called when the ReorderCommand property is attached to a DataGrid.
@@ -58,7 +65,7 @@ public class DataGridDragDropBehavior : AvaloniaObject
         var row = source?.FindAncestorOfType<DataGridRow>();
         if (row?.DataContext is null) return;
         
-        if (source?.FindAncestorOfType<Button>(includeSelf: true) is not null) return;
+        if (source?.FindAncestorOfType<Button>(true) is not null) return;
 
         // The item being dragged.
         var draggedItem = row.DataContext;
@@ -101,9 +108,6 @@ public class DataGridDragDropBehavior : AvaloniaObject
         // Execute the command on the ViewModel.
         var command = GetReorderCommand(dataGrid);
         var parameter = (draggedItem, targetItem);
-        if (command?.CanExecute(parameter) == true)
-        {
-            command.Execute(parameter);
-        }
+        if (command?.CanExecute(parameter) == true) command.Execute(parameter);
     }
 }

@@ -13,6 +13,7 @@ public class UnitOfWork(AppDbContext context, ApiKeyProtector keyProtector) : IU
     private IHistoryRepository? _history;
     private ISettingsRepository? _settings;
     private IUsageStatisticRepository? _usageStatistics;
+    private ILocalModelRepository? _localModels;
 
     public IActionRepository Actions => _actions ??= new ActionRepository(context);
     public IActionGroupRepository ActionGroups => _actionGroups ??= new ActionGroupRepository(context);
@@ -20,6 +21,7 @@ public class UnitOfWork(AppDbContext context, ApiKeyProtector keyProtector) : IU
     public IHistoryRepository History => _history ??= new HistoryRepository(context);
     public ISettingsRepository Settings => _settings ??= new SettingsRepository(context);
     public IUsageStatisticRepository UsageStatistics => _usageStatistics ??= new UsageStatisticRepository(context);
+    public ILocalModelRepository LocalModels => _localModels ??= new LocalModelRepository(context);
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

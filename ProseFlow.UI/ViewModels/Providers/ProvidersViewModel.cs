@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Lucide.Avalonia;
 using ProseFlow.Application.Events;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
@@ -24,6 +25,8 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly IDialogService _dialogService;
     private readonly LocalModelManagerService _modelManager;
     private readonly UsageTrackingService _usageService;
+    private readonly ILocalModelManagementService _localModelService;
+    private readonly IServiceProvider _serviceProvider;
 
     public override string Title => "Providers";
     public override LucideIconKind Icon => LucideIconKind.Cloud;
@@ -34,11 +37,13 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private ModelStatus _managerStatus;
     [ObservableProperty]
+
     private string? _managerErrorMessage;
     [ObservableProperty]
     private bool _isManagerLoaded;
 
     public ObservableCollection<CloudProviderConfiguration> CloudProviders { get; } = [];
+    public ObservableCollection<LocalModel> LocalModels { get; } = [];
     
     public List<string> AvailableServiceTypes => ["Cloud", "Local"];
     public List<string> AvailableFallbackServiceTypes => ["Cloud", "Local", "None"];
@@ -53,8 +58,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private int _localMaxTokens;
     
     [ObservableProperty]
-    private string _localModelPath = string.Empty;
-    
+    private LocalModel? _selectedModel;
     
     [ObservableProperty]
     private long _promptTokens;
@@ -68,16 +72,22 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         CloudProviderManagementService providerService,
         IDialogService dialogService,
         LocalModelManagerService modelManager,
-        UsageTrackingService usageService)
+        UsageTrackingService usageService,
+        ILocalModelManagementService localModelService,
+        IServiceProvider serviceProvider)
     {
         _settingsService = settingsService;
         _providerService = providerService;
         _dialogService = dialogService;
         _modelManager = modelManager;
         _usageService = usageService;
-        
-        // Subscribe to the event from the infrastructure service
+        _localModelService = localModelService;
+        _serviceProvider = serviceProvider;
+
+        // Subscribe to events
         _modelManager.StateChanged += OnManagerStateChanged;
+        _localModelService.ModelsChanged += OnLocalModelsChanged;
+
         // Set initial state
         OnManagerStateChanged();
     }
@@ -91,6 +101,11 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
             ManagerErrorMessage = _modelManager.ErrorMessage;
             IsManagerLoaded = _modelManager.IsLoaded;
         });
+    }
+
+    private async void OnLocalModelsChanged()
+    {
+        await LoadLocalModelsAsync();
     }
 
     partial void OnLocalTempChanged(float value)
@@ -111,26 +126,42 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         Settings.LocalModelMaxTokens = value;
     }
 
+    partial void OnSelectedModelChanged(LocalModel? value)
+    {
+        if (Settings is null || value is null) return;
+        Settings.LocalModelPath = value.FilePath;
+    }
+    
     public override async Task OnNavigatedToAsync()
     {
         Settings = await _settingsService.GetProviderSettingsAsync();
         LocalTemp = Settings.LocalModelTemperature;
         LocalContextSize = Settings.LocalModelContextSize;
         LocalMaxTokens = Settings.LocalModelMaxTokens;
-        LocalModelPath = Settings.LocalModelPath;
-        await LoadCloudProvidersAsync();
-        UpdateUsageDisplay();
 
+        await LoadCloudProvidersAsync();
+        await LoadLocalModelsAsync();
+        UpdateUsageDisplay();
     }
     
     private async Task LoadCloudProvidersAsync()
     {
         CloudProviders.Clear();
         var providers = await _providerService.GetConfigurationsAsync();
-        foreach (var provider in providers)
+        foreach (var provider in providers) CloudProviders.Add(provider);
+    }
+
+    private async Task LoadLocalModelsAsync()
+    {
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
-            CloudProviders.Add(provider);
-        }
+            LocalModels.Clear();
+            var models = await _localModelService.GetModelsAsync();
+            foreach (var model in models) LocalModels.Add(model);
+
+            // Reselect the current model if it exists in the new list
+            if (Settings is not null && !string.IsNullOrWhiteSpace(Settings.LocalModelPath)) SelectedModel = LocalModels.FirstOrDefault(m => m.FilePath == Settings.LocalModelPath);
+        });
     }
     
     private void UpdateUsageDisplay()
@@ -140,21 +171,27 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         CompletionTokens = usage.CompletionTokens;
         TotalTokens = usage.PromptTokens + usage.CompletionTokens;
     }
-
-    [RelayCommand]
-    private async Task BrowseForModelAsync()
-    {
-        var filePath = await _dialogService.ShowOpenFileDialogAsync("Select Local Model", "GGUF files", "*.gguf");
-        if (string.IsNullOrWhiteSpace(filePath) || Settings is null) return;
-
-        Settings.LocalModelPath = filePath;
-        LocalModelPath = filePath;
-    }
     
+    [RelayCommand]
+    private async Task ManageModelsAsync()
+    {
+        await _dialogService.ShowModelLibraryDialogAsync();
+        
+        // After closing the library, refresh the list of local models
+        await LoadLocalModelsAsync();
+    }
+
     [RelayCommand]
     private async Task LoadLocalModelAsync()
     {
         if (Settings is null) return;
+
+        if (string.IsNullOrWhiteSpace(Settings.LocalModelPath))
+        {
+            AppEvents.RequestNotification("No local model is selected.", NotificationType.Warning);
+            return;
+        }
+        
         await _modelManager.LoadModelAsync(Settings);
     }
     
@@ -247,6 +284,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         _modelManager.StateChanged -= OnManagerStateChanged;
+        _localModelService.ModelsChanged -= OnLocalModelsChanged;
         GC.SuppressFinalize(this);
     }
 }

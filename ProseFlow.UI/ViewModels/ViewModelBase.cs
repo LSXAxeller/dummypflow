@@ -26,5 +26,8 @@ public abstract partial class ViewModelBase : ObservableObject, IPageViewModel
     [ObservableProperty]
     private bool _isSelected;
     
-    public virtual Task OnNavigatedToAsync() => Task.CompletedTask;
+    public virtual Task OnNavigatedToAsync()
+    {
+        return Task.CompletedTask;
+    }
 }

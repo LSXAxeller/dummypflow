@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CloudProviderConfiguration> CloudProviderConfigurations { get; set; }
     public DbSet<HistoryEntry> History { get; set; }
     public DbSet<UsageStatistic> UsageStatistics { get; set; }
+    public DbSet<LocalModel> LocalModels { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +54,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // Ensure Year and Month are a unique combination for usage statistics.
         modelBuilder.Entity<UsageStatistic>()
             .HasIndex(u => new { u.Year, u.Month })
+            .IsUnique();
+
+        // Ensure file paths for local models are unique.
+        modelBuilder.Entity<LocalModel>()
+            .HasIndex(m => m.FilePath)
             .IsUnique();
     }
     
