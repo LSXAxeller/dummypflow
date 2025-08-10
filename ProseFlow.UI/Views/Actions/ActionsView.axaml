@@ -129,7 +129,8 @@
                         <DataGridTemplateColumn Width="40">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <LucideIcon Size="18" Kind="MoveVertical" ToolTip.Tip="Drag and drop to reorder actions." />
+                                    <LucideIcon Size="18" Kind="MoveVertical"
+                                                ToolTip.Tip="Drag and drop to reorder actions." />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -139,8 +140,15 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate DataType="core:Action">
                                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <PathIcon Width="16" Height="16"
-                                                  Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}" />
+                                        <PathIcon Width="16" Height="16" Foreground="{x:Null}"
+                                                  Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}">
+                                            <PathIcon.Styles>
+                                                <Style Selector="Path">
+                                                    <Setter Property="Stroke" Value="{DynamicResource PrimaryColor}" />
+                                                    <Setter Property="StrokeThickness" Value="1" />
+                                                </Style>
+                                            </PathIcon.Styles>
+                                        </PathIcon>
                                         <TextBlock Text="{Binding Name}" />
                                     </StackPanel>
                                 </DataTemplate>

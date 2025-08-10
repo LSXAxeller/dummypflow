@@ -1,6 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls.Primitives;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 
 namespace ProseFlow.UI.Controls.Dashboard;
 

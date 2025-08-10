@@ -2,13 +2,12 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 using Avalonia.Platform;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 
 namespace ProseFlow.UI.Converters;
 
@@ -30,18 +29,13 @@ public partial class StringToIconConverter : IValueConverter
 
     // Regex to extract the 'd' attribute from one or more <path> tags.
     private static readonly Regex SvgPathDataRegex = SvgPathRegex();
-
-    // Cache the default icon to avoid reloading and reparsing it repeatedly.
     private static StreamGeometry? _defaultIcon;
-
-    // Cache for the reflection-based method call
-    private static MethodInfo? _createGeometryStringMethod;
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         var inputString = value as string;
 
-        // Also handle direct binding of LucideIconKind for convenience (e.g., in previews)
+        // Handle direct binding of LucideIconKind for convenience (e.g., in previews)
         if (value is LucideIconKind directKind) inputString = directKind.ToString();
 
         if (string.IsNullOrWhiteSpace(inputString))
@@ -57,7 +51,7 @@ public partial class StringToIconConverter : IValueConverter
             }
 
             var path = inputString.Trim();
-            
+
             // 2. Check if the input is a valid SVG path
             return path switch
             {
@@ -69,7 +63,7 @@ public partial class StringToIconConverter : IValueConverter
                 // 2. URI, URL, or absolute file path
                 not null when path.Contains("://") || Path.IsPathRooted(path)
                     => ParseFromFile(path),
-                
+
                 // 3. Raw SVG path data (heuristic check)
                 not null when path.StartsWith('M') || path.StartsWith('m')
                     => StreamGeometry.Parse(path),
@@ -84,33 +78,13 @@ public partial class StringToIconConverter : IValueConverter
             return GetDefaultIcon();
         }
     }
-    
+
     /// <summary>
-    /// Uses reflection to call the internal CreateGeometryString method from the Lucide.Avalonia library.
-    /// This is necessary because the path data for each icon is not publicly exposed.
+    /// Retrieves the path data for a LucideIconKind enum.
     /// </summary>
     private static string GetPathDataFromLucideKind(LucideIconKind kind)
     {
-        try
-        {
-            if (_createGeometryStringMethod is null)
-            {
-                // Find the type and method once and cache it for performance.
-                var iconToGeometryType = typeof(LucideIcon).Assembly.GetType("Lucide.Avalonia.IconToGeometry");
-                if (iconToGeometryType is null) throw new InvalidOperationException("Lucide.Avalonia.IconToGeometry type not found.");
-
-                _createGeometryStringMethod = iconToGeometryType.GetMethod("CreateGeometryString", BindingFlags.Public | BindingFlags.Static);
-                if (_createGeometryStringMethod is null) throw new InvalidOperationException("CreateGeometryString method not found in IconToGeometry.");
-            }
-            
-            // Invoke the static method with the enum value.
-            return (string?)_createGeometryStringMethod.Invoke(null, [kind]) ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[ERROR] Reflection failed for LucideIconKind '{kind}': {ex.Message}");
-            return string.Empty; // Return empty path on failure
-        }
+        return IconToGeometry.CreateGeometryString(kind);
     }
 
 
@@ -150,10 +124,10 @@ public partial class StringToIconConverter : IValueConverter
         if (matches.Count == 0)
             throw new FormatException("SVG content does not contain any <path> elements with a 'd' attribute.");
 
-        // StreamGeometry can parse multiple paths if they are combined into a single string.
         var combinedPaths = new StringBuilder();
         foreach (Match match in matches)
-            if (match.Success) combinedPaths.Append(match.Groups[1].Value).Append(' ');
+            if (match.Success)
+                combinedPaths.Append(match.Groups[1].Value).Append(' ');
 
         return StreamGeometry.Parse(combinedPaths.ToString());
     }

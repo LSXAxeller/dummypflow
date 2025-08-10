@@ -32,4 +32,9 @@ public class GeneralSettings : EntityBase
     /// The application's visual theme ("System", "Light", or "Dark").
     /// </summary>
     public string Theme { get; set; } = nameof(ThemeType.System);
+    
+    /// <summary>
+    /// Flag indicating whether the user has completed the first-run onboarding.
+    /// </summary>
+    public bool IsOnboardingCompleted { get; set; }
 }

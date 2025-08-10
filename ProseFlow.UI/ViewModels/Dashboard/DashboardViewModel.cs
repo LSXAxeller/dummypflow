@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ProseFlow.UI.ViewModels.Dashboard;

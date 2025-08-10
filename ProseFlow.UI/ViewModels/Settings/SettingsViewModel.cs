@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;

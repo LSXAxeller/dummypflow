@@ -31,11 +31,13 @@ using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Dialogs;
 using ProseFlow.UI.ViewModels.Downloads;
 using ProseFlow.UI.ViewModels.History;
+using ProseFlow.UI.ViewModels.Onboarding;
 using ProseFlow.UI.ViewModels.Providers;
 using ProseFlow.UI.ViewModels.Settings;
 using ProseFlow.UI.ViewModels.Windows;
 using ProseFlow.UI.Views;
 using ProseFlow.UI.Views.Dialogs;
+using ProseFlow.UI.Views.Onboarding;
 using ProseFlow.UI.Views.Providers;
 using ProseFlow.UI.Views.Windows;
 using Serilog;
@@ -74,64 +76,63 @@ public class App : Avalonia.Application
         await usageTrackingService.InitializeAsync();
 
         var settingsService = Services.GetRequiredService<SettingsService>();
-
-        // Check for local model on startup
-        await using (var scope = Services.CreateAsyncScope())
-        {
-            var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<App>>();
-
-            try
-            {
-                var providerSettings = await settingsService.GetProviderSettingsAsync();
-                if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
-                {
-                    if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) ||
-                        !File.Exists(providerSettings.LocalModelPath))
-                    {
-                        logger.LogWarning(
-                            "Auto-load skipped: Local model path is not configured or file does not exist.");
-                    }
-                    else
-                    {
-                        logger.LogInformation("Attempting to auto-load local model on startup...");
-                        if (!Design.IsDesignMode) // Don't auto-load model in design mode
-                            _ = modelManager.LoadModelAsync(providerSettings);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred during the local model auto-load check.");
-            }
-        }
-
-        // Initialize and start background services
-        var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
-        orchestrationService.Initialize();
-
-        // Subscribe UI handlers to application-layer events
-        var osService = Services.GetRequiredService<IOsService>();
         var generalSettings = await settingsService.GetGeneralSettingsAsync();
-        _ = osService.StartHookAsync();
-        osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
-
-        SubscribeToAppEvents();
-
-
-        // Setup Dialogs
-        var dialogManager = Services.GetRequiredService<DialogManager>();
-        dialogManager.Register<InputDialogView, InputDialogViewModel>();
-        dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Check for local model on startup
+            await using (var scope = Services.CreateAsyncScope())
+            {
+                var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<App>>();
+
+                try
+                {
+                    var providerSettings = await settingsService.GetProviderSettingsAsync();
+                    if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
+                    {
+                        if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) ||
+                            !File.Exists(providerSettings.LocalModelPath))
+                        {
+                            logger.LogWarning(
+                                "Auto-load skipped: Local model path is not configured or file does not exist.");
+                        }
+                        else
+                        {
+                            logger.LogInformation("Attempting to auto-load local model on startup...");
+                            if (!Design.IsDesignMode) // Don't auto-load model in design mode
+                                _ = modelManager.LoadModelAsync(providerSettings);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred during the local model auto-load check.");
+                }
+            }
+
+            // Initialize and start background services
+            var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
+            orchestrationService.Initialize();
+
+            // Subscribe UI handlers to application-layer events
+            var osService = Services.GetRequiredService<IOsService>();
+            generalSettings = await settingsService.GetGeneralSettingsAsync(); // Re-fetch after potential onboarding
+            _ = osService.StartHookAsync();
+            osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
+
+            SubscribeToAppEvents();
+
+            // Setup Dialogs
+            var dialogManager = Services.GetRequiredService<DialogManager>();
+            dialogManager.Register<InputDialogView, InputDialogViewModel>();
+            dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
+
             // Don't shut down the app when the main window is closed.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             desktop.Exit += OnApplicationExit;
 
-            var settings = await settingsService.GetGeneralSettingsAsync();
-            RequestedThemeVariant = settings.Theme switch
+            RequestedThemeVariant = generalSettings.Theme switch
             {
                 "Light" => ThemeVariant.Light,
                 "Dark" => ThemeVariant.Dark,
@@ -142,6 +143,7 @@ public class App : Avalonia.Application
             {
                 DataContext = Services.GetRequiredService<MainViewModel>()
             };
+            desktop.MainWindow.Show();
 
             // Handle the closing event to hide the window instead of closing
             desktop.MainWindow.Closing += (_, e) =>
@@ -149,6 +151,32 @@ public class App : Avalonia.Application
                 e.Cancel = true;
                 desktop.MainWindow.Hide();
             };
+            
+            // Onboarding process for new users
+            if (!generalSettings.IsOnboardingCompleted)
+            {
+                var onboardingVm = Services.GetRequiredService<OnboardingViewModel>();
+                var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
+
+                var completedSuccessfully = await onboardingWindow.ShowDialog<bool>(desktop.MainWindow);
+
+                if (completedSuccessfully)
+                {
+                    // Save all settings gathered during onboarding
+                    await onboardingVm.SaveSettingsAsync();
+
+                    // Mark onboarding as complete and save
+                    generalSettings = await settingsService.GetGeneralSettingsAsync();
+                    generalSettings.IsOnboardingCompleted = true;
+                    await settingsService.SaveGeneralSettingsAsync(generalSettings);
+                }
+                else
+                {
+                    // If the user closes the onboarding window, quit the application.
+                    desktop.Shutdown();
+                    return;
+                }
+            }
 
             // Create and set up the system tray icon
             _trayIcon = CreateTrayIcon();
@@ -357,7 +385,7 @@ public class App : Avalonia.Application
             .WriteTo.Debug()
             .WriteTo.Console()
 #endif
-            .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
+            .WriteTo.File(logPath, rollingInterval: RollingInterval.Month)
             .CreateLogger();
 
         services.AddLogging(builder =>
@@ -432,6 +460,12 @@ public class App : Avalonia.Application
         services.AddTransient<InputDialogViewModel>();
         services.AddTransient<CustomModelImportViewModel>();
         services.AddTransient<ModelLibraryViewModel>();
+        
+        // Onboarding ViewModels
+        services.AddTransient<OnboardingViewModel>();
+        services.AddTransient<CloudOnboardingViewModel>();
+        services.AddTransient<HotkeyTutorialViewModel>();
+
 
         return services.BuildServiceProvider();
     }

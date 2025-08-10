@@ -22,7 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         base.OnModelCreating(modelBuilder);
 
         // Configure singleton settings tables by seeding them with a default entity.
-        modelBuilder.Entity<GeneralSettings>().HasData(new GeneralSettings { Id = 1 });
+        modelBuilder.Entity<GeneralSettings>().HasData(new GeneralSettings { Id = 1, IsOnboardingCompleted = false });
         modelBuilder.Entity<ProviderSettings>().HasData(new ProviderSettings { Id = 1 });
 
         // Seed a default "General" group that cannot be deleted.

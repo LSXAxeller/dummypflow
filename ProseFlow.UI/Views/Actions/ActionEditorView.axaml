@@ -6,7 +6,7 @@
     xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
     x:DataType="vm:ActionEditorViewModel"
     DataContextChanged="Window_OnDataContextChanged"
-    
+
     Width="600" Height="700"
     Margin="125"
     WindowStartupLocation="CenterOwner"
@@ -54,36 +54,50 @@
 
                 <!-- Icon -->
                 <StackPanel>
-                    <TextBlock Classes="Label" Text="Icon" Margin="0,0,0,4"/>
+                    <TextBlock Classes="Label" Text="Icon" Margin="0,0,0,4" />
                     <TabControl SelectedIndex="{Binding SelectedIconTab}">
                         <TabItem Header="Built-in">
                             <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12" Margin="0,8">
-                                <ComboBox
+                                <ComboBox IsEnabled="{Binding SelectedIconTab, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='0|True|False'}"
                                     Grid.Column="0"
                                     ItemsSource="{Binding LucideIcons}"
-                                    SelectedItem="{Binding SelectedLucideIcon}"/>
+                                    SelectedItem="{Binding SelectedLucideIcon}" />
                                 <Border Grid.Column="1" Width="36" Height="36"
                                         BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
                                         CornerRadius="{DynamicResource MdCornerRadius}">
-                                    <PathIcon Width="20" Height="20"
-                                              Data="{Binding SelectedLucideIcon, Converter={StaticResource StringToIconConverter}}"/>
+                                    <PathIcon Width="20" Height="20" Foreground="{x:Null}"
+                                              Data="{Binding SelectedLucideIcon, Converter={StaticResource StringToIconConverter}}">
+                                        <PathIcon.Styles>
+                                            <Style Selector="Path">
+                                                <Setter Property="Stroke" Value="{DynamicResource PrimaryColor}" />
+                                                <Setter Property="StrokeThickness" Value="1" />
+                                            </Style>
+                                        </PathIcon.Styles>
+                                    </PathIcon>
                                 </Border>
                             </Grid>
                         </TabItem>
                         <TabItem Header="Custom">
-                             <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12" Margin="0,8">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12" Margin="0,8">
                                 <TextBox
                                     Grid.Column="0"
                                     shadui:ControlAssist.Hint="Provide an icon path, raw SVG path data (e.g., `M12 2L...`), or the full XML content of an SVG file."
-                                    Text="{Binding Action.Icon}"
+                                    Text="{Binding SelectedIcon, Mode=TwoWay}"
                                     Watermark="SVG path, avares:// URI, or full svg xml..." />
-                                <Border Grid.Column="1" Width="36" Height="36"
+                                <Border Grid.Column="1" Width="36" Height="36" Margin="0,0,0,24"
                                         BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
                                         CornerRadius="{DynamicResource MdCornerRadius}">
-                                    <PathIcon Width="20" Height="20"
-                                              Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}"/>
+                                    <PathIcon Width="20" Height="20" Foreground="{x:Null}"
+                                              Data="{Binding SelectedIcon, Converter={StaticResource StringToIconConverter}}">
+                                        <PathIcon.Styles>
+                                            <Style Selector="Path">
+                                                <Setter Property="Stroke" Value="{DynamicResource PrimaryColor}" />
+                                                <Setter Property="StrokeThickness" Value="1" />
+                                            </Style>
+                                        </PathIcon.Styles>
+                                    </PathIcon>
                                 </Border>
-                             </Grid>
+                            </Grid>
                         </TabItem>
                     </TabControl>
                 </StackPanel>

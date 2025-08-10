@@ -21,7 +21,15 @@
                                      MaxHeight="48"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center">
-                                <LucideIcon Kind="{TemplateBinding Icon}" />
+                                <PathIcon Width="20" Height="20" Foreground="{x:Null}"
+                                          Data="{TemplateBinding Icon, Converter={StaticResource StringToIconConverter}}">
+                                    <PathIcon.Styles>
+                                        <Style Selector="Path">
+                                            <Setter Property="Stroke" Value="{DynamicResource PrimaryColor}" />
+                                            <Setter Property="StrokeThickness" Value="1" />
+                                        </Style>
+                                    </PathIcon.Styles>
+                                </PathIcon>
                             </Viewbox>
                             
                         </Grid>

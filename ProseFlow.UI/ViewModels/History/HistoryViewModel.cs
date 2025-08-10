@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
 using ProseFlow.UI.Services;

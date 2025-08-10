@@ -123,7 +123,15 @@
                                 CommandParameter="{Binding .}">
                                 <shadui:SidebarItem.Icon>
                                     <Viewbox>
-                                        <LucideIcon Size="18" Kind="{Binding Icon}" />
+                                        <PathIcon Width="20" Height="20" Foreground="{x:Null}"
+                                                  Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}">
+                                            <PathIcon.Styles>
+                                                <Style Selector="Path">
+                                                    <Setter Property="Stroke" Value="{DynamicResource PrimaryColor}" />
+                                                    <Setter Property="StrokeThickness" Value="1" />
+                                                </Style>
+                                            </PathIcon.Styles>
+                                        </PathIcon>
                                     </Viewbox>
                                 </shadui:SidebarItem.Icon>
                             </shadui:SidebarItem>
@@ -151,10 +159,11 @@
                             </Button.Flyout>
                             <Grid>
                                 <LucideIcon Size="18" Kind="Download" />
-                                <TextBlock Text="{Binding ActiveDownloadCount}" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,0,0,24" />
+                                <TextBlock Text="{Binding ActiveDownloadCount}" VerticalAlignment="Top"
+                                           HorizontalAlignment="Right" Margin="0,0,0,24" />
                             </Grid>
                         </Button>
-                        
+
                         <!-- Toggle button to expand/collapse the sidebar -->
                         <ToggleButton
                             Name="Toggler"

@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace ProseFlow.UI.ViewModels;

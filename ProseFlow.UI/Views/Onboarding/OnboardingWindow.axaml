@@ -1,0 +1,140 @@
+﻿<shadui:Window x:Class="ProseFlow.UI.Views.Onboarding.OnboardingWindow"
+               xmlns="https://github.com/avaloniaui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+               xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+               xmlns:vm="using:ProseFlow.UI.ViewModels.Onboarding"
+               xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+               xmlns:onboarding="clr-namespace:ProseFlow.UI.Views.Onboarding"
+               xmlns:providers="clr-namespace:ProseFlow.UI.Views.Providers"
+               xmlns:vmProviders="using:ProseFlow.UI.ViewModels.Providers"
+               mc:Ignorable="d" 
+               x:DataType="vm:OnboardingViewModel"
+               SizeToContent="Height"
+               Width="800" Height="600"
+               WindowStartupLocation="CenterScreen"
+               CanResize="False"
+               ShowInTaskbar="False"
+               Title="Welcome to ProseFlow">
+
+    <Window.DataTemplates>
+        <!-- These templates are now correctly used by the ContentControl for ViewModel-driven steps -->
+        <DataTemplate DataType="vm:CloudOnboardingViewModel">
+            <onboarding:CloudOnboardingView />
+        </DataTemplate>
+        <DataTemplate DataType="vmProviders:ModelLibraryViewModel">
+            <providers:ModelLibraryView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:HotkeyTutorialViewModel">
+            <onboarding:HotkeyTutorialView />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <DockPanel>
+        <!-- Footer Buttons -->
+        <Border DockPanel.Dock="Bottom" Padding="16" BorderBrush="{DynamicResource BorderColor}"
+                BorderThickness="0,1,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Classes="Outline" Content="Back"
+                        Command="{Binding PreviousStepCommand}"
+                        IsVisible="{Binding IsBackButtonVisible}" />
+
+                <Button DockPanel.Dock="Right" Classes="Primary" Content="{Binding NextButtonText}"
+                        Command="{Binding NextStepCommand}" CommandParameter="{Binding $parent[Window]}"
+                        IsEnabled="{Binding IsNextButtonEnabled}"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:OnboardingStep.ProviderChoice}}"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Margin="24">
+            <!-- This ContentControl shows the view for steps with their own ViewModel -->
+            <ContentControl Content="{Binding CurrentContentViewModel}"
+                            IsVisible="{Binding CurrentContentViewModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+            <!-- Welcome Step -->
+            <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Welcome}}">
+                <PathIcon Data="{x:Static shadui:Icons.Logo}" Width="48" Height="48" Margin="0, 16" />
+                <TextBlock Classes="h2" Text="Welcome to ProseFlow" />
+                <TextBlock Classes="p Muted" TextWrapping="Wrap"
+                           Text="Your personal AI text processor, available everywhere with a keystroke." />
+            </StackPanel>
+
+            <!-- Provider Choice Step -->
+            <StackPanel Spacing="16" Margin="24"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.ProviderChoice}}">
+                <TextBlock Classes="h3" Text="How do you want to run AI?" TextAlignment="Center" />
+                <TextBlock Classes="p Muted" TextAlignment="Center"
+                           Text="Choose a primary method. You can change this or add more later." />
+
+                <Grid ColumnDefinitions="*, *" ColumnSpacing="16" Margin="0, 16">
+                    <Button Grid.Column="0" Classes="Card" HorizontalAlignment="Stretch"
+                            Command="{Binding ChooseProviderPathCommand}" CommandParameter="Cloud">
+                        <StackPanel Spacing="8" TextBlock.TextAlignment="Center">
+                            <LucideIcon Kind="Cloud" Size="32" HorizontalAlignment="Center" />
+                            <TextBlock Classes="h4" Text="Use the Cloud" />
+                            <TextBlock Classes="Small Muted" TextWrapping="Wrap"
+                                       Text="Connect to services like OpenAI, Groq, or Anthropic." />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Classes="Card" HorizontalAlignment="Stretch"
+                            Command="{Binding ChooseProviderPathCommand}" CommandParameter="Local">
+                        <StackPanel Spacing="8" TextBlock.TextAlignment="Center">
+                            <LucideIcon Kind="Laptop" Size="32" HorizontalAlignment="Center" />
+                            <TextBlock Classes="h4" Text="Use a Local Model" />
+                            <TextBlock Classes="Small Muted" TextWrapping="Wrap"
+                                       Text="Run on your own hardware. Private and offline." />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+
+            <!-- Actions Intro Step -->
+            <StackPanel Spacing="16" Margin="24"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.ActionsIntro}}">
+                <TextBlock Classes="h3" Text="Meet Your Actions" TextAlignment="Center" />
+                <TextBlock Classes="p Muted" TextAlignment="Center"
+                           Text="Actions are reusable AI instructions. We've included a few to get you started." />
+                <ItemsControl Margin="0, 16">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <Border Classes="ListItem" Padding="12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <LucideIcon Kind="SquarePen" Size="18" />
+                            <TextBlock Text="Proofread &amp; Fix Grammar" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="ListItem" Padding="12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <LucideIcon Kind="MessageSquareText" Size="18" />
+                            <TextBlock Text="Summarize Text" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="ListItem" Padding="12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <LucideIcon Kind="Bot" Size="18" />
+                            <TextBlock Text="Rephrase Casually" />
+                        </StackPanel>
+                    </Border>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Graduation Step -->
+            <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Graduation}}">
+                <LucideIcon Kind="PartyPopper" Width="48" Height="48" Margin="0, 16" Classes="Success" />
+                <TextBlock Classes="h2" Text="You're All Set!" />
+                <TextBlock Classes="p Muted" TextWrapping="Wrap"
+                           Text="ProseFlow will now run quietly in your system tray. Use your hotkeys anytime to process text." />
+                <StackPanel Orientation="Horizontal" Margin="0,16" Spacing="8" HorizontalAlignment="Center">
+                    <ToggleSwitch IsChecked="{Binding LaunchAtLogin, Mode=TwoWay}" />
+                    <TextBlock Text="Launch ProseFlow when my computer starts" VerticalAlignment="Center" Margin="0,0,8,0" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</shadui:Window>

@@ -101,13 +101,20 @@
                                     </Border.Styles>
                                     <DockPanel VerticalAlignment="Center">
                                         <!-- Selection Indicator -->
-                                        <TextBlock Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" IsVisible="{Binding IsSelected}" />
+                                        <TextBlock
+                                            Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}"
+                                            FontSize="14" FontWeight="Bold" VerticalAlignment="Center"
+                                            IsVisible="{Binding IsSelected}" />
 
                                         <!-- Expander Icon -->
-                                        <TextBlock DockPanel.Dock="Left" Width="12" IsVisible="{Binding !IsSelected}" Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}" Classes="Small Muted" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock DockPanel.Dock="Left" Width="12" IsVisible="{Binding !IsSelected}"
+                                                   Text="{Binding IsExpanded, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='true|v |> '}"
+                                                   Classes="Small Muted" FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
 
                                         <!-- Group Name -->
-                                        <TextBlock Text="{Binding Name}" Classes="Small Muted" FontWeight="SemiBold" Margin="4,0,0,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Name}" Classes="Small Muted" FontWeight="SemiBold"
+                                                   Margin="4,0,0,0" VerticalAlignment="Center" />
                                     </DockPanel>
                                 </Border>
 
@@ -135,25 +142,40 @@
                                                     <Style Selector="Button.ListItem">
                                                         <Setter Property="Background" Value="Transparent" />
                                                         <Setter Property="BorderThickness" Value="0" />
-                                                        <Setter Property="CornerRadius" Value="{DynamicResource MdCornerRadius}" />
+                                                        <Setter Property="CornerRadius"
+                                                                Value="{DynamicResource MdCornerRadius}" />
                                                     </Style>
                                                     <Style Selector="Button.ListItem.IsSelected">
-                                                        <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                                        <Setter Property="Background"
+                                                                Value="{DynamicResource GhostHoverColor}" />
                                                     </Style>
-                                                    <Style Selector="Button.ListItem:pointerover /template/ ContentPresenter">
-                                                        <Setter Property="Background" Value="{DynamicResource GhostHoverColor}" />
+                                                    <Style
+                                                        Selector="Button.ListItem:pointerover /template/ ContentPresenter">
+                                                        <Setter Property="Background"
+                                                                Value="{DynamicResource GhostHoverColor}" />
                                                     </Style>
                                                 </Button.Styles>
 
                                                 <!-- Action Data -->
-                                                <Grid ColumnDefinitions="Auto, Auto, *, Auto" VerticalAlignment="Center">
-                                                    <TextBlock Text="> " FontSize="20" VerticalAlignment="Center" IsVisible="{Binding IsSelected}" />
+                                                <Grid ColumnDefinitions="Auto, Auto, *, Auto"
+                                                      VerticalAlignment="Center">
+                                                    <TextBlock Text="> " FontSize="20" VerticalAlignment="Center"
+                                                               IsVisible="{Binding IsSelected}" />
                                                     <PathIcon
                                                         Grid.Column="1"
                                                         Width="18"
                                                         Height="18"
                                                         Margin="0,0,12,0"
-                                                        Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}" />
+                                                        Foreground="{x:Null}"
+                                                        Data="{Binding Action.Icon, Converter={StaticResource StringToIconConverter}}">
+                                                        <PathIcon.Styles>
+                                                            <Style Selector="Path">
+                                                                <Setter Property="Stroke"
+                                                                        Value="{DynamicResource PrimaryColor}" />
+                                                                <Setter Property="StrokeThickness" Value="1" />
+                                                            </Style>
+                                                        </PathIcon.Styles>
+                                                    </PathIcon>
 
                                                     <TextBlock
                                                         Grid.Column="2"

@@ -161,6 +161,9 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsOnboardingCompleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("LaunchAtLogin")
                         .HasColumnType("INTEGER");
 
@@ -188,6 +191,7 @@ namespace ProseFlow.Infrastructure.Data.Migrations
                             Id = 1,
                             ActionMenuHotkey = "Ctrl+J",
                             CreatedAtUtc = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsOnboardingCompleted = false,
                             LaunchAtLogin = false,
                             SmartPasteHotkey = "Ctrl+Shift+V",
                             Theme = "System"

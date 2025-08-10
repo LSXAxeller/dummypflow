@@ -7,7 +7,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;

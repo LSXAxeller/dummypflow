@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Lucide.Avalonia;
+using ProseFlow.UI.Utils;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
@@ -42,6 +42,9 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
     [ObservableProperty]
     private LucideIconKind _selectedLucideIcon;
 
+    [ObservableProperty]
+    private string _selectedIcon = string.Empty;
+
     public List<LucideIconKind> LucideIcons { get; } = Enum.GetValues<LucideIconKind>().ToList();
     
     public ObservableCollection<ActionGroup> AvailableGroups { get; } = [];
@@ -59,12 +62,13 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
         // Determine the initial state of the icon selection
         if (Enum.TryParse<LucideIconKind>(Action.Icon, true, out var kind))
         {
-            SelectedLucideIcon = kind;
+            SelectedIcon = kind.ToString();
             SelectedIconTab = 0; // "Built-in" tab
         }
         else
         {
-            SelectedLucideIcon = LucideIconKind.Package;
+            SelectedLucideIcon = LucideIconKind.Workflow;
+            SelectedIcon = Action.Icon;
             SelectedIconTab = 1; // "Custom" tab
         }
     }
@@ -75,18 +79,20 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
         Action.ActionGroupId = value.Id;
     }
 
-    // When the user selects a new icon from the ComboBox, update the Action model.
-    partial void OnSelectedLucideIconChanged(LucideIconKind value)
-    {
-        // Only update if the built-in tab is active
-        if (SelectedIconTab == 0) Action.Icon = value.ToString();
+    partial void OnSelectedIconChanged(string value)
+    { 
+        Action.Icon = value;
     }
 
+    partial void OnSelectedLucideIconChanged(LucideIconKind value)
+    {
+        Action.Icon = value.ToString();
+    }
+    
     // When the user switches tabs, ensure the Action model reflects the right source.
     partial void OnSelectedIconTabChanged(int value)
     {
-        if (value == 0) // Switched to "Built-in"
-            Action.Icon = SelectedLucideIcon.ToString();
+        Action.Icon = value == 0 ? SelectedLucideIcon.ToString() : SelectedIcon;
     }
 
     [RelayCommand]
