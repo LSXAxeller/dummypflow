@@ -143,7 +143,7 @@ public partial class OnboardingViewModel(
     }
     
     [RelayCommand]
-    public void ChooseProviderPath(string path)
+    private void ChooseProviderPath(string path)
     {
         UpdateStep(path == "Cloud" ? OnboardingStep.CloudSetup : OnboardingStep.LocalSetup);
     }

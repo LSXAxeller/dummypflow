@@ -24,13 +24,17 @@ public class ModelCatalogService(ILogger<ModelCatalogService> logger) : IModelCa
             logger.LogInformation("Fetching model catalog from {Url}", Constants.ManifestUrl);
             var json = await _httpClient.GetStringAsync(Constants.ManifestUrl);
             var models = JsonSerializer.Deserialize<List<ModelCatalogEntry>>(json, _jsonSerializerOptions);
-            
+
             if (models is not null)
             {
                 _cachedModels = models;
                 _lastFetchTime = DateTime.UtcNow;
                 return models;
             }
+        }
+        catch (HttpRequestException)
+        {
+            logger.LogError("Failed to fetch model catalog, Check your internet connection.");
         }
         catch (Exception ex)
         {

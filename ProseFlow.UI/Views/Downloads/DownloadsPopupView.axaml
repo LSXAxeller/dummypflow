@@ -57,6 +57,9 @@
                                         <!-- Completed Icon -->
                                         <LucideIcon Kind="CircleCheck" Size="24" Classes="Success"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Completed}}" />
+                                        <!-- Canceled Icon -->
+                                        <LucideIcon Kind="CircleX" Size="24" Classes="Destructive"
+                                                    IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Canceled}}" />
                                         <!-- Failed Icon -->
                                         <LucideIcon Kind="TriangleAlert" Size="24" Classes="Destructive"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Failed}}" />
@@ -73,13 +76,13 @@
                                         </TextBlock>
                                         
                                         <!-- File Name -->
-                                        <TextBlock Text="{Binding Task.FileName}" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Task.Quantization.FileName}" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
                                     </DockPanel>
 
                                     <!-- Progress Bar and Progress Text -->
                                     <Panel Grid.Column="1" Grid.Row="1">
                                         <!-- Progress Bar -->
-                                        <ProgressBar Value="{Binding Task.ProgressPercentage}" Height="20" CornerRadius="10"
+                                        <ProgressBar Value="{Binding Task.ProgressPercentage}" Height="20" CornerRadius="16"
                                                      IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Downloading}}"/>
                                         
                                         <!-- Progress Text -->

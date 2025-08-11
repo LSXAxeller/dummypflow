@@ -12,13 +12,13 @@
                x:DataType="vm:OnboardingViewModel"
                SizeToContent="Height"
                Width="800" Height="600"
+               WindowState="FullScreen"
                WindowStartupLocation="CenterScreen"
                CanResize="False"
                ShowInTaskbar="False"
                Title="Welcome to ProseFlow">
 
     <Window.DataTemplates>
-        <!-- These templates are now correctly used by the ContentControl for ViewModel-driven steps -->
         <DataTemplate DataType="vm:CloudOnboardingViewModel">
             <onboarding:CloudOnboardingView />
         </DataTemplate>
@@ -39,7 +39,7 @@
                         Command="{Binding PreviousStepCommand}"
                         IsVisible="{Binding IsBackButtonVisible}" />
 
-                <Button DockPanel.Dock="Right" Classes="Primary" Content="{Binding NextButtonText}"
+                <Button DockPanel.Dock="Right" Classes="Primary" Content="{Binding NextButtonText}" Margin="8,0"
                         Command="{Binding NextStepCommand}" CommandParameter="{Binding $parent[Window]}"
                         IsEnabled="{Binding IsNextButtonEnabled}"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:OnboardingStep.ProviderChoice}}"/>
@@ -47,11 +47,10 @@
         </Border>
 
         <!-- Main Content Area -->
-        <Grid Margin="24">
-            <!-- This ContentControl shows the view for steps with their own ViewModel -->
+        <Grid Margin="24" VerticalAlignment="Center">
             <ContentControl Content="{Binding CurrentContentViewModel}"
                             IsVisible="{Binding CurrentContentViewModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
-
+            
             <!-- Welcome Step -->
             <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Welcome}}">
@@ -59,6 +58,9 @@
                 <TextBlock Classes="h2" Text="Welcome to ProseFlow" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="Your personal AI text processor, available everywhere with a keystroke." />
+                
+                <Button Classes="Outline" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                        Content="Experienced? Skip" Click="Button_SkipOnboard" />
             </StackPanel>
 
             <!-- Provider Choice Step -->

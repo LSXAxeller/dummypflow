@@ -23,7 +23,7 @@ public class DownloadManager(
     {
         var destinationPath = Path.Combine(localModelService.GetManagedModelsDirectory(), quantization.FileName);
 
-        if (File.Exists(destinationPath) || AllDownloads.Any(d => d.DestinationPath == destinationPath))
+        if (File.Exists(destinationPath) || AllDownloads.Any(d => d.DestinationPath == destinationPath && d.Status is DownloadStatus.Downloading or DownloadStatus.Queued or DownloadStatus.Paused))
         {
             logger.LogInformation("Download for {FileName} already exists or is in progress.", quantization.FileName);
             return;
@@ -31,8 +31,8 @@ public class DownloadManager(
 
         var task = new DownloadTask
         {
-            FileName = quantization.FileName,
-            DownloadUrl = quantization.Url,
+            Model = model,
+            Quantization = quantization,
             DestinationPath = destinationPath,
             Status = DownloadStatus.Queued
         };
@@ -43,14 +43,14 @@ public class DownloadManager(
         try
         {
             task.Status = DownloadStatus.Downloading;
-            logger.LogInformation("Starting download for {FileName} from {Url}", task.FileName, task.DownloadUrl);
+            logger.LogInformation("Starting download for {FileName} from {Url}", task.Quantization.FileName, task.Quantization.Url);
 
             var stopwatch = Stopwatch.StartNew();
             long lastBytesDownloaded = 0;
             var lastUpdateTime = stopwatch.Elapsed;
             const int speedUpdateIntervalMs = 500;
 
-            using var response = await _httpClient.GetAsync(task.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, task.Cts.Token);
+            using var response = await _httpClient.GetAsync(task.Quantization.Url, HttpCompletionOption.ResponseHeadersRead, task.Cts.Token);
             response.EnsureSuccessStatusCode();
 
             task.TotalBytes = response.Content.Headers.ContentLength ?? 0;
@@ -64,7 +64,6 @@ public class DownloadManager(
             {
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), task.Cts.Token);
                 task.BytesDownloaded += bytesRead;
-                task.ProgressPercentage = task.TotalBytes > 0 ? (double)task.BytesDownloaded / task.TotalBytes * 100 : 0;
 
                 // Speed Calculation
                 var currentTime = stopwatch.Elapsed;
@@ -81,6 +80,7 @@ public class DownloadManager(
                     // Reset for the next interval
                     lastBytesDownloaded = task.BytesDownloaded;
                     lastUpdateTime = currentTime;
+                    task.ProgressPercentage = task.TotalBytes > 0 ? (double)task.BytesDownloaded / task.TotalBytes * 100 : 0;
                 }
             }
             
@@ -88,7 +88,7 @@ public class DownloadManager(
             task.Speed = 0;
 
             task.Status = DownloadStatus.Completed;
-            logger.LogInformation("Successfully downloaded {FileName}", task.FileName);
+            logger.LogInformation("Successfully downloaded {FileName}", task.Quantization.FileName);
             
             // Create a record in the database for the new managed model.
             await localModelService.CreateManagedModelFromDownloadAsync(model, task.DestinationPath);
@@ -96,14 +96,14 @@ public class DownloadManager(
         catch (OperationCanceledException)
         {
             task.Status = DownloadStatus.Canceled;
-            logger.LogInformation("Download canceled for {FileName}", task.FileName);
+            logger.LogInformation("Download canceled for {FileName}", task.Quantization.FileName);
             CleanupFailedDownload(task);
         }
         catch (Exception ex)
         {
             task.Status = DownloadStatus.Failed;
             task.ErrorMessage = ex.Message;
-            logger.LogError(ex, "Download failed for {FileName}", task.FileName);
+            logger.LogError(ex, "Download failed for {FileName}", task.Quantization.FileName);
             CleanupFailedDownload(task);
         }
         finally
@@ -117,13 +117,13 @@ public class DownloadManager(
         task.Cts.Cancel();
     }
 
-    public async void RetryDownload(DownloadTask task)
+    public void RetryDownload(DownloadTask task)
     {
-        var originalModel = new ModelCatalogEntry { Name = task.FileName, Id = "unknown", Creator = "Unknown", Description = "", Quantizations = [] }; 
-        var originalQuant = new ModelQuantization { FileName = task.FileName, Url = task.DownloadUrl, Id = "unknown", Name = "Unknown" };
+        var originalModel = task.Model;
+        var originalQuant = task.Quantization;
 
         AllDownloads.Remove(task);
-        await StartDownloadAsync(originalModel, originalQuant);
+        _ = StartDownloadAsync(originalModel, originalQuant);
     }
     
     public void ClearDownload(DownloadTask task)
@@ -142,7 +142,6 @@ public class DownloadManager(
 
     private void CleanupFailedDownload(DownloadTask task)
     {
-        AllDownloads.Remove(task);
         if (File.Exists(task.DestinationPath))
             try
             {

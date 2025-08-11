@@ -139,18 +139,8 @@ public class App : Avalonia.Application
                 _ => ThemeVariant.Default
             };
 
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = Services.GetRequiredService<MainViewModel>()
-            };
+            desktop.MainWindow = new MainWindow();
             desktop.MainWindow.Show();
-
-            // Handle the closing event to hide the window instead of closing
-            desktop.MainWindow.Closing += (_, e) =>
-            {
-                e.Cancel = true;
-                desktop.MainWindow.Hide();
-            };
             
             // Onboarding process for new users
             if (!generalSettings.IsOnboardingCompleted)
@@ -159,7 +149,6 @@ public class App : Avalonia.Application
                 var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
 
                 var completedSuccessfully = await onboardingWindow.ShowDialog<bool>(desktop.MainWindow);
-
                 if (completedSuccessfully)
                 {
                     // Save all settings gathered during onboarding
@@ -177,6 +166,16 @@ public class App : Avalonia.Application
                     return;
                 }
             }
+
+            // If onboarding completed, assign the view model
+            desktop.MainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
+            
+            // Handle the closing event to hide the window instead of closing
+            desktop.MainWindow.Closing += (_, e) =>
+            {
+                e.Cancel = true;
+                desktop.MainWindow.Hide();
+            };
 
             // Create and set up the system tray icon
             _trayIcon = CreateTrayIcon();

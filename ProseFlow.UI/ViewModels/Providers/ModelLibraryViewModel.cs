@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ProseFlow.Application.DTOs.Models;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
@@ -36,35 +39,34 @@ public partial class ModelLibraryViewModel(
 
     public override async Task OnNavigatedToAsync()
     {
-        localModelService.ModelsChanged += OnModelsChanged;
-        downloadManager.DownloadsChanged += OnDownloadsChanged;
+        localModelService.ModelsChanged += OnLocalOrDownloadsChanged;
+        downloadManager.DownloadsChanged += OnLocalOrDownloadsChanged;
         
-        await LoadLocalModelsAsync();
         await LoadAvailableModelsAsync();
+        await LoadLocalModelsAsync();
+        SyncStates();
     }
 
-    // Onboarding related event
-    private void OnDownloadsChanged()
-    {
-        // When a download completes, the model library changes.
-        var completedDownload = downloadManager.AllDownloads.FirstOrDefault(d => d.Status == Application.DTOs.Models.DownloadStatus.Completed);
-        if (completedDownload is not null)
-        {
-            // This event will trigger OnModelsChanged, which handles the refresh.
-        }
-    }
-
-    private async void OnModelsChanged()
+    private async void OnLocalOrDownloadsChanged()
     {
         await LoadLocalModelsAsync();
+        SyncStates();
     }
-
+    
     private async Task LoadAvailableModelsAsync()
     {
         IsLoading = true;
+        
+        foreach (var vm in AvailableModels) vm.Dispose();
         AvailableModels.Clear();
+
         var catalog = await catalogService.GetAvailableModelsAsync();
-        foreach (var entry in catalog) AvailableModels.Add(new AvailableModelViewModel(entry, downloadManager));
+        foreach (var entry in catalog)
+        {
+            var vm = new AvailableModelViewModel(entry, downloadManager, () => SelectedTabIndex = 1);
+            AvailableModels.Add(vm);
+        }
+        
         IsLoading = false;
     }
 
@@ -80,26 +82,43 @@ public partial class ModelLibraryViewModel(
             LocalModels.Add(vm);
         }
         
-        // Find the newly downloaded model if applicable
-        var recentlyCompleted = downloadManager.AllDownloads
-            .FirstOrDefault(d => d.Status == Application.DTOs.Models.DownloadStatus.Completed);
-
-        var modelToSelect = LocalModels.FirstOrDefault(m => m.Model.FilePath == recentlyCompleted?.DestinationPath) 
-                            ?? LocalModels.FirstOrDefault(m => m.Model.FilePath == settings.LocalModelPath);
-
-        if (modelToSelect != null)
-        {
-            await SelectLocalModelAsync(modelToSelect);
-            
-            // If in onboarding, automatically switch to the "My Models" tab after a download.
-            if (IsOnboardingMode && recentlyCompleted != null)
-            {
-                SelectedTabIndex = 1;
-            }
-        }
+        var modelToSelect = LocalModels.FirstOrDefault(m => m.Model.FilePath == settings.LocalModelPath);
+        if (modelToSelect != null) await SelectLocalModelAsync(modelToSelect);
     }
     
-    // Onboarding related event
+    /// <summary>
+    /// This is the core synchronization logic.
+    /// It ensures the state of each "Available" card reflects reality.
+    /// </summary>
+    private void SyncStates()
+    {
+        var localModelPaths = new HashSet<string>(LocalModels.Select(m => m.Model.FilePath));
+
+        foreach (var availableVm in AvailableModels)
+        {
+            availableVm.ActiveDownloadTask = null;
+
+            // Check if any quantization of this model is already installed
+            var isInstalled = availableVm.Model.Quantizations
+                .Any(q => localModelPaths.Contains(localModelService.GetManagedModelsDirectory() + Path.DirectorySeparatorChar + q.FileName));
+            
+            if (isInstalled)
+            {
+                availableVm.CurrentState = DownloadCardState.Installed;
+                continue;
+            }
+
+            // Check if any quantization of this model is currently being downloaded
+            var activeTask = downloadManager.AllDownloads
+                .FirstOrDefault(t => t.Model.Id == availableVm.Model.Id && t.Status is DownloadStatus.Downloading or DownloadStatus.Queued or DownloadStatus.Paused);
+
+            if (activeTask is not null)
+                availableVm.ActiveDownloadTask = activeTask; // Link the live task to the view model
+            else
+                availableVm.CurrentState = DownloadCardState.NotDownloaded; // If not installed and not downloading, it's available
+        }
+    }
+
     partial void OnSelectedModelChanged(LocalModelViewModel? value)
     {
         OnPropertyChanged(nameof(IsAModelSelected));
@@ -152,8 +171,9 @@ public partial class ModelLibraryViewModel(
 
     public void OnClosing()
     {
-        localModelService.ModelsChanged -= OnModelsChanged;
-        downloadManager.DownloadsChanged -= OnDownloadsChanged;
+        localModelService.ModelsChanged -= OnLocalOrDownloadsChanged;
+        downloadManager.DownloadsChanged -= OnLocalOrDownloadsChanged;
+        foreach (var vm in AvailableModels) vm.Dispose();
     }
 
     public void Dispose()

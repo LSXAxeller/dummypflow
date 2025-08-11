@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using ProseFlow.Core.Models;
 
 namespace ProseFlow.Application.DTOs.Models;
 
@@ -10,8 +11,8 @@ public enum DownloadStatus { Queued, Downloading, Paused, Canceled, Failed, Comp
 /// </summary>
 public class DownloadTask : INotifyPropertyChanged
 {
-    public required string FileName { get; init; }
-    public required string DownloadUrl { get; init; }
+    public required ModelCatalogEntry Model { get; init; }
+    public required ModelQuantization Quantization { get; init; }
     public required string DestinationPath { get; init; }
     
     private DownloadStatus _status;
