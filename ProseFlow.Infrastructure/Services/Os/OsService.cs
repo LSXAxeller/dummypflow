@@ -34,8 +34,8 @@ namespace ProseFlow.Infrastructure.Services.Os;
 /// </summary>
 public sealed class OsService : IOsService
 {
-    private readonly IGlobalHook _hook = new TaskPoolGlobalHook();
-    private readonly IEventSimulator _simulator = new EventSimulator();
+    private readonly TaskPoolGlobalHook _hook = new();
+    private readonly EventSimulator _simulator = new();
 
     private (KeyCode key, EventMask modifiers) _actionMenuCombination;
     private (KeyCode key, EventMask modifiers) _smartPasteCombination;
@@ -70,9 +70,7 @@ public sealed class OsService : IOsService
             normalizedModifiers |= EventMask.Alt;
         if (rawModifiers.HasFlag(EventMask.LeftMeta) || rawModifiers.HasFlag(EventMask.RightMeta))
             normalizedModifiers |= EventMask.Meta;
-
-        // Now compare the normalized modifiers with the parsed configuration.
-
+        
         // Check for Action Menu Hotkey
         if (currentKey == _actionMenuCombination.key && normalizedModifiers == _actionMenuCombination.modifiers)
             ActionMenuHotkeyPressed?.Invoke();
@@ -90,9 +88,8 @@ public sealed class OsService : IOsService
         await ClipboardService.SetTextAsync(string.Empty);
 
         await SimulateCopyKeyPressAsync();
-
-        // Give the OS and target application a moment to process the copy command.
-        // 150ms is a reasonable starting point.
+        
+        // Give the OS a moment to process the copy
         await Task.Delay(150);
 
         var selectedText = await ClipboardService.GetTextAsync();
@@ -178,7 +175,6 @@ public sealed class OsService : IOsService
         var parts = hotkey.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (var part in parts)
-            // Use a case-insensitive switch for better readability and to handle modifiers.
             switch (part.ToUpperInvariant())
             {
                 case "CTRL":
@@ -196,10 +192,7 @@ public sealed class OsService : IOsService
                     modifiers |= EventMask.Meta;
                     break;
                 default:
-                    // The last non-modifier part is assumed to be the key.
-                    // SharpHook uses "Vc" prefix for keycodes (e.g., VcJ for 'J').
                     if (!Enum.TryParse($"Vc{part}", true, out key)) key = KeyCode.VcUndefined;
-
                     break;
             }
 
@@ -235,7 +228,7 @@ public sealed class OsService : IOsService
 
 #if LINUX
     /// <summary>
-    /// Gets the active window's title on Linux using X11.
+    /// Gets the active window's process on Linux using X11.
     /// </summary>
     private string GetActiveWindowProcessName_Linux()
     {

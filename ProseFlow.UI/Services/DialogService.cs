@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using ProseFlow.Application.DTOs;
 using ProseFlow.Application.DTOs.Models;
 using ProseFlow.Application.Services;
 using ProseFlow.UI.Models;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Dialogs;
+using ProseFlow.UI.ViewModels.Downloads;
 using ProseFlow.UI.ViewModels.Providers;
 using ProseFlow.UI.Views.Actions;
 using ProseFlow.UI.Views.Dialogs;
+using ProseFlow.UI.Views.Downloads;
 using ShadUI;
 using Action = ProseFlow.Core.Models.Action;
 using Window = Avalonia.Controls.Window;
@@ -133,6 +137,9 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return tcs.Task;
     }
     
+    /// <summary>
+    /// Shows a model library dialog with the given model library view model.
+    /// </summary>
     public Task ShowModelLibraryDialogAsync()
     {
         var tcs = new TaskCompletionSource();
@@ -154,6 +161,17 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         return tcs.Task;
     }
     
+    public void ShowDownloadsDialog()
+    {
+        var dialogManager = serviceProvider.GetRequiredService<DialogManager>();
+        var downloadsViewModel = serviceProvider.GetRequiredService<DownloadsPopupViewModel>();
+        dialogManager
+            .CreateDialog(downloadsViewModel)
+            .Dismissible()
+            .WithMinWidth(600)
+            .Show();
+    }
+    
     public async Task<CustomModelImportData?> ShowImportModelDialogAsync()
     {
         var mainWindow = GetWindow();
@@ -164,5 +182,19 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         
         _ = importWindow.ShowDialog(mainWindow);
         return await importViewModel.CompletionSource.Task;
+    }
+
+    public async Task<List<ActionConflict>?> ShowConflictResolutionDialogAsync(List<ActionConflict> conflicts)
+    {
+        var mainWindow = GetWindow();
+        if (mainWindow is null) return null;
+
+        var vm = serviceProvider.GetRequiredService<ConflictResolutionViewModel>();
+        vm.Initialize(conflicts);
+
+        var dialog = new ConflictResolutionDialog { DataContext = vm };
+        
+        _ = dialog.ShowDialog(mainWindow);
+        return await vm.CompletionSource.Task;
     }
 }

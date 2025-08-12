@@ -6,7 +6,7 @@ namespace ProseFlow.Core.Interfaces;
 /// <summary>
 /// Defines the contract for an AI provider that can generate text-based responses.
 /// </summary>
-public interface IAiProvider
+public interface IAiProvider : IDisposable
 {
     /// <summary>
     /// Gets the unique name of the provider (e.g., "Cloud", "Local").

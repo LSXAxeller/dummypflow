@@ -147,4 +147,9 @@ public class CloudProvider(
             _ => throw new ArgumentOutOfRangeException(nameof(providerType), $"Unsupported provider type: {providerType}")
         };
     }
+    
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 }

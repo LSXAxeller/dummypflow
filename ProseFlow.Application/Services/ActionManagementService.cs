@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Application.DTOs;
+using ProseFlow.Application.Events;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
@@ -195,63 +196,140 @@ public class ActionManagementService(IServiceScopeFactory scopeFactory, ILogger<
     public async Task ImportActionsFromJsonAsync(string filePath)
     {
         var json = await File.ReadAllTextAsync(filePath);
-        var importedData = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, ActionDto>>>(json);
+        var importedGroups = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, ActionDto>>>(json);
 
-        if (importedData is null) return;
+        if (importedGroups is null)
+        {
+            AppEvents.RequestNotification("Invalid or empty import file.", NotificationType.Error);
+            return;
+        }
 
         // Use a single UnitOfWork for the entire import operation for performance and transactional integrity.
         using var scope = scopeFactory.CreateScope();
         await using var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
+        var existingActions = await unitOfWork.Actions.GetAllAsync();
+        var existingActionNames = new HashSet<string>(existingActions.Select(a => a.Name), StringComparer.OrdinalIgnoreCase);
+
+        var conflicts = new List<ActionConflict>();
+        var nonConflicts = new List<(string GroupName, string ActionName, ActionDto Dto)>();
+
+        // Detect Conflicts
+        foreach (var (groupName, actions) in importedGroups)
+        foreach (var (actionName, dto) in actions)
+        {
+            var existingAction = existingActions.FirstOrDefault(a => a.Name.Equals(actionName, StringComparison.OrdinalIgnoreCase));
+            if (existingAction is not null)
+                conflicts.Add(new ActionConflict(existingAction, dto));
+            else
+                nonConflicts.Add((groupName, actionName, dto));
+        }
+
+        // Request User Resolution for Conflicts
+        List<ActionConflict>? resolvedConflicts = null;
+        if (conflicts.Count > 0)
+        {
+            resolvedConflicts = await AppEvents.RequestConflictResolutionAsync(conflicts);
+            if (resolvedConflicts is null)
+            {
+                AppEvents.RequestNotification("Import canceled by user.", NotificationType.Info);
+                return; // User canceled the dialog
+            }
+        }
+
+        // Apply changes in a single transaction
         var existingGroups = await unitOfWork.ActionGroups.GetAllAsync();
-        var allExistingActions = await unitOfWork.Actions.GetAllAsync();
         var maxActionSortOrder = await unitOfWork.Actions.GetMaxSortOrderAsync();
         var maxGroupSortOrder = await unitOfWork.ActionGroups.GetMaxSortOrderAsync();
-
-        foreach (var (groupName, actions) in importedData)
+        
+        // Process resolved conflicts
+        if (resolvedConflicts is not null)
         {
-            // Find or create the group
-            var group = existingGroups.FirstOrDefault(g =>
-                g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
-            if (group is null)
+            foreach (var conflict in resolvedConflicts)
             {
-                maxGroupSortOrder++;
-                group = new ActionGroup { Name = groupName, SortOrder = maxGroupSortOrder };
-                await unitOfWork.ActionGroups.AddAsync(group);
-                existingGroups.Add(group); // Add to local list for subsequent checks within this transaction
-            }
-
-            foreach (var (actionName, dto) in actions)
-            {
-                // Skip if an action with this name already exists anywhere
-                if (allExistingActions.Any(a => a.Name.Equals(actionName, StringComparison.OrdinalIgnoreCase))) continue;
-
-                maxActionSortOrder++;
-                var newAction = new Action
+                switch (conflict.Resolution)
                 {
-                    Name = actionName,
-                    Prefix = dto.Prefix,
-                    Instruction = dto.Instruction,
-                    Icon = dto.Icon,
-                    OpenInWindow = dto.OpenInWindow,
-                    ExplainChanges = dto.ExplainChanges,
-                    ApplicationContext = dto.ApplicationContext,
-                    ActionGroup = group, // Use navigation property; EF handles the ID
-                    SortOrder = maxActionSortOrder
-                };
-
-                await unitOfWork.Actions.AddAsync(newAction);
+                    case ConflictResolutionType.Skip:
+                        continue; // Do nothing
+                    
+                    case ConflictResolutionType.Overwrite:
+                        var actionToUpdate = await unitOfWork.Actions.GetByIdAsync(conflict.ExistingAction.Id) ?? throw new InvalidOperationException("Action to overwrite not found during import.");
+                        actionToUpdate.Prefix = conflict.ImportedActionDto.Prefix;
+                        actionToUpdate.Instruction = conflict.ImportedActionDto.Instruction;
+                        actionToUpdate.Icon = conflict.ImportedActionDto.Icon;
+                        actionToUpdate.OpenInWindow = conflict.ImportedActionDto.OpenInWindow;
+                        actionToUpdate.ExplainChanges = conflict.ImportedActionDto.ExplainChanges;
+                        actionToUpdate.ApplicationContext = conflict.ImportedActionDto.ApplicationContext;
+                        unitOfWork.Actions.Update(actionToUpdate);
+                        break;
+                        
+                    case ConflictResolutionType.Rename:
+                        var newName = GetUniqueActionName(conflict.ExistingAction.Name, existingActionNames);
+                        existingActionNames.Add(newName); // Add to the set to handle multiple renames of the same original name
+                        var groupName = importedGroups.FirstOrDefault(g => g.Value.ContainsKey(conflict.ExistingAction.Name)).Key;
+                        await CreateNewActionAsync(unitOfWork, newName, groupName, conflict.ImportedActionDto, existingGroups, ++maxActionSortOrder, ++maxGroupSortOrder);
+                        break;
+                }
             }
         }
         
-        // Commit all changes in a single transaction.
+        // Process non-conflicting actions
+        foreach (var (groupName, actionName, dto) in nonConflicts)
+        {
+            await CreateNewActionAsync(unitOfWork, actionName, groupName, dto, existingGroups, ++maxActionSortOrder, ++maxGroupSortOrder);
+        }
+
         await unitOfWork.SaveChangesAsync();
+        AppEvents.RequestNotification("Actions imported successfully.", NotificationType.Success);
     }
 
     #endregion
-
+    
     #region Private Helpers
 
+    private static string GetUniqueActionName(string originalName, ICollection<string> existingNames)
+    {
+        var newName = originalName;
+        var suffix = 1;
+        while (existingNames.Contains(newName, StringComparer.OrdinalIgnoreCase))
+        {
+            newName = $"{originalName} ({suffix++})";
+        }
+        return newName;
+    }
+
+    private static async Task CreateNewActionAsync(IUnitOfWork unitOfWork, string actionName, string? groupName, ActionDto dto, ICollection<ActionGroup> existingGroups, int actionSortOrder, int groupSortOrder)
+    {
+        if (string.IsNullOrWhiteSpace(groupName))
+        {
+            groupName = "General"; // Fallback to default group if group name is missing
+        }
+
+        var group = existingGroups.FirstOrDefault(g => g.Name.Equals(groupName, StringComparison.OrdinalIgnoreCase));
+        if (group is null)
+        {
+            group = new ActionGroup { Name = groupName, SortOrder = groupSortOrder };
+            await unitOfWork.ActionGroups.AddAsync(group);
+            existingGroups.Add(group);
+        }
+
+        var newAction = new Action
+        {
+            Name = actionName,
+            Prefix = dto.Prefix,
+            Instruction = dto.Instruction,
+            Icon = dto.Icon,
+            OpenInWindow = dto.OpenInWindow,
+            ExplainChanges = dto.ExplainChanges,
+            ApplicationContext = dto.ApplicationContext,
+            ActionGroupId = group.Id,
+            ActionGroup = group,
+            SortOrder = actionSortOrder
+        };
+
+        await unitOfWork.Actions.AddAsync(newAction);
+    }
+    
     /// <summary>
     /// Creates a UoW scope, executes a command, and saves changes.
     /// </summary>

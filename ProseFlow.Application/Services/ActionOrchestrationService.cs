@@ -306,6 +306,10 @@ public class ActionOrchestrationService : IDisposable
     public void Dispose()
     {
         _osService.Dispose();
+        foreach (var provider in _providers.Values)
+        {
+            provider.Dispose();
+        }
         GC.SuppressFinalize(this);
     }
     

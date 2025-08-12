@@ -22,130 +22,148 @@ public class LocalProvider(
     ILocalSessionService sessionService,
     IUnitOfWork unitOfWork) : IAiProvider
 {
+    // A semaphore to ensure that only one thread can execute an inference call at a time.
+    // The BatchedExecutor itself is not thread-safe for concurrent calls to Infer().
+    private readonly SemaphoreSlim _inferenceLock = new(1, 1);
+    
     public string Name => "Local";
     public ProviderType Type => ProviderType.Local;
 
     public async Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
     {
-        var settings = await unitOfWork.Settings.GetProviderSettingsAsync()
-                       ?? throw new InvalidOperationException("Provider settings not found in the database.");
-
-        if (!modelManager.IsLoaded || modelManager.Executor is null)
-            await modelManager.LoadModelAsync(settings);
-
-        if (!modelManager.IsLoaded || modelManager.Executor is null)
-        {
-            var errorMessage = $"Local model is not loaded. Status: {modelManager.Status}. Error: {modelManager.ErrorMessage}";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
-        }
-
-        var executor = modelManager.Executor;
-        
-        // Determine if we are using a persistent session or creating a temporary one.
-        Conversation? conversation;
-        bool isTemporarySession;
-
-        if (sessionId.HasValue && sessionService is LocalSessionService localSessionService)
-        {
-            conversation = localSessionService.GetSession(sessionId.Value);
-            isTemporarySession = false;
-        }
-        else
-        {
-            conversation = executor.Create();
-            isTemporarySession = true;
-        }
-        
-        if (conversation is null)
-            throw new InvalidOperationException($"Could not find or create a local conversation session (ID: {sessionId}).");
-        
+        // Wait for any ongoing inference to complete before proceeding.
+        await _inferenceLock.WaitAsync(cancellationToken);
         try
         {
-            // Format the prompt
-            var formattedPrompt = BuildPrompt(messages, executor.Model, conversation.TokenCount == 0, settings);
-            
-            // Prompt the model
-            var promptTokens = executor.Context.Tokenize(formattedPrompt);
-            conversation.Prompt(promptTokens);
+            var settings = await unitOfWork.Settings.GetProviderSettingsAsync()
+                           ?? throw new InvalidOperationException("Provider settings not found in the database.");
 
-            var promptTokenCount = promptTokens.Length;
-            long completionTokenCount = 0;
-            
-            // Perform the inference loop
-            var responseBuilder = new StringBuilder();
-            var sampler = new DefaultSamplingPipeline { Temperature = settings.LocalModelTemperature };
-            var decoder = new StreamingTokenDecoder(executor.Context);
-            var stopwatch = new Stopwatch();
-            
-            // Periodic TPS measurement
-            var tpsMeasurements = new List<double>();
-            const double measurementIntervalSeconds = 1.0;
-            var lastMeasurementTime = TimeSpan.Zero;
-            long lastMeasurementTokens = 0;
+            if (!modelManager.IsLoaded || modelManager.Executor is null)
+                await modelManager.LoadModelAsync(settings);
 
-            var maxTokensToGenerate = settings.LocalModelMaxTokens;
-            
-            stopwatch.Start();
-            for (var i = 0; i < maxTokensToGenerate; i++)
+            if (!modelManager.IsLoaded || modelManager.Executor is null)
             {
-                if (cancellationToken.IsCancellationRequested) break;
-
-                await executor.Infer(cancellationToken);
-
-                if (!conversation.RequiresSampling) continue;
-                
-                var token = sampler.Sample(executor.Context.NativeHandle, conversation.GetSampleIndex());
-                completionTokenCount++;
-                if (token.IsEndOfGeneration(executor.Model.NativeHandle)) break;
-                
-                decoder.Add(token);
-                responseBuilder.Append(decoder.Read());
-                
-                conversation.Prompt(token);
-                
-                var elapsed = stopwatch.Elapsed;
-                if ((elapsed - lastMeasurementTime).TotalSeconds >= measurementIntervalSeconds)
-                {
-                    var timeDelta = (elapsed - lastMeasurementTime).TotalSeconds;
-                    var tokenDelta = completionTokenCount - lastMeasurementTokens;
-
-                    if (timeDelta > 0)
-                    {
-                        var intervalTps = tokenDelta / timeDelta;
-                        tpsMeasurements.Add(intervalTps);
-                    }
-
-                    lastMeasurementTime = elapsed;
-                    lastMeasurementTokens = completionTokenCount;
-                }
+                var errorMessage =
+                    $"Local model is not loaded. Status: {modelManager.Status}. Error: {modelManager.ErrorMessage}";
+                logger.LogError(errorMessage);
+                throw new InvalidOperationException(errorMessage);
             }
-            stopwatch.Stop();
 
-            var averageTps = tpsMeasurements.Count != 0 ? tpsMeasurements.Average() : completionTokenCount > 0 && stopwatch.Elapsed.TotalSeconds > 0
-                ? completionTokenCount / stopwatch.Elapsed.TotalSeconds
-                : 0;
+            var executor = modelManager.Executor;
 
-            logger.LogInformation(
-                "Local inference completed. Generated {CompletionTokens} tokens in {ElapsedMilliseconds} ms. Average TPS: {TokensPerSecond:F2}",
-                completionTokenCount, stopwatch.ElapsedMilliseconds, averageTps);
+            // Determine if we are using a persistent session or creating a temporary one.
+            Conversation? conversation;
+            bool isTemporarySession;
 
-            return new AiResponse(
-                responseBuilder.ToString().Trim(), 
-                promptTokenCount, 
-                completionTokenCount, 
-                Path.GetFileNameWithoutExtension(settings.LocalModelPath),
-                averageTps);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Local inference failed.");
-            throw;
+            if (sessionId.HasValue && sessionService is LocalSessionService localSessionService)
+            {
+                conversation = localSessionService.GetSession(sessionId.Value);
+                isTemporarySession = false;
+            }
+            else
+            {
+                conversation = executor.Create();
+                isTemporarySession = true;
+            }
+
+            if (conversation is null)
+                throw new InvalidOperationException(
+                    $"Could not find or create a local conversation session (ID: {sessionId}).");
+
+            try
+            {
+                // Format the prompt
+                var formattedPrompt = BuildPrompt(messages, executor.Model, conversation.TokenCount == 0, settings);
+
+                // Prompt the model
+                var promptTokens = executor.Context.Tokenize(formattedPrompt);
+                conversation.Prompt(promptTokens);
+
+                var promptTokenCount = promptTokens.Length;
+                long completionTokenCount = 0;
+
+                // Perform the inference loop
+                var responseBuilder = new StringBuilder();
+                var sampler = new DefaultSamplingPipeline { Temperature = settings.LocalModelTemperature };
+                var decoder = new StreamingTokenDecoder(executor.Context);
+                var stopwatch = new Stopwatch();
+
+                // Periodic TPS measurement
+                var tpsMeasurements = new List<double>();
+                const double measurementIntervalSeconds = 1.0;
+                var lastMeasurementTime = TimeSpan.Zero;
+                long lastMeasurementTokens = 0;
+
+                var maxTokensToGenerate = settings.LocalModelMaxTokens;
+
+                stopwatch.Start();
+                for (var i = 0; i < maxTokensToGenerate; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested) break;
+
+                    await executor.Infer(cancellationToken);
+
+                    if (!conversation.RequiresSampling) continue;
+
+                    var token = sampler.Sample(executor.Context.NativeHandle, conversation.GetSampleIndex());
+                    completionTokenCount++;
+                    if (token.IsEndOfGeneration(executor.Model.NativeHandle)) break;
+
+                    decoder.Add(token);
+                    responseBuilder.Append(decoder.Read());
+
+                    conversation.Prompt(token);
+
+                    var elapsed = stopwatch.Elapsed;
+                    if ((elapsed - lastMeasurementTime).TotalSeconds >= measurementIntervalSeconds)
+                    {
+                        var timeDelta = (elapsed - lastMeasurementTime).TotalSeconds;
+                        var tokenDelta = completionTokenCount - lastMeasurementTokens;
+
+                        if (timeDelta > 0)
+                        {
+                            var intervalTps = tokenDelta / timeDelta;
+                            tpsMeasurements.Add(intervalTps);
+                        }
+
+                        lastMeasurementTime = elapsed;
+                        lastMeasurementTokens = completionTokenCount;
+                    }
+                }
+
+                stopwatch.Stop();
+
+                var averageTps = tpsMeasurements.Count != 0
+                    ? tpsMeasurements.Average()
+                    : completionTokenCount > 0 && stopwatch.Elapsed.TotalSeconds > 0
+                        ? completionTokenCount / stopwatch.Elapsed.TotalSeconds
+                        : 0;
+
+                logger.LogInformation(
+                    "Local inference completed. Generated {CompletionTokens} tokens in {ElapsedMilliseconds} ms. Average TPS: {TokensPerSecond:F2}",
+                    completionTokenCount, stopwatch.ElapsedMilliseconds, averageTps);
+
+                return new AiResponse(
+                    responseBuilder.ToString().Trim(),
+                    promptTokenCount,
+                    completionTokenCount,
+                    Path.GetFileNameWithoutExtension(settings.LocalModelPath),
+                    averageTps);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Local inference failed.");
+                throw;
+            }
+            finally
+            {
+                // If we created a temporary conversation, ensure it's disposed of immediately.
+                if (isTemporarySession) conversation.Dispose();
+            }
         }
         finally
         {
-            // If we created a temporary conversation, ensure it's disposed of immediately.
-            if (isTemporarySession) conversation.Dispose();
+            _inferenceLock.Release();
         }
     }
 
@@ -191,5 +209,11 @@ public class LocalProvider(
             logger.LogCritical(ex,  errorMessage);
             throw new InvalidOperationException(errorMessage, ex);
         }
+    }
+    
+    public void Dispose()
+    {
+        _inferenceLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

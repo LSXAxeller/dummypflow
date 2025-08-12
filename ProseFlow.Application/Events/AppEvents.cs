@@ -66,4 +66,21 @@ public static class AppEvents
     {
         ShowNotificationRequested?.Invoke(message, type);
     }
+    
+    /// <summary>
+    /// Raised when the Action Management Service detects conflicts during an import.
+    /// The UI layer subscribes to this, shows a resolution dialog, and returns the user's choices.
+    /// </summary>
+    public static event Func<List<ActionConflict>, Task<List<ActionConflict>?>>? ResolveConflictsRequested;
+
+    /// <summary>
+    /// Invokes the ResolveConflictsRequested event to get user input for import conflicts.
+    /// </summary>
+    /// <returns>A list of resolved conflicts, or null if the user cancelled the operation.</returns>
+    public static async Task<List<ActionConflict>?> RequestConflictResolutionAsync(List<ActionConflict> conflicts)
+    {
+        return ResolveConflictsRequested is not null
+            ? await ResolveConflictsRequested.Invoke(conflicts)
+            : await Task.FromResult<List<ActionConflict>?>(null);
+    }
 }

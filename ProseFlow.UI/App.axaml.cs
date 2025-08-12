@@ -37,6 +37,7 @@ using ProseFlow.UI.ViewModels.Settings;
 using ProseFlow.UI.ViewModels.Windows;
 using ProseFlow.UI.Views;
 using ProseFlow.UI.Views.Dialogs;
+using ProseFlow.UI.Views.Downloads;
 using ProseFlow.UI.Views.Onboarding;
 using ProseFlow.UI.Views.Providers;
 using ProseFlow.UI.Views.Windows;
@@ -76,7 +77,6 @@ public class App : Avalonia.Application
         await usageTrackingService.InitializeAsync();
 
         var settingsService = Services.GetRequiredService<SettingsService>();
-        var generalSettings = await settingsService.GetGeneralSettingsAsync();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -117,7 +117,7 @@ public class App : Avalonia.Application
 
             // Subscribe UI handlers to application-layer events
             var osService = Services.GetRequiredService<IOsService>();
-            generalSettings = await settingsService.GetGeneralSettingsAsync(); // Re-fetch after potential onboarding
+            var generalSettings = await settingsService.GetGeneralSettingsAsync();
             _ = osService.StartHookAsync();
             osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
 
@@ -127,6 +127,7 @@ public class App : Avalonia.Application
             var dialogManager = Services.GetRequiredService<DialogManager>();
             dialogManager.Register<InputDialogView, InputDialogViewModel>();
             dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
+            dialogManager.Register<DownloadsPopupView, DownloadsPopupViewModel>();
 
             // Don't shut down the app when the main window is closed.
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -333,6 +334,7 @@ public class App : Avalonia.Application
     {
         if (Services is null) return;
         var notificationService = Services.GetRequiredService<NotificationService>();
+        var dialogService = Services.GetRequiredService<IDialogService>();
 
         AppEvents.ShowNotificationRequested += (message, type) =>
             Dispatcher.UIThread.Post(() => notificationService.Show(message, type));
@@ -364,6 +366,8 @@ public class App : Avalonia.Application
 
             return await viewModel.WaitForSelectionAsync();
         };
+
+        AppEvents.ResolveConflictsRequested += conflicts => Dispatcher.UIThread.InvokeAsync(() => dialogService.ShowConflictResolutionDialogAsync(conflicts));
     }
 
     private static IServiceProvider ConfigureServices()
@@ -458,6 +462,7 @@ public class App : Avalonia.Application
         services.AddTransient<CloudProviderEditorViewModel>();
         services.AddTransient<InputDialogViewModel>();
         services.AddTransient<CustomModelImportViewModel>();
+        services.AddTransient<ConflictResolutionViewModel>();
         services.AddTransient<ModelLibraryViewModel>();
         
         // Onboarding ViewModels

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using ProseFlow.Application.DTOs;
 using ProseFlow.Application.DTOs.Models;
 using ProseFlow.UI.Models;
 using Action = ProseFlow.Core.Models.Action;
@@ -71,12 +73,29 @@ public interface IDialogService
     /// <returns>A result object indicating success and the entered text.</returns>
     Task<InputDialogResult> ShowInputDialogAsync(string title, string message, string confirmButtonText, string? initialValue = null);
     
+    
+    /// <summary>
+    /// Shows a model library dialog with the given model library view model.
+    /// </summary>
     Task ShowModelLibraryDialogAsync();
+    
+    /// <summary>
+    /// Shows the downloads popup view to monitor current downloads.
+    /// </summary>
+    void ShowDownloadsDialog();
     
     /// <summary>
     /// Shows a dialog to import a custom GGUF model from the local filesystem.
     /// </summary>
     /// <returns>A result object containing the model's metadata and source path, or null if cancelled.</returns>
     Task<CustomModelImportData?> ShowImportModelDialogAsync();
+
+    /// <summary>
+    /// Shows a dialog for resolving conflicts when importing actions.
+    /// </summary>
+    /// <param name="conflicts">A list of detected conflicts.</param>
+    /// <returns>A list of conflicts with user-selected resolutions, or null if cancelled.</returns>
+    Task<List<ActionConflict>?> ShowConflictResolutionDialogAsync(List<ActionConflict> conflicts);
     
+
 }

@@ -154,7 +154,7 @@
                                 IsVisible="{Binding HasActiveDownloads}">
                             <Button.Flyout>
                                 <Flyout Placement="RightEdgeAlignedTop">
-                                    <downloads:DownloadsPopupView DataContext="{Binding DownloadsPopup}" />
+                                    <downloads:DownloadsPopupView DataContext="{Binding DownloadsPopup}" Width="450" />
                                 </Flyout>
                             </Button.Flyout>
                             <Grid>

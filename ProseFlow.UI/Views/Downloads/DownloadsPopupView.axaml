@@ -9,7 +9,7 @@
              mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
              x:DataType="vm:DownloadsPopupViewModel">
 
-    <shadui:Card Padding="0" Width="450" HasShadow="True">
+    <shadui:Card Padding="0" HasShadow="True">
         <DockPanel>
             <!-- Header -->
             <DockPanel DockPanel.Dock="Top" Margin="16" VerticalAlignment="Center">

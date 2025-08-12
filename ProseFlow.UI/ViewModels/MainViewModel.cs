@@ -6,12 +6,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using ProseFlow.Application.Interfaces;
+using ProseFlow.UI.Services;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Downloads;
 using ProseFlow.UI.ViewModels.History;
 using ProseFlow.UI.ViewModels.Providers;
 using ProseFlow.UI.ViewModels.Settings;
+using ProseFlow.UI.Views.Downloads;
 using ShadUI;
 
 namespace ProseFlow.UI.ViewModels;
@@ -75,7 +77,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void ShowDownloadsPopup()
     {
         // TODO: This command will be bound to the button in the UI, which handles showing the flyout.
-        // The logic here is minimal as the view handles the presentation.
+        var dialogService = _serviceProvider.GetRequiredService<IDialogService>();
+        dialogService.ShowDownloadsDialog();
     }
 
     partial void OnCurrentPageChanged(IPageViewModel? value)
