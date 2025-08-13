@@ -24,8 +24,8 @@
         <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" Version="2.0.0-rc5.4" />
         <PackageReference Include="Lucide.Avalonia" Version="0.1.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7">
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-          <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7" />
         <PackageReference Include="Markdown.Avalonia.YouYan" Version="11.2.0-a4" />
@@ -38,8 +38,12 @@
         <PackageReference Include="Svg.Controls.Skia.Avalonia" Version="11.3.0.2" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(IsOSX)' == 'true' Or $(RuntimeIdentifier.StartsWith('osx')) Or $(DefineConstants.Contains('OSX'))">
+        <PackageReference Include="MonoMac.Core" Version="0.0.23728"/>
+    </ItemGroup>
+
     <ItemGroup>
-      <ProjectReference Include="..\ProseFlow.Application\ProseFlow.Application.csproj" />
-      <ProjectReference Include="..\ProseFlow.Infrastructure\ProseFlow.Infrastructure.csproj" />
+        <ProjectReference Include="..\ProseFlow.Application\ProseFlow.Application.csproj" />
+        <ProjectReference Include="..\ProseFlow.Infrastructure\ProseFlow.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

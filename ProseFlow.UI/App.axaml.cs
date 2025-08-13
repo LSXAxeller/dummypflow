@@ -25,6 +25,7 @@ using ProseFlow.Infrastructure.Services.Models;
 using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.Infrastructure.Services.Os;
 using ProseFlow.UI.Services;
+using ProseFlow.UI.Services.ActiveWindow;
 using ProseFlow.UI.ViewModels;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Dashboard;
@@ -429,6 +430,16 @@ public class App : Avalonia.Application
         services.AddScoped<HistoryService>();
         services.AddScoped<CloudProviderManagementService>();
 
+        // Add Platform-Specific Services
+        if (OperatingSystem.IsLinux())
+            services.AddSingleton<IActiveWindowTracker, LinuxActiveWindowTracker>();
+        else if (OperatingSystem.IsWindows())
+            services.AddSingleton<IActiveWindowTracker, WindowsActiveWindowTracker>();
+        else if (OperatingSystem.IsMacOS())
+            services.AddSingleton<IActiveWindowTracker, MacOsActiveWindowTracker>();
+        else
+            services.AddSingleton<IActiveWindowTracker, DefaultActiveWindowTracker>();
+        
         // Add UI Services
         services.AddSingleton<DialogManager>();
         services.AddSingleton<ToastManager>();

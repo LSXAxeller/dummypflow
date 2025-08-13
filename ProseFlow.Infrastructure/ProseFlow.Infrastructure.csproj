@@ -29,13 +29,6 @@
         <PackageReference Include="LLamaSharp.Backend.Vulkan" Version="0.24.0"/>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(IsLinux)' == 'true' Or $(RuntimeIdentifier.StartsWith('linux')) Or $(DefineConstants.Contains('LINUX'))">
-        <PackageReference Include="X11" Version="1.0.6"/>
-    </ItemGroup>
-    <ItemGroup Condition="'$(IsOSX)' == 'true' Or $(RuntimeIdentifier.StartsWith('osx')) Or $(DefineConstants.Contains('OSX'))">
-        <PackageReference Include="MonoMac.Core" Version="0.0.23728"/>
-    </ItemGroup>
-
     <ItemGroup>
         <ProjectReference Include="..\ProseFlow.Core\ProseFlow.Core.csproj"/>
         <ProjectReference Include="..\ProseFlow.Application\ProseFlow.Application.csproj"/>

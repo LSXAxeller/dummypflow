@@ -1,28 +1,13 @@
 ﻿#region Usings
 
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using ProseFlow.Core.Interfaces;
+using ProseFlow.Core.Models;
 using SharpHook;
 using TextCopy;
 using Action = System.Action;
 using EventMask = SharpHook.Data.EventMask;
 using KeyCode = SharpHook.Data.KeyCode;
-
-#if WINDOWS
-using Microsoft.Win32;
-using ProseFlow.Core.Models;
-#endif
-
-
-#if LINUX
-using X11;
-#endif
-#if OSX
-using System.Reflection;
-using MonoMac.AppKit;
-#endif
 
 #endregion
 
@@ -32,7 +17,7 @@ namespace ProseFlow.Infrastructure.Services.Os;
 /// Implements OS-level interactions using SharpHook for cross-platform global hotkeys
 /// and platform-specific code for other features.
 /// </summary>
-public sealed class OsService : IOsService
+public sealed class OsService(IActiveWindowTracker activeWindowTracker) : IOsService
 {
     private readonly TaskPoolGlobalHook _hook = new();
     private readonly EventSimulator _simulator = new();
@@ -115,15 +100,7 @@ public sealed class OsService : IOsService
 
     public Task<string> GetActiveWindowProcessNameAsync()
     {
-#if WINDOWS
-        return Task.FromResult(GetActiveWindowProcessName_Windows());
-#elif LINUX
-        return Task.FromResult(GetActiveWindowProcessName_Linux());
-#elif OSX
-        return Task.FromResult(GetActiveWindowProcessName_MacOS());
-#else
-        return Task.FromResult("unknown");
-#endif
+        return activeWindowTracker.GetActiveWindowProcessNameAsync();
     }
 
     public void SetLaunchAtLogin(bool isEnabled)
@@ -201,82 +178,6 @@ public sealed class OsService : IOsService
 
     #endregion
 
-    #region Platform-Specific Active Window Detection
-
-#if WINDOWS
-    [DllImport("user32.dll")]
-    private static extern nint GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
-
-    private string GetActiveWindowProcessName_Windows()
-    {
-        try
-        {
-            var hwnd = GetForegroundWindow();
-            _ = GetWindowThreadProcessId(hwnd, out var pid);
-            var process = Process.GetProcessById((int)pid);
-            return process.MainModule?.ModuleName ?? process.ProcessName;
-        }
-        catch
-        {
-            return "unknown.exe";
-        }
-    }
-#endif
-
-#if LINUX
-    /// <summary>
-    /// Gets the active window's process on Linux using X11.
-    /// </summary>
-    private string GetActiveWindowProcessName_Linux()
-    {
-        var display = Xlib.XOpenDisplay(null);
-        if (display == IntPtr.Zero)
-        {
-            Debug.WriteLine("ERROR: Could not open X Display.");
-            return "unknown";
-        }
-
-        try
-        {
-            var focus = Window.None;
-            var revert = RevertFocus.RevertToNone;
-            _ = Xlib.XGetInputFocus(display, ref focus, ref revert);
-
-            if (focus == Window.None)
-                return "unknown";
-
-            var windowName = string.Empty;
-            // XFetchName returns Status.Success (1) on success.
-            if (Xlib.XFetchName(display, focus, ref windowName) != 0 && !string.IsNullOrEmpty(windowName))
-                return windowName;
-
-            return "unknown";
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error getting active window title on Linux: {ex.Message}");
-            return "unknown";
-        }
-        finally
-        {
-            if (display != IntPtr.Zero) _ = Xlib.XCloseDisplay(display);
-        }
-    }
-#endif
-
-#if OSX
-    private string GetActiveWindowProcessName_MacOS()
-    {
-        var foregroundApp = NSWorkspace.SharedWorkspace.FrontmostApplication;
-        return foregroundApp.LocalizedName;
-    }
-#endif
-
-    #endregion
-
     #region Platform-Specific Launch At Login
 
 #if WINDOWS
@@ -286,8 +187,8 @@ public sealed class OsService : IOsService
         try
         {
             const string registryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-            using var key = Registry.CurrentUser.OpenSubKey(registryKeyPath, true)
-                            ?? Registry.CurrentUser.CreateSubKey(registryKeyPath);
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(registryKeyPath, true)
+                            ?? Microsoft.Win32.Registry.CurrentUser.CreateSubKey(registryKeyPath);
 
             var appPath = Environment.ProcessPath;
             if (string.IsNullOrWhiteSpace(appPath)) return;
@@ -299,7 +200,7 @@ public sealed class OsService : IOsService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ERROR] Failed to set startup registry key: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ERROR] Failed to set startup registry key: {ex.Message}");
         }
     }
 #endif
@@ -319,7 +220,7 @@ public sealed class OsService : IOsService
 
             if (isEnabled)
             {
-                var appPath = Assembly.GetExecutingAssembly().Location;
+                var appPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 // For .app bundles, the path points inside, we need the path to the bundle itself.
                 var bundleIndex = appPath.IndexOf(".app/", StringComparison.OrdinalIgnoreCase);
                 if (bundleIndex != -1) appPath = appPath[..(bundleIndex + 4)];
@@ -349,7 +250,7 @@ public sealed class OsService : IOsService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ERROR] Failed to set macOS launch agent: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ERROR] Failed to set macOS launch agent: {ex.Message}");
         }
     }
 #endif
@@ -387,7 +288,7 @@ public sealed class OsService : IOsService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[ERROR] Failed to set Linux autostart file: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[ERROR] Failed to set Linux autostart file: {ex.Message}");
         }
     }
 #endif
