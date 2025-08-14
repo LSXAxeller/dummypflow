@@ -102,7 +102,6 @@ public partial class FloatingActionMenuWindow : Window
 
             if (selectedControl == null)
             {
-                // Fallback: try BringIntoView
                 var selectedContainer = this.GetVisualDescendants()
                     .OfType<Control>()
                     .FirstOrDefault(c => c.DataContext == vm.SelectedItem);
@@ -117,9 +116,7 @@ public partial class FloatingActionMenuWindow : Window
             selectedControl.InvalidateMeasure();
             selectedControl.InvalidateArrange();
             
-            // Get the scroll viewer's content (the ItemsControl)
-            var scrollContent = scrollViewer.Content as Control;
-            if (scrollContent == null) return;
+            if (scrollViewer.Content is not Control scrollContent) return;
 
             // Calculate control position relative to the scroll content
             var controlPosition = selectedControl.TranslatePoint(new Point(0, 0), scrollContent);
@@ -132,33 +129,31 @@ public partial class FloatingActionMenuWindow : Window
             var currentScrollTop = scrollViewer.Offset.Y;
             var currentScrollBottom = currentScrollTop + viewportHeight;
             
-            const double margin = 20; // Increased margin for better visibility
+            const double margin = 20;
             
             var newScrollY = currentScrollTop;
             
-            // Check if control is above the visible area
+            // Check if control is above or below the visible area
             if (controlTop < currentScrollTop + margin)
                 newScrollY = Math.Max(0, controlTop - margin);
-            // Check if control is below the visible area
-            else if (controlBottom > currentScrollBottom - margin) newScrollY = Math.Max(0, controlBottom - viewportHeight + margin);
+            else if (controlBottom > currentScrollBottom - margin) 
+                newScrollY = Math.Max(0, controlBottom - viewportHeight + margin);
 
             // Only scroll if we need to
-            if (Math.Abs(newScrollY - currentScrollTop) > 1)
-            {
-                scrollViewer.Offset = scrollViewer.Offset.WithY(newScrollY);
+            if (!(Math.Abs(newScrollY - currentScrollTop) > 1)) return;
+            
+            scrollViewer.Offset = scrollViewer.Offset.WithY(newScrollY);
                 
-                // For the last few items, ensure we scroll to the very bottom if needed
-                Dispatcher.UIThread.Post(() =>
-                {
-                    var maxScrollY = Math.Max(0, scrollContent.Bounds.Height - viewportHeight);
-                    if (newScrollY >= maxScrollY - 10) // Close to bottom
-                        scrollViewer.Offset = scrollViewer.Offset.WithY(maxScrollY);
-                }, DispatcherPriority.Background);
-            }
+            // For the last few items, ensure we scroll to the very bottom if needed
+            Dispatcher.UIThread.Post(() =>
+            {
+                var maxScrollY = Math.Max(0, scrollContent.Bounds.Height - viewportHeight);
+                if (newScrollY >= maxScrollY - 10) // Close to bottom
+                    scrollViewer.Offset = scrollViewer.Offset.WithY(maxScrollY);
+            }, DispatcherPriority.Background);
         }
         catch (Exception)
         {
-            // Final fallback: use BringIntoView
             var selectedContainer = this.GetVisualDescendants()
                 .OfType<Control>()
                 .FirstOrDefault(c => c.DataContext == vm.SelectedItem);

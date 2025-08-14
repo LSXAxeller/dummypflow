@@ -21,7 +21,8 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private object? _selectedItem;
-    [ObservableProperty] private string _currentServiceTypeName;
+    [ObservableProperty] private string _currentServiceTypeName = "Cloud";
+    [ObservableProperty] private string _resultContainer = "Default";
 
     public bool ShouldClose { get; private set; }
 
@@ -131,32 +132,30 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     {
         ShouldClose = false;
 
-        if (SelectedItem is null)
+        switch (SelectedItem)
         {
-            CancelSelection();
-            return;
-        }
+            case null:
+                CancelSelection();
+                return;
+            // If a group header is selected, Enter toggles its expansion state
+            case ActionGroupViewModel group:
+                group.IsExpanded = !group.IsExpanded;
+                return;
+            // If an action item is selected, execute it
+            case ActionItemViewModel actionItem:
+            {
+                var request = new ActionExecutionRequest(
+                    actionItem.Action,
+                    ResultContainer == "Default" ? actionItem.Action.OpenInWindow : ResultContainer == "Windowed",
+                    CurrentServiceTypeName
+                );
 
-        // If a group header is selected, Enter toggles its expansion state
-        if (SelectedItem is ActionGroupViewModel group)
-        {
-            group.IsExpanded = !group.IsExpanded;
-            return;
-        }
-
-        // If an action item is selected, execute it
-        if (SelectedItem is ActionItemViewModel actionItem)
-        {
-            var request = new ActionExecutionRequest(
-                actionItem.Action,
-                actionItem.IsForcedOpenInWindow,
-                CurrentServiceTypeName
-            );
-
-            if (!_selectionTcs.Task.IsCompleted)
-                _selectionTcs.SetResult(request);
+                if (!_selectionTcs.Task.IsCompleted)
+                    _selectionTcs.SetResult(request);
             
-            ShouldClose = true;
+                ShouldClose = true;
+                break;
+            }
         }
     }
     
@@ -172,6 +171,16 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     private void ToggleServiceType()
     {
         CurrentServiceTypeName = CurrentServiceTypeName == "Cloud" ? "Local" : "Cloud";
+    }
+    
+    
+    // Override the "Open in new window" behavior
+    [RelayCommand]
+    private void ToggleResultContainer()
+    {
+        var states = new[] { "Default", "Windowed", "In-place" };
+        var currentIndex = Array.IndexOf(states, ResultContainer);
+        ResultContainer = states[(currentIndex + 1) % states.Length];
     }
 
     [RelayCommand]
@@ -223,13 +232,6 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     private void ExpandSelectedItem()
     {
         if (SelectedItem is ActionGroupViewModel group) group.IsExpanded = true;
-    }
-
-    [RelayCommand]
-    private void ToggleForceOpenInWindow(ActionItemViewModel? item)
-    {
-        if (item is null) return;
-        item.IsForcedOpenInWindow = !item.IsForcedOpenInWindow;
     }
 
     [RelayCommand]

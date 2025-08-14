@@ -60,6 +60,16 @@
                         <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" Margin="4,0,0,0" />
                     </Button>
                     <Button
+                        DockPanel.Dock="Left"
+                        Classes="Ghost"
+                        Command="{Binding ToggleResultContainerCommand}"
+                        ToolTip.Tip="Toggle the Final form of the result">
+                        <shadui:ButtonAssist.Icon>
+                            <LucideIcon Size="18" Kind="AppWindow" />
+                        </shadui:ButtonAssist.Icon>
+                        <TextBlock Classes="Small" Text="{Binding ResultContainer}" Margin="4,0,0,0" />
+                    </Button>
+                    <Button
                         HorizontalAlignment="Right"
                         Classes="Ghost"
                         Command="{Binding OpenSettingsCommand}"
@@ -181,17 +191,6 @@
                                                         Grid.Column="2"
                                                         VerticalAlignment="Center"
                                                         Text="{Binding Action.Name}" />
-
-                                                    <ToggleButton
-                                                        Grid.Column="3"
-                                                        Classes="Icon Ghost"
-                                                        Width="28" Height="28"
-                                                        ToolTip.Tip="Force open in new window"
-                                                        IsChecked="{Binding IsForcedOpenInWindow, Mode=OneWay}"
-                                                        Command="{Binding $parent[Window].((vm:FloatingActionMenuViewModel)DataContext).ToggleForceOpenInWindowCommand, FallbackValue={x:Null}}"
-                                                        CommandParameter="{Binding .}">
-                                                        <LucideIcon Size="18" Kind="ExternalLink" />
-                                                    </ToggleButton>
                                                 </Grid>
                                             </Button>
                                         </DataTemplate>

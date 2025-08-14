@@ -40,6 +40,9 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private string? _managerErrorMessage;
     [ObservableProperty]
     private bool _isManagerLoaded;
+    
+    [ObservableProperty]
+    private double _modelLoadingProgress;
 
     public ObservableCollection<CloudProviderConfiguration> CloudProviders { get; } = [];
     public ObservableCollection<LocalModel> LocalModels { get; } = [];
@@ -83,6 +86,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
 
         // Subscribe to events
         _modelManager.StateChanged += OnManagerStateChanged;
+        _modelManager.ProgressChanged += OnModelProgressChanged;
         _localModelService.ModelsChanged += OnLocalModelsChanged;
 
         // Set initial state
@@ -97,6 +101,14 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
             ManagerStatus = _modelManager.Status;
             ManagerErrorMessage = _modelManager.ErrorMessage;
             IsManagerLoaded = _modelManager.IsLoaded;
+        });
+    }
+
+    private void OnModelProgressChanged(float progress)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            ModelLoadingProgress = progress;
         });
     }
 
@@ -281,6 +293,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         _modelManager.StateChanged -= OnManagerStateChanged;
+        _modelManager.ProgressChanged -= OnModelProgressChanged;
         _localModelService.ModelsChanged -= OnLocalModelsChanged;
         GC.SuppressFinalize(this);
     }

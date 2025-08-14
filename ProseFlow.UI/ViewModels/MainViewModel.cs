@@ -76,7 +76,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ShowDownloadsPopup()
     {
-        // TODO: This command will be bound to the button in the UI, which handles showing the flyout.
         var dialogService = _serviceProvider.GetRequiredService<IDialogService>();
         dialogService.ShowDownloadsDialog();
     }

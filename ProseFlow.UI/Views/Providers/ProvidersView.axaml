@@ -71,7 +71,8 @@
                             <DataGridTemplateColumn Width="40">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <LucideIcon Size="18" Kind="MoveVertical" ToolTip.Tip="Drag and drop to reorder providers." />
+                                        <LucideIcon Size="18" Kind="MoveVertical"
+                                                    ToolTip.Tip="Drag and drop to reorder providers." />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -109,7 +110,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Size="24" Kind="Laptop"/>
+                            <LucideIcon Size="24" Kind="Laptop" />
                             <StackPanel>
                                 <shadui:CardTitle>Local Provider</shadui:CardTitle>
                                 <shadui:CardDescription>Run models locally on your machine (via llama.cpp/LlamaSharp project).</shadui:CardDescription>
@@ -120,17 +121,17 @@
                     <StackPanel Spacing="16">
                         <!-- Model Path Selection -->
                         <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                             <ComboBox
+                            <ComboBox
                                 shadui:ControlAssist.Label="Selected Model"
                                 ItemsSource="{Binding LocalModels}"
                                 SelectedItem="{Binding SelectedModel}"
                                 PlaceholderText="No model selected. Click 'Manage Models' to add one.">
-                                 <ComboBox.ItemTemplate>
-                                     <DataTemplate DataType="core:LocalModel">
-                                         <TextBlock Text="{Binding Name}" />
-                                     </DataTemplate>
-                                 </ComboBox.ItemTemplate>
-                             </ComboBox>
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate DataType="core:LocalModel">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                             <Button
                                 Grid.Column="1"
                                 VerticalAlignment="Bottom"
@@ -144,13 +145,15 @@
                             <ToggleSwitch IsChecked="{Binding Settings.PreferGpu, FallbackValue={x:False}}">
                                 Prefer GPU acceleration (if available)
                             </ToggleSwitch>
-                            
-                            <ToggleSwitch IsChecked="{Binding Settings.LocalModelLoadOnStartup, FallbackValue={x:False}}">
+
+                            <ToggleSwitch
+                                IsChecked="{Binding Settings.LocalModelLoadOnStartup, FallbackValue={x:False}}">
                                 Load Model on Startup
                             </ToggleSwitch>
-                            
-                            <ToggleSwitch IsChecked="{Binding Settings.LocalModelAutoUnloadEnabled, FallbackValue={x:True}}"
-                                          ToolTip.Tip="Automatically unload the model from memory after a period of inactivity to free up system resources.">
+
+                            <ToggleSwitch
+                                IsChecked="{Binding Settings.LocalModelAutoUnloadEnabled, FallbackValue={x:True}}"
+                                ToolTip.Tip="Automatically unload the model from memory after a period of inactivity to free up system resources.">
                                 Auto-unload idle model
                             </ToggleSwitch>
 
@@ -166,15 +169,15 @@
                                 Lock Model in Memory"
                             </ToggleSwitch>
                         </StackPanel>
-                        
+
                         <!-- Auto-unload timeout setting -->
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="8,0"
                               IsEnabled="{Binding Settings.LocalModelAutoUnloadEnabled, FallbackValue={x:True}}">
                             <TextBlock Text="Idle Timeout (minutes)" VerticalAlignment="Center" />
-                            <TextBox Grid.Column="1" Width="150" 
+                            <TextBox Grid.Column="1" Width="150"
                                      Text="{Binding Settings.LocalModelIdleTimeoutMinutes, Mode=TwoWay, Converter={StaticResource NumericStringConverter}}" />
                         </Grid>
-                        
+
                         <!-- Temperature Control -->
                         <StackPanel>
                             <StackPanel>
@@ -239,8 +242,8 @@
                                 <StackPanel Spacing="8" Orientation="Horizontal"
                                             IsVisible="{Binding ManagerStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static local:ModelStatus.Loading}}">
                                     <LucideIcon Size="18" Kind="Loader" />
-                                    <ProgressBar shadui:ControlAssist.ShowProgress="True" IsIndeterminate="True"
-                                                 Width="16" Height="16" CornerRadius="8" Foreground="Azure" />
+                                    <ProgressBar Value="{Binding ModelLoadingProgress}" ShowProgressText="True"
+                                                 CornerRadius="16" />
                                     <TextBlock Text="Loading model, please wait..." VerticalAlignment="Center" />
                                 </StackPanel>
                                 <StackPanel Spacing="8" Orientation="Horizontal"

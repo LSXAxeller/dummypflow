@@ -53,7 +53,7 @@ public class ConditionCheckConverter : IValueConverter
     /// <returns>Throws a `NotImplementedException`.</returns>
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        throw new NotSupportedException();
     }
 
     private bool CheckCondition(object? input, string condition)

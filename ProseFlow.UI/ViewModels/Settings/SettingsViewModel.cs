@@ -24,6 +24,9 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
     [ObservableProperty]
     private GeneralSettings? _settings;
 
+    [ObservableProperty]
+    private bool _hasHotkeyConflict;
+
     public ObservableCollection<Action> AvailableActions { get; } = [];
     public List<string> AvailableThemes => Enum.GetNames(typeof(ThemeType)).ToList();
     
@@ -32,6 +35,11 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
     
     [ObservableProperty]
     private string _selectedTheme = nameof(ThemeType.System);
+
+    partial void OnSettingsChanged(GeneralSettings? value)
+    {
+        ValidateHotkeys();
+    }
     
     partial void OnSelectedSmartPasteActionChanged(Action? value)
     {
@@ -70,9 +78,29 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
     private async Task SaveAsync()
     {
         if (Settings is null) return;
+        
+        ValidateHotkeys();
+        if (HasHotkeyConflict)
+        {
+            AppEvents.RequestNotification("Cannot save with conflicting hotkeys.", NotificationType.Error);
+            return;
+        }
+
         osService.SetLaunchAtLogin(Settings.LaunchAtLogin);
         osService.UpdateHotkeys(Settings.ActionMenuHotkey, Settings.SmartPasteHotkey);
         await settingsService.SaveGeneralSettingsAsync(Settings);
         AppEvents.RequestNotification("Settings saved successfully.", NotificationType.Success);
+    }
+    
+    public void ValidateHotkeys()
+    {
+        if (Settings is null)
+        {
+            HasHotkeyConflict = false;
+            return;
+        }
+
+        HasHotkeyConflict = !string.IsNullOrWhiteSpace(Settings.ActionMenuHotkey) &&
+                            Settings.ActionMenuHotkey.Equals(Settings.SmartPasteHotkey, StringComparison.OrdinalIgnoreCase);
     }
 }

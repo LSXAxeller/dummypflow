@@ -22,6 +22,7 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
     
     // Event for the UI to subscribe to for state changes.
     public event Action? StateChanged;
+    public event Action<float>? ProgressChanged;
 
     public ModelStatus Status { get; private set; } = ModelStatus.NotLoaded;
     public string? ErrorMessage { get; private set; }
@@ -63,8 +64,14 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
                 UseMemorymap = settings.LocalModelMemoryMap,
                 UseMemoryLock = settings.LocalModelMemorylock
             };
+
+            var progressReporter = new Progress<float>(progress =>
+            {
+                var progressPercentage = progress * 100;
+                ProgressChanged?.Invoke(progressPercentage);
+            });
             
-            Model = await LLamaWeights.LoadFromFileAsync(modelParams);
+            Model = await LLamaWeights.LoadFromFileAsync(modelParams, progressReporter: progressReporter);
             Executor = new BatchedExecutor(Model, modelParams);
             
             // Start idle timer if enabled
@@ -94,6 +101,11 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
             UnloadModel(); // Clean up any partially loaded resources
             AppEvents.RequestNotification("Failed to load local model, please check the logs.", NotificationType.Error);
         }
+        finally
+        {
+            // Reset progress on completion or failure
+            ProgressChanged?.Invoke(0);
+        }
     }
 
     /// <summary>
@@ -114,6 +126,7 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
         Model = null;
         
         UpdateState(ModelStatus.NotLoaded);
+        ProgressChanged?.Invoke(0);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();

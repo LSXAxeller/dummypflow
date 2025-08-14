@@ -91,8 +91,8 @@ public partial class SettingsView : UserControl
                     break;
             }
 
-            // Also update the UI immediately
             textBox.Text = hotkeyString;
+            vm.ValidateHotkeys();
         }
 
         // Stop recording and move focus away to signify completion
