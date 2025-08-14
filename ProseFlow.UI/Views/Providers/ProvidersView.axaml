@@ -148,6 +148,11 @@
                             <ToggleSwitch IsChecked="{Binding Settings.LocalModelLoadOnStartup, FallbackValue={x:False}}">
                                 Load Model on Startup
                             </ToggleSwitch>
+                            
+                            <ToggleSwitch IsChecked="{Binding Settings.LocalModelAutoUnloadEnabled, FallbackValue={x:True}}"
+                                          ToolTip.Tip="Automatically unload the model from memory after a period of inactivity to free up system resources.">
+                                Auto-unload idle model
+                            </ToggleSwitch>
 
                             <ToggleSwitch
                                 IsChecked="{Binding Settings.LocalModelMemoryMap, FallbackValue={x:False}}"
@@ -161,6 +166,15 @@
                                 Lock Model in Memory"
                             </ToggleSwitch>
                         </StackPanel>
+                        
+                        <!-- Auto-unload timeout setting -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="8,0"
+                              IsEnabled="{Binding Settings.LocalModelAutoUnloadEnabled, FallbackValue={x:True}}">
+                            <TextBlock Text="Idle Timeout (minutes)" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1" Width="150" 
+                                     Text="{Binding Settings.LocalModelIdleTimeoutMinutes, Mode=TwoWay, Converter={StaticResource NumericStringConverter}}" />
+                        </Grid>
+                        
                         <!-- Temperature Control -->
                         <StackPanel>
                             <StackPanel>
@@ -172,7 +186,7 @@
                                             TickPlacement="BottomRight"
                                             Value="{Binding LocalTemp, Mode=TwoWay}" />
                                     <TextBox Grid.Column="1" Width="150"
-                                             Text="{Binding LocalTemp, Mode=TwoWay, StringFormat='F2'}" />
+                                             Text="{Binding LocalTemp, Mode=TwoWay, Converter={StaticResource NumericStringConverter}, ConverterParameter='F2'}" />
                                 </Grid>
                             </StackPanel>
                             <StackPanel>
@@ -183,7 +197,7 @@
                                             TickPlacement="BottomRight"
                                             Value="{Binding LocalContextSize, Mode=TwoWay}" />
                                     <TextBox Grid.Column="1" Width="150"
-                                             Text="{Binding LocalContextSize, Mode=TwoWay, StringFormat='F2'}" />
+                                             Text="{Binding LocalContextSize, Mode=TwoWay, Converter={StaticResource NumericStringConverter}}" />
                                 </Grid>
                             </StackPanel>
                             <StackPanel>
@@ -195,7 +209,7 @@
                                             TickPlacement="BottomRight"
                                             Value="{Binding LocalMaxTokens, Mode=TwoWay}" />
                                     <TextBox Grid.Column="1" Width="150"
-                                             Text="{Binding LocalMaxTokens, Mode=TwoWay, StringFormat='F2'}" />
+                                             Text="{Binding LocalMaxTokens, Mode=TwoWay, Converter={StaticResource NumericStringConverter}}" />
                                 </Grid>
                             </StackPanel>
                         </StackPanel>

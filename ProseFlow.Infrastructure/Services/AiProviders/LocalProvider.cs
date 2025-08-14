@@ -23,7 +23,6 @@ public class LocalProvider(
     IUnitOfWork unitOfWork) : IAiProvider
 {
     // A semaphore to ensure that only one thread can execute an inference call at a time.
-    // The BatchedExecutor itself is not thread-safe for concurrent calls to Infer().
     private readonly SemaphoreSlim _inferenceLock = new(1, 1);
     
     public string Name => "Local";
@@ -48,6 +47,9 @@ public class LocalProvider(
                 logger.LogError(errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
+            
+            // Reset the idle timer to prevent auto-unloading during use.
+            modelManager.ResetIdleTimer();
 
             var executor = modelManager.Executor;
 

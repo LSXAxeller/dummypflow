@@ -26,7 +26,6 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly LocalModelManagerService _modelManager;
     private readonly UsageTrackingService _usageService;
     private readonly ILocalModelManagementService _localModelService;
-    private readonly IServiceProvider _serviceProvider;
 
     public override string Title => "Providers";
     public override LucideIconKind Icon => LucideIconKind.Cloud;
@@ -73,8 +72,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         IDialogService dialogService,
         LocalModelManagerService modelManager,
         UsageTrackingService usageService,
-        ILocalModelManagementService localModelService,
-        IServiceProvider serviceProvider)
+        ILocalModelManagementService localModelService)
     {
         _settingsService = settingsService;
         _providerService = providerService;
@@ -82,7 +80,6 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         _modelManager = modelManager;
         _usageService = usageService;
         _localModelService = localModelService;
-        _serviceProvider = serviceProvider;
 
         // Subscribe to events
         _modelManager.StateChanged += OnManagerStateChanged;

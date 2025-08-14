@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ProseFlow.Application.Events;
 using ProseFlow.Core.Models;
 using Action = System.Action;
+using Timer = System.Timers.Timer;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 
@@ -17,6 +18,8 @@ public enum ModelStatus { NotLoaded, Loading, Loaded, Error }
 /// </summary>
 public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
 {
+    private Timer? _idleTimer;
+    
     // Event for the UI to subscribe to for state changes.
     public event Action? StateChanged;
 
@@ -63,6 +66,22 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
             
             Model = await LLamaWeights.LoadFromFileAsync(modelParams);
             Executor = new BatchedExecutor(Model, modelParams);
+            
+            // Start idle timer if enabled
+            if (settings is { LocalModelAutoUnloadEnabled: true, LocalModelIdleTimeoutMinutes: > 0 })
+            {
+                _idleTimer = new Timer(TimeSpan.FromMinutes(settings.LocalModelIdleTimeoutMinutes).TotalMilliseconds)
+                {
+                    AutoReset = false // The timer should only fire once
+                };
+                _idleTimer.Elapsed += (_, _) =>
+                {
+                    logger.LogInformation("Local model idle timeout reached. Unloading model.");
+                    AppEvents.RequestNotification("Unloading idle local model to free resources.", NotificationType.Info);
+                    UnloadModel();
+                };
+                _idleTimer.Start();
+            }
 
             UpdateState(ModelStatus.Loaded);
             logger.LogInformation("Successfully loaded local model from: {Path}", settings.LocalModelPath);
@@ -83,6 +102,11 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
     public void UnloadModel()
     {
         logger.LogInformation("Unloading local model.");
+        
+        _idleTimer?.Stop();
+        _idleTimer?.Dispose();
+        _idleTimer = null;
+        
         Executor?.Dispose();
         Model?.Dispose();
         
@@ -93,6 +117,17 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
+    }
+    
+    /// <summary>
+    /// Resets the idle timer, indicating that the model has been used.
+    /// </summary>
+    public void ResetIdleTimer()
+    {
+        if (_idleTimer is null || !_idleTimer.Enabled) return;
+        
+        _idleTimer.Stop();
+        _idleTimer.Start();
     }
     
     /// <summary>

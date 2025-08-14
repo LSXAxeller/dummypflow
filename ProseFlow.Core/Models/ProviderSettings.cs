@@ -46,6 +46,16 @@ public class ProviderSettings : EntityBase
     public bool LocalModelLoadOnStartup { get; set; }
 
     /// <summary>
+    /// If true, the local model will be automatically unloaded after a period of inactivity to free up resources.
+    /// </summary>
+    public bool LocalModelAutoUnloadEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The number of minutes of inactivity before the local model is automatically unloaded.
+    /// </summary>
+    public int LocalModelIdleTimeoutMinutes { get; set; } = 30;
+
+    /// <summary>
     /// Gets or sets a value indicating whether to memory-map the model file.
     /// </summary>
     /// <remarks>

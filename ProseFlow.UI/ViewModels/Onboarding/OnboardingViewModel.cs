@@ -199,7 +199,6 @@ public partial class OnboardingViewModel(
         generalSettings.LaunchAtLogin = LaunchAtLogin;
         generalSettings.ActionMenuHotkey = ActionMenuHotkey;
         osService.SetLaunchAtLogin(LaunchAtLogin);
-        // The hotkey is already updated in IOsService during the onboarding flow
 
         if (CloudProviderConfig is not null)
         {

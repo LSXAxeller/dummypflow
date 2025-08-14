@@ -42,8 +42,8 @@ public partial class ModelLibraryViewModel(
         localModelService.ModelsChanged += OnLocalOrDownloadsChanged;
         downloadManager.DownloadsChanged += OnLocalOrDownloadsChanged;
         
-        await LoadAvailableModelsAsync();
         await LoadLocalModelsAsync();
+        await LoadAvailableModelsAsync();
         SyncStates();
     }
 
