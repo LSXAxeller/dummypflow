@@ -16,7 +16,8 @@
                WindowStartupLocation="CenterScreen"
                CanResize="False"
                ShowInTaskbar="False"
-               Title="Welcome to ProseFlow">
+               Title="Welcome to ProseFlow"
+               Closing="OnboardingWindow_OnClosing">
 
     <Window.DataTemplates>
         <DataTemplate DataType="vm:CloudOnboardingViewModel">
@@ -47,7 +48,7 @@
         </Border>
 
         <!-- Main Content Area -->
-        <Grid Margin="24" VerticalAlignment="Center">
+        <Grid Name="MainContentArea" Margin="24" VerticalAlignment="Center">
             <ContentControl Content="{Binding CurrentContentViewModel}"
                             IsVisible="{Binding CurrentContentViewModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
             
@@ -98,7 +99,7 @@
                 <TextBlock Classes="h3" Text="Meet Your Actions" TextAlignment="Center" />
                 <TextBlock Classes="p Muted" TextAlignment="Center"
                            Text="Actions are reusable AI instructions. We've included a few to get you started." />
-                <ItemsControl Margin="0, 16">
+                <ItemsControl Margin="0, 16" HorizontalAlignment="Center">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Spacing="8" />
@@ -123,6 +124,25 @@
                         </StackPanel>
                     </Border>
                 </ItemsControl>
+            </StackPanel>
+            
+            <!-- Hotkey Setup Step -->
+            <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.HotkeySetup}}">
+                <TextBlock Classes="h3" Text="Set Your Main Hotkey" />
+                <TextBlock Classes="p Muted" TextWrapping="Wrap"
+                           Text="This is the global key combination you'll use everywhere to bring up the ProseFlow action menu." />
+            
+                <TextBox
+                    x:Name="ActionMenuHotkeyBox"
+                    HorizontalAlignment="Center"
+                    IsReadOnly="True"
+                    IsInactiveSelectionHighlightEnabled="False"
+                    MinWidth="250"
+                    Text="{Binding ActionMenuHotkey, Mode=OneWay}"
+                    KeyDown="HotkeyBox_OnKeyDown"
+                    GotFocus="HotkeyBox_OnGotFocus"
+                    LostFocus="HotkeyBox_OnLostFocus" />
             </StackPanel>
 
             <!-- Graduation Step -->

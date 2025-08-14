@@ -6,14 +6,14 @@
              xmlns:vm="using:ProseFlow.UI.ViewModels.Onboarding"
              xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="vm:HotkeyTutorialViewModel"
-             KeyDown="OnControlKeyDown">
+             x:DataType="vm:HotkeyTutorialViewModel">
 
     <StackPanel Spacing="16" TextBlock.TextAlignment="Center">
-        <TextBlock Classes="h3" Text="{Binding InstructionText}" TextWrapping="Wrap" />
+        <TextBlock Classes="h3" Text="{Binding HeaderText}" TextWrapping="Wrap" />
+        <TextBlock Classes="Small" Text="{Binding InstructionText}" TextWrapping="Wrap" />
 
         <Border Classes="Keybind" Padding="12, 8" CornerRadius="{DynamicResource MdCornerRadius}">
-            <TextBlock Classes="h4" Text="Ctrl + J" />
+            <TextBlock Classes="h4" Text="{Binding ConfiguredHotkey}" />
         </Border>
 
         <TextBox Text="{Binding SampleText}" TextAlignment="Center" MinHeight="100" TextWrapping="Wrap"

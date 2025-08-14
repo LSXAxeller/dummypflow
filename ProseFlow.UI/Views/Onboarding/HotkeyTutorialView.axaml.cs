@@ -10,12 +10,4 @@ public partial class HotkeyTutorialView : UserControl
     {
         InitializeComponent();
     }
-
-    private void OnControlKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is not HotkeyTutorialViewModel vm || e.Key != Key.J ||
-            e.KeyModifiers != KeyModifiers.Control) return;
-        vm.ShowMenuCommand.Execute(null);
-        e.Handled = true;
-    }
 }

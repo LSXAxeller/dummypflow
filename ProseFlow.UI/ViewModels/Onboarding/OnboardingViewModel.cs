@@ -20,6 +20,7 @@ public enum OnboardingStep
     CloudSetup,
     LocalSetup,
     ActionsIntro,
+    HotkeySetup,
     HotkeyTutorial,
     Graduation
 }
@@ -32,14 +33,16 @@ public partial class OnboardingViewModel(
 {
     [ObservableProperty]
     private OnboardingStep _currentStep = OnboardingStep.Welcome;
-    
+
     [ObservableProperty]
     private ViewModelBase? _currentContentViewModel;
-    
+
     // Data collected during onboarding
     public CloudProviderConfiguration? CloudProviderConfig { get; set; }
     public string? LocalModelPath { get; set; }
     public bool LaunchAtLogin { get; set; } = true;
+    [ObservableProperty]
+    private string _actionMenuHotkey = "Ctrl+J";
 
     // Button Visibility and Enabled States
     [ObservableProperty]
@@ -50,23 +53,30 @@ public partial class OnboardingViewModel(
 
     [ObservableProperty]
     private string _nextButtonText = "Continue";
-    
+
     public OnboardingViewModel() : this(Ioc.Default.GetRequiredService<IServiceProvider>(), Ioc.Default.GetRequiredService<SettingsService>(), Ioc.Default.GetRequiredService<CloudProviderManagementService>(), Ioc.Default.GetRequiredService<IOsService>()) {}
-    
+
     partial void OnCurrentStepChanged(OnboardingStep value)
     {
         UpdateStep(value);
     }
-    
+
     private void UpdateStep(OnboardingStep newStep)
     {
         CurrentStep = newStep;
         IsBackButtonVisible = newStep > OnboardingStep.Welcome;
         NextButtonText = newStep == OnboardingStep.Graduation ? "Finish" : "Continue";
 
-        // Dispose previous ViewModel if it's disposable
+        // Unsubscribe from previous VM events and global events
         if (CurrentContentViewModel is IDisposable disposable) disposable.Dispose();
-        
+        if (CurrentContentViewModel is CloudOnboardingViewModel oldCloudVm) oldCloudVm.PropertyChanged -= OnContentViewModelPropertyChanged;
+        if (CurrentContentViewModel is ModelLibraryViewModel oldLocalVm) oldLocalVm.PropertyChanged -= OnContentViewModelPropertyChanged;
+        if (CurrentContentViewModel is HotkeyTutorialViewModel oldTutorialVm)
+        {
+            oldTutorialVm.PropertyChanged -= OnContentViewModelPropertyChanged;
+            osService.ActionMenuHotkeyPressed -= OnTutorialHotkeyPressed; // Unsubscribe
+        }
+
         // Set the new content view model and enable/disable next button
         switch (newStep)
         {
@@ -87,8 +97,10 @@ public partial class OnboardingViewModel(
             case OnboardingStep.HotkeyTutorial:
                 var tutorialVm = serviceProvider.GetRequiredService<HotkeyTutorialViewModel>();
                 tutorialVm.PropertyChanged += OnContentViewModelPropertyChanged;
+                tutorialVm.ConfiguredHotkey = ActionMenuHotkey; // Pass the configured hotkey
                 CurrentContentViewModel = tutorialVm;
                 IsNextButtonEnabled = tutorialVm.IsCompleted;
+                osService.ActionMenuHotkeyPressed += OnTutorialHotkeyPressed; // Subscribe
                 break;
             default:
                 CurrentContentViewModel = null; // For simple steps handled by DataTemplates
@@ -96,7 +108,16 @@ public partial class OnboardingViewModel(
                 break;
         }
     }
-    
+
+    private void OnTutorialHotkeyPressed()
+    {
+        // Ensure this only triggers the UI on the tutorial step.
+        if (CurrentStep != OnboardingStep.HotkeyTutorial || CurrentContentViewModel is not HotkeyTutorialViewModel vm) return;
+        
+        // The event might come from a background thread, so dispatch to UI thread.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => vm.ShowMenuCommand.Execute(null));
+    }
+
     private void OnContentViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // Dynamically enable the 'Next' button based on sub-viewmodel state
@@ -108,7 +129,7 @@ public partial class OnboardingViewModel(
             _ => IsNextButtonEnabled
         };
     }
-    
+
     [RelayCommand]
     private void NextStep(Window window)
     {
@@ -129,6 +150,9 @@ public partial class OnboardingViewModel(
             case OnboardingStep.LocalSetup when CurrentContentViewModel is ModelLibraryViewModel localVm:
                 LocalModelPath = localVm.SelectedModel?.Model.FilePath;
                 break;
+            case OnboardingStep.HotkeySetup:
+                osService.UpdateHotkeys(ActionMenuHotkey, "Ctrl+Shift+V");
+                break;
         }
 
         // Go to the next logical step
@@ -136,12 +160,13 @@ public partial class OnboardingViewModel(
         {
             OnboardingStep.CloudSetup => OnboardingStep.ActionsIntro,
             OnboardingStep.LocalSetup => OnboardingStep.ActionsIntro,
+            OnboardingStep.ActionsIntro => OnboardingStep.HotkeySetup,
             _ => CurrentStep + 1
         };
-        
+
         UpdateStep(nextStep);
     }
-    
+
     [RelayCommand]
     private void ChooseProviderPath(string path)
     {
@@ -159,20 +184,23 @@ public partial class OnboardingViewModel(
             OnboardingStep.ActionsIntro => OnboardingStep.ProviderChoice,
             OnboardingStep.CloudSetup => OnboardingStep.ProviderChoice,
             OnboardingStep.LocalSetup => OnboardingStep.ProviderChoice,
+            OnboardingStep.HotkeySetup => OnboardingStep.ActionsIntro,
             _ => CurrentStep - 1
         };
-        
+
         UpdateStep(prevStep);
     }
-    
+
     public async Task SaveSettingsAsync()
     {
         var generalSettings = await settingsService.GetGeneralSettingsAsync();
         var providerSettings = await settingsService.GetProviderSettingsAsync();
 
         generalSettings.LaunchAtLogin = LaunchAtLogin;
+        generalSettings.ActionMenuHotkey = ActionMenuHotkey;
         osService.SetLaunchAtLogin(LaunchAtLogin);
-        
+        // The hotkey is already updated in IOsService during the onboarding flow
+
         if (CloudProviderConfig is not null)
         {
             providerSettings.PrimaryServiceType = "Cloud";
@@ -183,8 +211,13 @@ public partial class OnboardingViewModel(
             providerSettings.PrimaryServiceType = "Local";
             providerSettings.LocalModelPath = LocalModelPath;
         }
-        
+
         await settingsService.SaveGeneralSettingsAsync(generalSettings);
         await settingsService.SaveProviderSettingsAsync(providerSettings);
+    }
+    
+    public void OnClosing()
+    {
+        osService.ActionMenuHotkeyPressed -= OnTutorialHotkeyPressed;
     }
 }
