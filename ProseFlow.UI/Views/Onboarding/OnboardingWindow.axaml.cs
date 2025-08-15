@@ -15,6 +15,13 @@ public partial class OnboardingWindow : Window
     public OnboardingWindow()
     {
         InitializeComponent();
+        DataContextChanged += async (_, _) =>
+        {
+            if (DataContext is OnboardingViewModel vm)
+            {
+                await vm.InitializeAsync();
+            }
+        };
     }
 
     private void Button_SkipOnboard(object? sender, RoutedEventArgs e)

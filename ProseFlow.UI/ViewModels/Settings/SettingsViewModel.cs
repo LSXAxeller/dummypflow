@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ProseFlow.Application.DTOs;
 using ProseFlow.UI.Utils;
 using ProseFlow.Application.Events;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
 using ProseFlow.Core.Interfaces;
@@ -16,7 +18,19 @@ using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.ViewModels.Settings;
 
-public partial class SettingsViewModel(SettingsService settingsService, ActionManagementService actionService, IOsService osService) : ViewModelBase
+public partial class PresetViewModel(PresetDto preset) : ViewModelBase
+{
+    [ObservableProperty]
+    private bool _isImported;
+    
+    public PresetDto Preset { get; } = preset;
+}
+
+public partial class SettingsViewModel(
+    SettingsService settingsService, 
+    ActionManagementService actionService,
+    IPresetService presetService,
+    IOsService osService) : ViewModelBase
 {
     public override string Title => "Settings";
     public override LucideIconKind Icon => LucideIconKind.Settings;
@@ -28,6 +42,7 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
     private bool _hasHotkeyConflict;
 
     public ObservableCollection<Action> AvailableActions { get; } = [];
+    public ObservableCollection<PresetViewModel> AvailablePresets { get; } = [];
     public List<string> AvailableThemes => Enum.GetNames(typeof(ThemeType)).ToList();
     
     [ObservableProperty]
@@ -65,13 +80,64 @@ public partial class SettingsViewModel(SettingsService settingsService, ActionMa
     
     public override async Task OnNavigatedToAsync()
     {
+        await LoadSettingsAsync();
+        await LoadActionsAsync();
+        await LoadPresetsAsync();
+    }
+    
+    private async Task LoadSettingsAsync()
+    {
         Settings = await settingsService.GetGeneralSettingsAsync();
         SelectedTheme = Settings.Theme;
-        
+    }
+    
+    private async Task LoadActionsAsync()
+    {
         AvailableActions.Clear();
         var actions = await actionService.GetActionsAsync();
         foreach (var action in actions) AvailableActions.Add(action);
-        SelectedSmartPasteAction = AvailableActions.FirstOrDefault(a => a.Id == Settings.SmartPasteActionId);
+        SelectedSmartPasteAction = AvailableActions.FirstOrDefault(a => a.Id == Settings?.SmartPasteActionId);
+    }
+    
+    private async Task LoadPresetsAsync()
+    {
+        AvailablePresets.Clear();
+        var presets = await presetService.GetAvailablePresetsAsync();
+        var existingGroupsWithActions = await actionService.GetActionGroupsWithActionsAsync();
+        
+        var existingActionsByGroup = existingGroupsWithActions
+            .ToDictionary(g => g.Name, 
+                          g => g.Actions.Select(a => a.Name).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                          StringComparer.OrdinalIgnoreCase);
+
+        foreach (var presetDto in presets)
+        {
+            var presetVm = new PresetViewModel(presetDto);
+            
+            if (existingActionsByGroup.TryGetValue(presetDto.Name, out var existingActionNames))
+            {
+                var presetActionNames = await presetService.GetActionNamesFromPresetAsync(presetDto.ResourcePath);
+                if (presetActionNames.Overlaps(existingActionNames)) 
+                    presetVm.IsImported = true;
+            }
+            
+            AvailablePresets.Add(presetVm);
+        }
+    }
+    
+    [RelayCommand]
+    private async Task ImportPresetAsync(PresetViewModel presetVm)
+    {
+        try
+        {
+            await presetService.ImportPresetAsync(presetVm.Preset.ResourcePath);
+            AppEvents.RequestNotification($"'{presetVm.Preset.Name}' presets imported successfully!", NotificationType.Success);
+            presetVm.IsImported = true;
+        }
+        catch (Exception)
+        {
+            AppEvents.RequestNotification($"Failed to import '{presetVm.Preset.Name}'.", NotificationType.Error);
+        }
     }
     
     [RelayCommand]

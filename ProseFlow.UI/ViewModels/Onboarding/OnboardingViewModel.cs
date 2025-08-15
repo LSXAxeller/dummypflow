@@ -1,10 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using ProseFlow.Application.DTOs;
+using ProseFlow.Application.Events;
+using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Interfaces;
 using ProseFlow.Core.Models;
@@ -25,10 +31,18 @@ public enum OnboardingStep
     Graduation
 }
 
+public partial class PresetOnboardingViewModel(PresetDto preset) : ViewModelBase
+{
+    [ObservableProperty]
+    private bool _isSelected = true; // Default to selected
+    public PresetDto Preset { get; } = preset;
+}
+
 public partial class OnboardingViewModel(
     IServiceProvider serviceProvider,
     SettingsService settingsService,
     CloudProviderManagementService cloudProviderService,
+    IPresetService presetService,
     IOsService osService) : ViewModelBase
 {
     [ObservableProperty]
@@ -53,8 +67,24 @@ public partial class OnboardingViewModel(
 
     [ObservableProperty]
     private string _nextButtonText = "Continue";
+    
+    public ObservableCollection<PresetOnboardingViewModel> AvailablePresets { get; } = [];
 
-    public OnboardingViewModel() : this(Ioc.Default.GetRequiredService<IServiceProvider>(), Ioc.Default.GetRequiredService<SettingsService>(), Ioc.Default.GetRequiredService<CloudProviderManagementService>(), Ioc.Default.GetRequiredService<IOsService>()) {}
+    public OnboardingViewModel() : this(
+        Ioc.Default.GetRequiredService<IServiceProvider>(), 
+        Ioc.Default.GetRequiredService<SettingsService>(), 
+        Ioc.Default.GetRequiredService<CloudProviderManagementService>(),
+        Ioc.Default.GetRequiredService<IPresetService>(),
+        Ioc.Default.GetRequiredService<IOsService>()) {}
+
+    public async Task InitializeAsync()
+    {
+        var presets = await presetService.GetAvailablePresetsAsync();
+        foreach (var preset in presets)
+        {
+            AvailablePresets.Add(new PresetOnboardingViewModel(preset));
+        }
+    }
 
     partial void OnCurrentStepChanged(OnboardingStep value)
     {
@@ -209,6 +239,17 @@ public partial class OnboardingViewModel(
         {
             providerSettings.PrimaryServiceType = "Local";
             providerSettings.LocalModelPath = LocalModelPath;
+        }
+
+        // Import selected presets
+        var presetsToImport = AvailablePresets.Where(p => p.IsSelected).ToList();
+        if (presetsToImport.Count > 0)
+        {
+            foreach (var presetVm in presetsToImport)
+            {
+                await presetService.ImportPresetAsync(presetVm.Preset.ResourcePath);
+            }
+            AppEvents.RequestNotification($"{presetsToImport.Count} preset group(s) imported!", NotificationType.Success);
         }
 
         await settingsService.SaveGeneralSettingsAsync(generalSettings);

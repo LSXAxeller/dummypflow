@@ -195,8 +195,13 @@ public class ActionManagementService(IServiceScopeFactory scopeFactory, ILogger<
 
     public async Task ImportActionsFromJsonAsync(string filePath)
     {
-        var json = await File.ReadAllTextAsync(filePath);
-        var importedGroups = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, ActionDto>>>(json);
+        await using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        await ImportActionsFromJsonStreamAsync(fileStream);
+    }
+    
+    public async Task ImportActionsFromJsonStreamAsync(Stream jsonStream)
+    {
+        var importedGroups = await JsonSerializer.DeserializeAsync<Dictionary<string, Dictionary<string, ActionDto>>>(jsonStream);
 
         if (importedGroups is null)
         {

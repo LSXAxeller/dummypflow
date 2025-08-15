@@ -8,7 +8,7 @@
                xmlns:onboarding="clr-namespace:ProseFlow.UI.Views.Onboarding"
                xmlns:providers="clr-namespace:ProseFlow.UI.Views.Providers"
                xmlns:vmProviders="using:ProseFlow.UI.ViewModels.Providers"
-               mc:Ignorable="d" 
+               mc:Ignorable="d"
                x:DataType="vm:OnboardingViewModel"
                SizeToContent="Height"
                Width="800" Height="600"
@@ -43,7 +43,7 @@
                 <Button DockPanel.Dock="Right" Classes="Primary" Content="{Binding NextButtonText}" Margin="8,0"
                         Command="{Binding NextStepCommand}" CommandParameter="{Binding $parent[Window]}"
                         IsEnabled="{Binding IsNextButtonEnabled}"
-                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:OnboardingStep.ProviderChoice}}"/>
+                        IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:OnboardingStep.ProviderChoice}}" />
             </DockPanel>
         </Border>
 
@@ -51,7 +51,7 @@
         <Grid Name="MainContentArea" Margin="24" VerticalAlignment="Center">
             <ContentControl Content="{Binding CurrentContentViewModel}"
                             IsVisible="{Binding CurrentContentViewModel, Converter={x:Static ObjectConverters.IsNotNull}}" />
-            
+
             <!-- Welcome Step -->
             <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Welcome}}">
@@ -59,7 +59,7 @@
                 <TextBlock Classes="h2" Text="Welcome to ProseFlow" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="Your personal AI text processor, available everywhere with a keystroke." />
-                
+
                 <Button Classes="Outline" VerticalAlignment="Bottom" HorizontalAlignment="Center"
                         Content="Experienced? Skip" Click="Button_SkipOnboard" />
             </StackPanel>
@@ -125,14 +125,14 @@
                     </Border>
                 </ItemsControl>
             </StackPanel>
-            
+
             <!-- Hotkey Setup Step -->
             <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.HotkeySetup}}">
                 <TextBlock Classes="h3" Text="Set Your Main Hotkey" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="This is the global key combination you'll use everywhere to bring up the ProseFlow action menu." />
-            
+
                 <TextBox
                     x:Name="ActionMenuHotkeyBox"
                     HorizontalAlignment="Center"
@@ -152,9 +152,38 @@
                 <TextBlock Classes="h2" Text="You're All Set!" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="ProseFlow will now run quietly in your system tray. Use your hotkeys anytime to process text." />
+
+                <Separator Margin="0, 16" />
+
+                <TextBlock Text="One last thing: would you like to import some starter actions?" Classes="p" />
+
+                <ItemsControl ItemsSource="{Binding AvailablePresets}" HorizontalAlignment="Center" Margin="0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="3" ColumnSpacing="8" RowSpacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:PresetOnboardingViewModel">
+                            <shadui:Card>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <ToggleSwitch IsChecked="{Binding IsSelected}" />
+                                    <StackPanel Spacing="4">
+                                        <shadui:CardTitle Content="{Binding Preset.Name}" FontWeight="Medium" HorizontalAlignment="Left" />
+                                        <shadui:CardDescription Content="{Binding Preset.Description}" Classes="Small Muted" HorizontalAlignment="Left" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </shadui:Card>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Separator Margin="0, 16" />
+
                 <StackPanel Orientation="Horizontal" Margin="0,16" Spacing="8" HorizontalAlignment="Center">
                     <ToggleSwitch IsChecked="{Binding LaunchAtLogin, Mode=TwoWay}" />
-                    <TextBlock Text="Launch ProseFlow when my computer starts" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock Text="Launch ProseFlow when my computer starts" VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
                 </StackPanel>
             </StackPanel>
         </Grid>

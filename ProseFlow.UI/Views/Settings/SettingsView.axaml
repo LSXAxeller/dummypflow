@@ -119,6 +119,80 @@
                             SelectedItem="{Binding SelectedTheme}" />
                     </StackPanel>
                 </shadui:Card>
+                
+                <!-- Action Presets Card -->
+                <shadui:Card HasShadow="True">
+                    <shadui:Card.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <LucideIcon Size="24" Kind="PackagePlus"/>
+                            <StackPanel>
+                                <shadui:CardTitle>Action Presets</shadui:CardTitle>
+                                <shadui:CardDescription>Import curated sets of actions to get started quickly.</shadui:CardDescription>
+                            </StackPanel>
+                        </StackPanel>
+                    </shadui:Card.Header>
+                    <ItemsControl ItemsSource="{Binding AvailablePresets}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:PresetViewModel">
+                                <Border Padding="12" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
+                                    <DockPanel>
+                                        <Panel DockPanel.Dock="Right">
+                                            <!-- Button for when preset is not imported -->
+                                            <Button Classes="Outline"
+                                                    Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ImportPresetCommand, FallbackValue={x:Null}}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding !IsImported}">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <LucideIcon Kind="Download" Size="16" />
+                                                    <TextBlock Text="Import" />
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- Button for when preset is imported -->
+                                            <Button Name="ImportedButton" Classes="Outline"
+                                                    Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).ImportPresetCommand, FallbackValue={x:Null}}"
+                                                    CommandParameter="{Binding .}"
+                                                    IsVisible="{Binding IsImported}">
+                                                <Button.Styles>
+                                                    <!-- When NOT hovering, hide the "Re-import" content -->
+                                                    <Style Selector="Button#ImportedButton:not(:pointerover) StackPanel.reimport-content">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </Style>
+                                                    <!-- When hovering, hide the "Imported" content -->
+                                                    <Style Selector="Button#ImportedButton:pointerover StackPanel.imported-content">
+                                                        <Setter Property="IsVisible" Value="False" />
+                                                    </Style>
+                                                </Button.Styles>
+                                                <Panel>
+                                                    <!-- Default "Imported" state -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="8" Classes="imported-content">
+                                                        <LucideIcon Kind="Check" Size="16" />
+                                                        <TextBlock Text="Imported" />
+                                                    </StackPanel>
+                                                    <!-- "Re-import" state on hover -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="8" Classes="reimport-content">
+                                                        <LucideIcon Kind="RefreshCw" Size="16" />
+                                                        <TextBlock Text="Re-import" />
+                                                    </StackPanel>
+                                                </Panel>
+                                            </Button>
+                                        </Panel>
+                                        
+                                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Preset.Name}" FontWeight="Medium" />
+                                            <TextBlock Text="{Binding Preset.Description}" Classes="Small Muted" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </shadui:Card>
 
             </StackPanel>
         </ScrollViewer>

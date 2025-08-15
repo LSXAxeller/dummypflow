@@ -429,6 +429,7 @@ public class App : Avalonia.Application
         services.AddScoped<SettingsService>();
         services.AddScoped<HistoryService>();
         services.AddScoped<CloudProviderManagementService>();
+        services.AddSingleton<IPresetService, PresetService>();
 
         // Add Platform-Specific Services
         if (OperatingSystem.IsLinux())

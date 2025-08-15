@@ -10,7 +10,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <AvaloniaResource Include="Assets\**" />
+        <AvaloniaResource Include="Assets\Fonts\*" />
+        <AvaloniaResource Include="Assets\Icons\*" />
+        <AvaloniaResource Include="Assets\avalonia-logo.ico" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Assets\Presets\*.json" />
     </ItemGroup>
 
     <ItemGroup>
