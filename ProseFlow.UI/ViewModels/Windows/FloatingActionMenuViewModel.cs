@@ -23,6 +23,8 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [ObservableProperty] private object? _selectedItem;
     [ObservableProperty] private string _currentServiceTypeName = "Cloud";
     [ObservableProperty] private string _resultContainer = "Default";
+    [ObservableProperty] private string _customInstruction = string.Empty;
+    [ObservableProperty] private bool _isCustomInstructionActive = false;
 
     public bool ShouldClose { get; private set; }
 
@@ -132,6 +134,34 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     {
         ShouldClose = false;
 
+        // Prioritize custom instruction if it exists
+        if (IsCustomInstructionActive && !string.IsNullOrWhiteSpace(CustomInstruction))
+        {
+            var customAction = new Action
+            {
+                Name = "Custom Instruction",
+                Instruction = CustomInstruction,
+                OpenInWindow = false, // Default for custom actions is in-place replacement
+                ExplainChanges = false,
+                Prefix = string.Empty,
+                Icon = "Sparkles"
+            };
+
+            var forceOpenInWindow = ResultContainer == "Default" ? customAction.OpenInWindow : ResultContainer == "Windowed";
+
+            var request = new ActionExecutionRequest(
+                customAction,
+                forceOpenInWindow,
+                CurrentServiceTypeName
+            );
+
+            if (!_selectionTcs.Task.IsCompleted)
+                _selectionTcs.SetResult(request);
+
+            ShouldClose = true;
+            return;
+        }
+        
         switch (SelectedItem)
         {
             case null:
@@ -144,9 +174,13 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
             // If an action item is selected, execute it
             case ActionItemViewModel actionItem:
             {
+                var forceOpenInWindow = ResultContainer == "Default" 
+                    ? actionItem.Action.OpenInWindow 
+                    : ResultContainer == "Windowed";
+
                 var request = new ActionExecutionRequest(
                     actionItem.Action,
-                    ResultContainer == "Default" ? actionItem.Action.OpenInWindow : ResultContainer == "Windowed",
+                    forceOpenInWindow,
                     CurrentServiceTypeName
                 );
 
@@ -184,7 +218,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    internal void SelectAndConfirmItem(object? item)
+    private void SelectAndConfirmItem(object? item)
     {
         if (item is null) return;
         SelectedItem = item;

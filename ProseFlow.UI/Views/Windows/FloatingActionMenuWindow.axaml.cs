@@ -164,7 +164,14 @@ public partial class FloatingActionMenuWindow : Window
     private void ActionButton_OnPointerPressed(object? sender, RoutedEventArgs  e)
     {
         if (sender is not Button { DataContext: ActionItemViewModel action } || DataContext is not FloatingActionMenuViewModel vm) return;
-        vm.SelectAndConfirmItem(action);
+        vm.SelectAndConfirmItemCommand.Execute(action);
+        Close();
+    }
+
+    private void CustomInstructionButton_OnPointerPressed(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not FloatingActionMenuViewModel vm) return;
+        vm.ConfirmSelectionCommand.Execute(null);
         Close();
     }
 }
