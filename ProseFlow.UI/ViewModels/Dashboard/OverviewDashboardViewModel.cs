@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -20,7 +21,7 @@ namespace ProseFlow.UI.ViewModels.Dashboard;
 public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDisposable
 {
     public override string Title => "Overview";
-    
+
     private readonly DashboardService _dashboardService;
     private readonly HistoryService _historyService;
     private readonly LocalModelManagerService _modelManager;
@@ -30,7 +31,7 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
     [ObservableProperty] private int _totalActionsExecuted;
     [ObservableProperty] private long _totalCloudTokens;
     [ObservableProperty] private long _totalLocalTokens;
-    
+
     // Status Widget Properties
     [ObservableProperty] private ModelStatus _localModelStatus;
     [ObservableProperty] private string _localModelName = "No Model Selected";
@@ -38,18 +39,18 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
 
     // Recent Activity
     public ObservableCollection<HistoryEntry> RecentActivity { get; } = [];
-    
+
     public OverviewDashboardViewModel(
-        DashboardService dashboardService, 
-        HistoryService historyService, 
-        LocalModelManagerService modelManager, 
+        DashboardService dashboardService,
+        HistoryService historyService,
+        LocalModelManagerService modelManager,
         SettingsService settingsService)
     {
         _dashboardService = dashboardService;
         _historyService = historyService;
         _modelManager = modelManager;
         _settingsService = settingsService;
-        
+
         _modelManager.StateChanged += OnModelStateChanged;
         OnModelStateChanged(); // Set initial state
     }
@@ -63,23 +64,25 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
         var allHistoryTask = _dashboardService.GetHistoryByDateRangeAsync(startDate, endDate);
         var recentHistoryTask = _historyService.GetRecentHistoryAsync(5);
         var settingsTask = _settingsService.GetProviderSettingsAsync();
-        
+
         await Task.WhenAll(allHistoryTask, recentHistoryTask, settingsTask);
 
         var allHistory = await allHistoryTask;
-        
+
         // Update KPIs
         TotalActionsExecuted = allHistory.Count;
-        TotalCloudTokens = allHistory.Where(h => h.ProviderUsed == "Cloud").Sum(h => h.PromptTokens + h.CompletionTokens);
-        TotalLocalTokens = allHistory.Where(h => h.ProviderUsed == "Local").Sum(h => h.PromptTokens + h.CompletionTokens);
-        
+        TotalCloudTokens = allHistory.Where(h => h.ProviderUsed == "Cloud")
+            .Sum(h => h.PromptTokens + h.CompletionTokens);
+        TotalLocalTokens = allHistory.Where(h => h.ProviderUsed == "Local")
+            .Sum(h => h.PromptTokens + h.CompletionTokens);
+
         // Update Recent Activity
         RecentActivity.Clear();
         foreach (var entry in await recentHistoryTask) RecentActivity.Add(entry);
 
         // Update Chart with advanced hover logic
         UpdateUsageChart(allHistory);
-        
+
         // Update Local Model Name
         var settings = await settingsTask;
         LocalModelName = string.IsNullOrWhiteSpace(settings.LocalModelPath)
@@ -88,7 +91,7 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
 
         IsLoading = false;
     }
-    
+
     private void UpdateUsageChart(List<HistoryEntry> history)
     {
         var actionsByDay = history
@@ -101,9 +104,9 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
         var series = uniqueActionNames.Select(actionName => new StackedColumnSeries<long>
         {
             Name = actionName,
-            Values = actionsByDay.Select(day => 
+            Values = actionsByDay.Select(day =>
                 day.Where(h => h.ActionName == actionName)
-                   .Sum(h => h.PromptTokens + h.CompletionTokens)
+                    .Sum(h => h.PromptTokens + h.CompletionTokens)
             ).ToList()
         });
 
@@ -115,10 +118,11 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
             {
                 Labels = actionsByDay.Select(g => g.Key.ToString("MMM d")).ToList(),
                 TextSize = 12,
+                NamePaint = Avalonia.Application.Current?.ActualThemeVariant == ThemeVariant.Dark ? new SolidColorPaint(SKColors.White) : new SolidColorPaint(SKColors.Black),
                 SeparatorsPaint = new SolidColorPaint(SKColors.Transparent)
             }
         ];
-        
+
         YAxes =
         [
             new Axis
@@ -126,11 +130,12 @@ public partial class OverviewDashboardViewModel : DashboardViewModelBase, IDispo
                 Name = "Total Tokens",
                 NameTextSize = 12,
                 TextSize = 12,
+                NamePaint = Avalonia.Application.Current?.ActualThemeVariant == ThemeVariant.Dark ? new SolidColorPaint(SKColors.White) : new SolidColorPaint(SKColors.Black),
                 SeparatorsPaint = new SolidColorPaint(SKColors.LightSlateGray) { StrokeThickness = 0.5f }
             }
         ];
     }
-    
+
     private void OnModelStateChanged()
     {
         Dispatcher.UIThread.Post(() =>

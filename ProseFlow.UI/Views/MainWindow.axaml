@@ -14,7 +14,7 @@
     d:DesignHeight="1080"
 
     Title="ProseFlow"
-    Icon="/Assets/avalonia-logo.ico"
+    Icon="/Assets/logo.ico"
     Width="1920" Height="1080"
     MinWidth="960" MinHeight="740"
     WindowStartupLocation="CenterScreen"
@@ -47,7 +47,15 @@
             Width="14"
             Height="14"
             Margin="8,8,0,8"
-            Data="{x:Static shadui:Icons.Logo}" />
+            Data="{Binding ., Converter={StaticResource StringToIconConverter}, ConverterParameter=Logo}">
+            <PathIcon.Styles>
+                <Style Selector="Path">
+                    <Setter Property="Stroke"
+                            Value="{DynamicResource PrimaryColor}" />
+                    <Setter Property="StrokeThickness" Value="1" />
+                </Style>
+            </PathIcon.Styles>
+        </PathIcon>
     </shadui:Window.LogoContent>
 
     <shadui:Window.Hosts>
@@ -87,8 +95,16 @@
                             Margin="16,0"
                             IsVisible="{Binding #Toggler.IsChecked, Converter={x:Static BoolConverters.Not}}"
                             Width="24" Height="24"
-                            Data="{x:Static shadui:Icons.Logo}"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            Data="{Binding ., Converter={StaticResource StringToIconConverter}, ConverterParameter=Logo}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <PathIcon.Styles>
+                                <Style Selector="Path">
+                                    <Setter Property="Stroke"
+                                            Value="{DynamicResource PrimaryColor}" />
+                                    <Setter Property="StrokeThickness" Value="1" />
+                                </Style>
+                            </PathIcon.Styles>
+                        </PathIcon>
 
                         <StackPanel
                             Spacing="4"
@@ -96,9 +112,18 @@
                             HorizontalAlignment="Center" VerticalAlignment="Center"
                             IsVisible="{Binding #Toggler.IsChecked}">
                             <PathIcon
+                                Margin="16,0"
                                 Width="24" Height="24"
-                                Data="{x:Static shadui:Icons.Logo}"
-                                HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                Data="{Binding ., Converter={StaticResource StringToIconConverter}, ConverterParameter=Logo}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <PathIcon.Styles>
+                                    <Style Selector="Path">
+                                        <Setter Property="Stroke"
+                                                Value="{DynamicResource PrimaryColor}" />
+                                        <Setter Property="StrokeThickness" Value="1" />
+                                    </Style>
+                                </PathIcon.Styles>
+                            </PathIcon>
                             <TextBlock
                                 Classes="h3"
                                 Text="Prose"

@@ -59,10 +59,11 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
             var modelParams = new ModelParams(settings.LocalModelPath)
             {
                 ContextSize = (uint)(settings.LocalModelContextSize > 0 ? settings.LocalModelContextSize : 4096),
-                GpuLayerCount = settings.PreferGpu ? 99 : 0,
+                GpuLayerCount = settings.PreferGpu ? -1 : 0,
                 Threads = settings.LocalCpuCores > 0 ? settings.LocalCpuCores : null,
                 UseMemorymap = settings.LocalModelMemoryMap,
-                UseMemoryLock = settings.LocalModelMemorylock
+                UseMemoryLock = settings.LocalModelMemorylock,
+                FlashAttention = true
             };
 
             var progressReporter = new Progress<float>(progress =>

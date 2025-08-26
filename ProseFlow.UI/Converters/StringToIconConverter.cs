@@ -26,6 +26,8 @@ public partial class StringToIconConverter : IValueConverter
     private const string SvgStartTag = "<svg";
     private const string SvgEndTag = "</svg>";
     private const string DefaultIconUri = "avares://ProseFlow.UI/Assets/Icons/default.svg";
+    public const string IconPath = "avares://ProseFlow.UI/Assets/logo.svg";
+
 
     // Regex to extract the 'd' attribute from one or more <path> tags.
     private static readonly Regex SvgPathDataRegex = SvgPathRegex();
@@ -33,6 +35,9 @@ public partial class StringToIconConverter : IValueConverter
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
+        if (parameter is not null && parameter.ToString() == "Logo")
+            return ParseFromFile(IconPath);
+        
         var inputString = value as string;
 
         // Handle direct binding of LucideIconKind for convenience (e.g., in previews)
@@ -98,7 +103,7 @@ public partial class StringToIconConverter : IValueConverter
     /// </summary>
     private static StreamGeometry ParseFromFile(string path)
     {
-        var stream = path.Contains("://")
+        var stream = path.StartsWith("avares://")
             ? AssetLoader.Open(new Uri(path))
             : new FileStream(path, FileMode.Open, FileAccess.Read);
 

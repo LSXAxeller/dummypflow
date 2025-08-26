@@ -8,7 +8,7 @@
     x:DataType="vm:ResultViewModel"
 
     Title="{Binding ActionName}"
-    Icon="/Assets/avalonia-logo.ico"
+    Icon="/Assets/logo.ico"
     Width="800" Height="500" MinWidth="720" MinHeight="350"
     WindowStartupLocation="CenterScreen"
     SaveWindowState="True">

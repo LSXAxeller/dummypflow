@@ -84,7 +84,8 @@ public class CloudProvider(
                 await foreach (var chunk in stream.WithCancellation(cancellationToken))
                 {
                     // Aggregate content from response chunks
-                    if (chunk.Choices?.FirstOrDefault()?.Delta?.Content is { } contentPart) fullContent.Append(contentPart);
+                    var delta = chunk.Choices?.FirstOrDefault()?.Delta;
+                    if (delta is { Role: ChatMessageRoles.Assistant, Content: { } contentPart }) fullContent.Append(contentPart);
 
                     // Aggregate usage data. The final counts are often in the last chunks.
                     if (chunk.Usage is not null)

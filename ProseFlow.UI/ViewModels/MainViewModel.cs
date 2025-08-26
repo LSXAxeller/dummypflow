@@ -37,7 +37,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private DownloadsPopupViewModel _downloadsPopup;
 
     public ObservableCollection<IPageViewModel> PageViewModels { get; } = [];
-
+    
     public MainViewModel(IServiceProvider serviceProvider, DialogManager dialogManager, ToastManager toastManager, IDownloadManager downloadManager)
     {
         _serviceProvider = serviceProvider;

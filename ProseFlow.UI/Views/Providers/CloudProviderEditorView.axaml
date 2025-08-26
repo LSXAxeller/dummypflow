@@ -7,7 +7,7 @@
     x:DataType="vm:CloudProviderEditorViewModel"
 
     Title="Cloud Provider Editor"
-    Icon="/Assets/avalonia-logo.ico"
+    Icon="/Assets/logo.ico"
     Width="500" Height="600"
     WindowStartupLocation="CenterOwner"
     CanResize="False"

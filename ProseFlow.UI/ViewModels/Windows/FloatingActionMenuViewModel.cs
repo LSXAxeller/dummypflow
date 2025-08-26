@@ -24,7 +24,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [ObservableProperty] private string _currentServiceTypeName = "Cloud";
     [ObservableProperty] private string _resultContainer = "Default";
     [ObservableProperty] private string _customInstruction = string.Empty;
-    [ObservableProperty] private bool _isCustomInstructionActive = false;
+    [ObservableProperty] private bool _isCustomInstructionActive;
 
     public bool ShouldClose { get; private set; }
 

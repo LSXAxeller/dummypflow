@@ -55,7 +55,19 @@
             <!-- Welcome Step -->
             <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Welcome}}">
-                <PathIcon Data="{x:Static shadui:Icons.Logo}" Width="48" Height="48" Margin="0, 16" />
+                <PathIcon
+                    Margin="0,16"
+                    Width="48" Height="48"
+                    Data="{Binding ., Converter={StaticResource StringToIconConverter}, ConverterParameter=Logo}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <PathIcon.Styles>
+                        <Style Selector="Path">
+                            <Setter Property="Stroke"
+                                    Value="{DynamicResource PrimaryColor}" />
+                            <Setter Property="StrokeThickness" Value="1" />
+                        </Style>
+                    </PathIcon.Styles>
+                </PathIcon>
                 <TextBlock Classes="h2" Text="Welcome to ProseFlow" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="Your personal AI text processor, available everywhere with a keystroke." />

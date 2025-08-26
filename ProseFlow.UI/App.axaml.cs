@@ -307,7 +307,7 @@ public class App : Avalonia.Application
         // Create the TrayIcon instance
         var trayIcon = new TrayIcon
         {
-            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://ProseFlow.UI/Assets/avalonia-logo.ico"))),
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://ProseFlow.UI/Assets/logo.ico"))),
             ToolTipText = "ProseFlow",
             Menu = new NativeMenu
             {
