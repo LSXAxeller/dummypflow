@@ -360,7 +360,12 @@ public class App : Avalonia.Application
             {
                 var window = new FloatingActionMenuWindow
                 {
-                    DataContext = viewModel
+                    DataContext = viewModel,
+                    ShowActivated = true,
+                    Topmost = true,
+                    Focusable = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowState = WindowState.Normal,
                 };
                 window.Show();
             });

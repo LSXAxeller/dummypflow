@@ -24,11 +24,12 @@ public class LocalProvider(
 {
     // A semaphore to ensure that only one thread can execute an inference call at a time.
     private readonly SemaphoreSlim _inferenceLock = new(1, 1);
-    
+
     public string Name => "Local";
     public ProviderType Type => ProviderType.Local;
 
-    public async Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages, CancellationToken cancellationToken, Guid? sessionId = null)
+    public async Task<AiResponse> GenerateResponseAsync(IEnumerable<ChatMessage> messages,
+        CancellationToken cancellationToken, Guid? sessionId = null)
     {
         // Wait for any ongoing inference to complete before proceeding.
         await _inferenceLock.WaitAsync(cancellationToken);
@@ -47,7 +48,7 @@ public class LocalProvider(
                 logger.LogError(errorMessage);
                 throw new InvalidOperationException(errorMessage);
             }
-            
+
             // Reset the idle timer to prevent auto-unloading during use.
             modelManager.ResetIdleTimer();
 
@@ -74,11 +75,13 @@ public class LocalProvider(
 
             try
             {
+                var isNewConversation = conversation.TokenCount == 0;
+
                 // Format the prompt
-                var formattedPrompt = BuildPrompt(messages, executor.Model, conversation.TokenCount == 0, settings);
+                var formattedPrompt = BuildPrompt(messages, executor.Model, isNewConversation, settings);
 
                 // Prompt the model
-                var promptTokens = executor.Context.Tokenize(formattedPrompt);
+                var promptTokens = executor.Context.Tokenize(formattedPrompt, addBos: isNewConversation, special: true);
                 conversation.Prompt(promptTokens);
 
                 var promptTokenCount = promptTokens.Length;
@@ -103,13 +106,16 @@ public class LocalProvider(
                 {
                     if (cancellationToken.IsCancellationRequested) break;
 
-                    await executor.Infer(cancellationToken);
+                    if (conversation.RequiresInference)
+                        await executor.Infer(cancellationToken);
 
                     if (!conversation.RequiresSampling) continue;
 
-                    var token = sampler.Sample(executor.Context.NativeHandle, conversation.GetSampleIndex());
+                    var token = conversation.Sample(sampler);
                     completionTokenCount++;
-                    if (token.IsEndOfGeneration(executor.Model.NativeHandle)) break;
+                    if (token.IsEndOfGeneration(executor.Model.NativeHandle.Vocab) ||
+                        token.IsControl(executor.Model.NativeHandle.Vocab))
+                        break;
 
                     decoder.Add(token);
                     responseBuilder.Append(decoder.Read());
@@ -176,9 +182,9 @@ public class LocalProvider(
     /// <param name="model">The loaded LLamaWeights model containing the template.</param>
     /// <param name="isNewSession">If true, the entire history is rendered. If false, only the last user message is rendered.</param>
     /// <param name="settings">The provider settings containing the model path and parameters.</param>
-    private string BuildPrompt(IEnumerable<ChatMessage> messages, LLamaWeights model, bool isNewSession, ProviderSettings settings)
+    private string BuildPrompt(IEnumerable<ChatMessage> messages, LLamaWeights model, bool isNewSession,
+        ProviderSettings settings)
     {
-
         try
         {
             var messageList = messages.ToList();
@@ -207,12 +213,13 @@ public class LocalProvider(
         }
         catch (Exception ex)
         {
-            var errorMessage = $"Failed to build prompt: {Path.GetFileNameWithoutExtension(settings.LocalModelPath)} model's embedded prompt template is missing or incorrect.";
-            logger.LogCritical(ex,  errorMessage);
+            var errorMessage =
+                $"Failed to build prompt: {Path.GetFileNameWithoutExtension(settings.LocalModelPath)} model's embedded prompt template is missing or incorrect.";
+            logger.LogCritical(ex, errorMessage);
             throw new InvalidOperationException(errorMessage, ex);
         }
     }
-    
+
     public void Dispose()
     {
         _inferenceLock.Dispose();

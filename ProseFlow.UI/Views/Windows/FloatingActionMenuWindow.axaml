@@ -16,6 +16,7 @@
     ShowBottomBorder="False"
     BorderBrush="Transparent"
     BorderThickness="0"
+    ShowActivated="True"
 
     Opened="OnWindowOpened" KeyDown="OnWindowKeyDown" Deactivated="WindowBase_OnDeactivated">
 

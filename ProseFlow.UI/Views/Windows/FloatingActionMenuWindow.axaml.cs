@@ -38,9 +38,16 @@ public partial class FloatingActionMenuWindow : Window
                 (int)(Screens.Primary.WorkingArea.Center.X - Width / 2),
                 (int)(Screens.Primary.WorkingArea.Center.Y - Height / 2 - 100)
             );
+        
 
         // Focus the search box for immediate typing
-        SearchBox.Focus();
+        Dispatcher.UIThread.Post(() =>
+        {
+            Activate();
+            Focus();
+            SearchBox.Focus();
+        }, DispatcherPriority.Background);
+        
     }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)

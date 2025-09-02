@@ -15,126 +15,131 @@
     <DockPanel>
         <TabControl SelectedIndex="{Binding SelectedTabIndex}" HorizontalAlignment="Center" Margin="0,24">
             <TabItem Header="Available for Download" HorizontalAlignment="Center">
-                <ScrollViewer MaxHeight="400">
-                    <ItemsControl ItemsSource="{Binding AvailableModels}" Padding="24">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel ItemSpacing="8" LineSpacing="8" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="downloads:AvailableModelViewModel">
-                                <shadui:Card Width="400">
-                                    <shadui:Card.Header>
-                                        <DockPanel>
-                                            <TextBlock Classes="Muted" DockPanel.Dock="Right"
-                                                       Text="{Binding Model.Creator}" />
-                                            <shadui:CardTitle Content="{Binding Model.Name}" />
-                                        </DockPanel>
-                                    </shadui:Card.Header>
-                                    <shadui:Card.Content>
-                                        <StackPanel Spacing="12">
-                                            <TextBlock Text="{Binding Model.Description}" TextWrapping="Wrap" />
-                                            <ComboBox
-                                                IsEnabled="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.NotDownloaded}}"
-                                                shadui:ControlAssist.Label="Quantization"
-                                                ItemsSource="{Binding Model.Quantizations}"
-                                                SelectedItem="{Binding SelectedQuantization}">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate DataType="core:ModelQuantization">
-                                                        <TextBlock>
-                                                            <Run Text="{Binding Name}" />
-                                                            <Run
-                                                                Text="{Binding FileSizeGb, StringFormat='- {0:F1} GB'}" />
-                                                        </TextBlock>
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                        </StackPanel>
-                                    </shadui:Card.Content>
-                                    <shadui:Card.Footer>
-                                        <Panel>
-                                            <!-- State 1: Default Download Button -->
-                                            <Button Classes="Primary" HorizontalAlignment="Right"
-                                                    Command="{Binding StartDownloadCommand}"
-                                                    IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.NotDownloaded}}">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <LucideIcon Size="18" Kind="Download" />
-                                                    <TextBlock>
-                                                        <Run Text="Download" />
-                                                        <Run
-                                                            Text="{Binding SelectedQuantization.FileSizeGb, StringFormat='({0:F1} GB)'}" />
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Button>
-
-                                            <!-- State 2: Queued -->
-                                            <DockPanel VerticalAlignment="Center"
-                                                       IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Queued}}">
-                                                <Button Classes="Outline" DockPanel.Dock="Right"
-                                                        Command="{Binding CancelDownloadCommand}" Content="Cancel" />
-                                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                                            VerticalAlignment="Center">
-                                                    <LucideIcon Size="16" Kind="Clock" />
-                                                    <TextBlock Text="Queued..." FontWeight="Medium" />
-                                                </StackPanel>
+                <Grid>
+                    <TextBlock TextAlignment="Center" Margin="25" IsVisible="{Binding AvailableModels.Count, Converter={StaticResource ConditionCheckConverter}, ConverterParameter='0|True|False'}" Text="No models available for download yet." />
+                    <ScrollViewer MaxHeight="400">
+                        <ItemsControl ItemsSource="{Binding AvailableModels}" Padding="24">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="downloads:AvailableModelViewModel">
+                                    <shadui:Card Width="400">
+                                        <shadui:Card.Header>
+                                            <DockPanel>
+                                                <TextBlock Classes="Muted" DockPanel.Dock="Right"
+                                                           Text="{Binding Model.Creator}" />
+                                                <shadui:CardTitle Content="{Binding Model.Name}" />
                                             </DockPanel>
-
-                                            <!-- State 3: Downloading -->
-                                            <DockPanel VerticalAlignment="Center" HorizontalSpacing="8"
-                                                       IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Downloading}}">
-                                                <Button Classes="Outline" DockPanel.Dock="Right"
-                                                        Command="{Binding CancelDownloadCommand}" Content="Cancel" />
-                                                <Border Padding="0,8,0,0">
-
-                                                    <StackPanel Spacing="4">
-                                                        <ProgressBar ShowProgressText="True" CornerRadius="16"
-                                                                     Value="{Binding ActiveDownloadTask.ProgressPercentage, StringFormat='{}{0}%', Mode=OneWay, FallbackValue='0'}" />
-                                                        <TextBlock Classes="Small Muted">
+                                        </shadui:Card.Header>
+                                        <shadui:Card.Content>
+                                            <StackPanel Spacing="12" VerticalAlignment="Stretch">
+                                                <TextBlock Text="{Binding Model.Description}" TextWrapping="Wrap" />
+                                                <ComboBox VerticalAlignment="Bottom"
+                                                    IsEnabled="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.NotDownloaded}}"
+                                                    shadui:ControlAssist.Label="Quantization"
+                                                    ItemsSource="{Binding Model.Quantizations}"
+                                                    SelectedItem="{Binding SelectedQuantization}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate DataType="core:ModelQuantization">
+                                                            <TextBlock>
+                                                                <Run Text="{Binding Name}" />
+                                                                <Run
+                                                                    Text="{Binding FileSizeGb, StringFormat='- {0:F1} GB'}" />
+                                                            </TextBlock>
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </shadui:Card.Content>
+                                        <shadui:Card.Footer>
+                                            <Panel>
+                                                <!-- State 1: Default Download Button -->
+                                                <Button Classes="Primary" HorizontalAlignment="Right"
+                                                        Command="{Binding StartDownloadCommand}"
+                                                        IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.NotDownloaded}}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <LucideIcon Size="18" Kind="Download" />
+                                                        <TextBlock>
+                                                            <Run Text="Download" />
                                                             <Run
-                                                                Text="{Binding ActiveDownloadTask.BytesDownloaded, Converter={StaticResource FileSizeConverter}, Mode=OneWay, FallbackValue='0'}" />
-                                                            <Run Text=" / " />
-                                                            <Run
-                                                                Text="{Binding ActiveDownloadTask.TotalBytes, Converter={StaticResource FileSizeConverter}, Mode=OneWay, FallbackValue='0'}" />
-                                                            <Run Text="  -  " />
-                                                            <Run
-                                                                Text="{Binding ActiveDownloadTask.Speed, StringFormat='{}{0} MB/s', Mode=OneWay, FallbackValue='0'}" />
+                                                                Text="{Binding SelectedQuantization.FileSizeGb, StringFormat='({0:F1} GB)'}" />
                                                         </TextBlock>
                                                     </StackPanel>
-                                                </Border>
-                                            </DockPanel>
+                                                </Button>
 
-                                            <!-- State 4: Installed -->
-                                            <DockPanel VerticalAlignment="Center"
-                                                       IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Installed}}">
-                                                <Button Classes="Outline" DockPanel.Dock="Right"
-                                                        Command="{Binding GoToMyModelsCommand}" Content="View" />
-                                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                                            VerticalAlignment="Center">
-                                                    <LucideIcon Size="16" Kind="CircleCheck" Classes="Success" />
-                                                    <TextBlock Text="Installed" FontWeight="Medium" />
-                                                </StackPanel>
-                                            </DockPanel>
+                                                <!-- State 2: Queued -->
+                                                <DockPanel VerticalAlignment="Center"
+                                                           IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Queued}}">
+                                                    <Button Classes="Outline" DockPanel.Dock="Right"
+                                                            Command="{Binding CancelDownloadCommand}" Content="Cancel" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                                VerticalAlignment="Center">
+                                                        <LucideIcon Size="16" Kind="Clock" />
+                                                        <TextBlock Text="Queued..." FontWeight="Medium" />
+                                                    </StackPanel>
+                                                </DockPanel>
 
-                                            <!-- State 5: Failed -->
-                                            <DockPanel VerticalAlignment="Center"
-                                                       IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Failed}}">
-                                                <Button Classes="Outline" DockPanel.Dock="Right"
-                                                        Command="{Binding RetryDownloadCommand}" Content="Retry" />
-                                                <StackPanel Orientation="Horizontal" Spacing="8"
-                                                            VerticalAlignment="Center">
-                                                    <LucideIcon Size="16" Kind="TriangleAlert" Classes="Destructive" />
-                                                    <TextBlock Text="Download Failed" Classes="Destructive"
-                                                               TextWrapping="Wrap" FontWeight="Medium" />
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </Panel>
-                                    </shadui:Card.Footer>
-                                </shadui:Card>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                                                <!-- State 3: Downloading -->
+                                                <DockPanel VerticalAlignment="Center" HorizontalSpacing="8"
+                                                           IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Downloading}}">
+                                                    <Button Classes="Outline" DockPanel.Dock="Right"
+                                                            Command="{Binding CancelDownloadCommand}" Content="Cancel" />
+                                                    <Border Padding="0,8,0,0">
+
+                                                        <StackPanel Spacing="4">
+                                                            <ProgressBar ShowProgressText="True" CornerRadius="16"
+                                                                         Value="{Binding ActiveDownloadTask.ProgressPercentage, StringFormat='{}{0}%', Mode=OneWay, FallbackValue='0'}" />
+                                                            <TextBlock Classes="Small Muted">
+                                                                <Run
+                                                                    Text="{Binding ActiveDownloadTask.BytesDownloaded, Converter={StaticResource FileSizeConverter}, Mode=OneWay, FallbackValue='0'}" />
+                                                                <Run Text=" / " />
+                                                                <Run
+                                                                    Text="{Binding ActiveDownloadTask.TotalBytes, Converter={StaticResource FileSizeConverter}, Mode=OneWay, FallbackValue='0'}" />
+                                                                <Run Text="  -  " />
+                                                                <Run
+                                                                    Text="{Binding ActiveDownloadTask.Speed, StringFormat='{}{0} MB/s', Mode=OneWay, FallbackValue='0'}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DockPanel>
+
+                                                <!-- State 4: Installed -->
+                                                <DockPanel VerticalAlignment="Center"
+                                                           IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Installed}}">
+                                                    <Button Classes="Outline" DockPanel.Dock="Right"
+                                                            Command="{Binding GoToMyModelsCommand}" Content="View" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                                VerticalAlignment="Center">
+                                                        <LucideIcon Size="16" Kind="CircleCheck" Classes="Success" />
+                                                        <TextBlock Text="Installed" FontWeight="Medium" />
+                                                    </StackPanel>
+                                                </DockPanel>
+
+                                                <!-- State 5: Failed -->
+                                                <DockPanel VerticalAlignment="Center"
+                                                           IsVisible="{Binding CurrentState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static downloads:DownloadCardState.Failed}}">
+                                                    <Button Classes="Outline" DockPanel.Dock="Right"
+                                                            Command="{Binding RetryDownloadCommand}" Content="Retry" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                                VerticalAlignment="Center">
+                                                        <LucideIcon Size="16" Kind="TriangleAlert"
+                                                                    Classes="Destructive" />
+                                                        <TextBlock Text="Download Failed" Classes="Destructive"
+                                                                   TextWrapping="Wrap" FontWeight="Medium" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Panel>
+                                        </shadui:Card.Footer>
+                                    </shadui:Card>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+
             </TabItem>
 
             <TabItem Header="My Models" HorizontalAlignment="Center">
@@ -160,7 +165,6 @@
                             Link External File...
                         </Button>
                     </shadui:SimpleDropdown>
-
                     <DataGrid ItemsSource="{Binding LocalModels}" AutoGenerateColumns="False"
                               CanUserReorderColumns="False" IsReadOnly="True" GridLinesVisibility="None"
                               Margin="16,0,16,16">
@@ -173,7 +177,7 @@
                                                         Foreground="LimeGreen" />
                                             <TextBlock Text="{Binding Model.Name}" FontWeight="Medium" />
                                             <LucideIcon Size="14" Kind="Link" IsVisible="{Binding !Model.IsManaged}"
-                                                        ToolTip.Tip="This is an externally linked model. The original file will not be deleted."
+                                                        ToolTip.Tip="{Binding Model.FilePath, StringFormat='This is an externally linked model. The original file will not be deleted.&#x0A;File Path: {0}'}"
                                                         Classes="Muted" />
                                         </StackPanel>
                                     </DataTemplate>
