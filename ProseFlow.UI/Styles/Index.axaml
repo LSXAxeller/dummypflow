@@ -1,8 +1,8 @@
 ﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/Menu.axaml" />
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/TextBlock.axaml" />
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/Tooltip.axaml" />
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/ProgressBar.axaml" />
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/Window.axaml" />
-    <StyleInclude Source="avares://ProseFlow.UI/Styles/Controls/OverviewCard.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/Menu.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/TextBlock.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/Tooltip.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/ProgressBar.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/Window.axaml" />
+    <StyleInclude Source="avares://ProseFlow/Styles/Controls/OverviewCard.axaml" />
 </Styles>

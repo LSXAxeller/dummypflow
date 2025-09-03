@@ -15,10 +15,10 @@
     <Application.Resources>
         <ResourceDictionary>
             <SolidColorBrush x:Key="SystemControlTransparentBrush">Transparent</SolidColorBrush>
-            <FontFamily x:Key="JetbrainsFont">avares://ProseFlow.UI/Assets/Fonts#Jetbrains</FontFamily>
-            <FontFamily x:Key="ManropeFont">avares://ProseFlow.UI/Assets/Fonts#Manrope</FontFamily>
-            <FontFamily x:Key="LucideIconFont">avares://ProseFlow.UI/Assets/Fonts#lucide</FontFamily>
-            <FontFamily x:Key="ShadUiIconFont">avares://ProseFlow.UI/Assets/Fonts#shadui</FontFamily>
+            <FontFamily x:Key="JetbrainsFont">avares://ProseFlow/Assets/Fonts#Jetbrains</FontFamily>
+            <FontFamily x:Key="ManropeFont">avares://ProseFlow/Assets/Fonts#Manrope</FontFamily>
+            <FontFamily x:Key="LucideIconFont">avares://ProseFlow/Assets/Fonts#lucide</FontFamily>
+            <FontFamily x:Key="ShadUiIconFont">avares://ProseFlow/Assets/Fonts#shadui</FontFamily>
 
             <converters:StringListConverter x:Key="StringListConverter" />
             <converters:BoolToOutputTargetConverter x:Key="BoolToOutputTargetConverter" />
@@ -44,7 +44,7 @@
         <md:MarkdownStyleGithubLike />
 
         <!-- ShadUI Styles -->
-        <StyleInclude Source="avares://ProseFlow.UI/Styles/Index.axaml" />
+        <StyleInclude Source="avares://ProseFlow/Styles/Index.axaml" />
 
     </Application.Styles>
 </Application>

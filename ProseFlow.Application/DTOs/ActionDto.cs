@@ -15,7 +15,7 @@ public record ActionDto
     public string Instruction { get; init; } = string.Empty;
 
     [JsonPropertyName("icon")]
-    public string Icon { get; init; } = "avares://ProseFlow.UI/Assets/Icons/default.svg";
+    public string Icon { get; init; } = "avares://ProseFlow/Assets/Icons/default.svg";
 
     [JsonPropertyName("open_in_window")]
     public bool OpenInWindow { get; init; }

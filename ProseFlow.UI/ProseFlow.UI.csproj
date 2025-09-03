@@ -1,12 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net8.0;net8.0-windows;net8.0-macos</TargetFrameworks>
+        <AssemblyName>ProseFlow</AssemblyName>
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <AvaloniaVersion>11.3.4</AvaloniaVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+        <OutputType>WinExe</OutputType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' or $(TargetFramework.StartsWith('net8.0-macos'))">
+        <OutputType>Exe</OutputType>
     </PropertyGroup>
 
     <ItemGroup>

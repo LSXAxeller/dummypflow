@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
+      <PackageReference Include="Velopack" Version="0.0.1298" />
     </ItemGroup>
     
 </Project>

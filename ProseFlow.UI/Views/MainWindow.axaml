@@ -8,6 +8,7 @@
     xmlns:vm="using:ProseFlow.UI.ViewModels"
     xmlns:models="clr-namespace:ProseFlow.Core.Models;assembly=ProseFlow.Core"
     xmlns:downloads="clr-namespace:ProseFlow.UI.Views.Downloads"
+    xmlns:about="clr-namespace:ProseFlow.UI.ViewModels.About"
     x:DataType="vm:MainViewModel"
     mc:Ignorable="d"
     d:DesignWidth="1920"
@@ -146,8 +147,10 @@
                                 IsChecked="{Binding IsSelected}"
                                 Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).NavigateCommand, FallbackValue={x:Null}}"
                                 CommandParameter="{Binding .}">
+
                                 <shadui:SidebarItem.Icon>
                                     <Viewbox>
+                                        
                                         <PathIcon Width="20" Height="20" Foreground="{x:Null}"
                                                   Data="{Binding Icon, Converter={StaticResource StringToIconConverter}}">
                                             <PathIcon.Styles>

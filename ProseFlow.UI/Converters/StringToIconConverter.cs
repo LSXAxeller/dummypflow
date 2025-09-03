@@ -25,8 +25,8 @@ public partial class StringToIconConverter : IValueConverter
 {
     private const string SvgStartTag = "<svg";
     private const string SvgEndTag = "</svg>";
-    private const string DefaultIconUri = "avares://ProseFlow.UI/Assets/Icons/default.svg";
-    public const string IconPath = "avares://ProseFlow.UI/Assets/logo.svg";
+    private const string DefaultIconUri = "avares://ProseFlow/Assets/Icons/default.svg";
+    public const string IconPath = "avares://ProseFlow/Assets/logo.svg";
 
 
     // Regex to extract the 'd' attribute from one or more <path> tags.

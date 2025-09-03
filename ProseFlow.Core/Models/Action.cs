@@ -25,7 +25,7 @@ public class Action : EntityBase
     /// <summary>
     /// The resource path or identifier for the action's icon.
     /// </summary>
-    public string Icon { get; set; } = "avares://ProseFlow.UI/Assets/Icons/default.svg";
+    public string Icon { get; set; } = "avares://ProseFlow/Assets/Icons/default.svg";
 
     /// <summary>
     /// If true, the result will be displayed in a dedicated window by default.

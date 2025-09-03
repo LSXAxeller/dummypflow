@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data;
@@ -24,9 +25,11 @@ using ProseFlow.Infrastructure.Services.AiProviders.Local;
 using ProseFlow.Infrastructure.Services.Models;
 using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.Infrastructure.Services.Os;
+using ProseFlow.Infrastructure.Services.Updates;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Services.ActiveWindow;
 using ProseFlow.UI.ViewModels;
+using ProseFlow.UI.ViewModels.About;
 using ProseFlow.UI.ViewModels.Actions;
 using ProseFlow.UI.ViewModels.Dashboard;
 using ProseFlow.UI.ViewModels.Dialogs;
@@ -45,6 +48,7 @@ using ProseFlow.UI.Views.Windows;
 using Serilog;
 using Serilog.Events;
 using ShadUI;
+using Velopack;
 
 namespace ProseFlow.UI;
 
@@ -55,6 +59,7 @@ public class App : Avalonia.Application
 
     public override void Initialize()
     {
+        VelopackApp.Build().Run();
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -81,6 +86,14 @@ public class App : Avalonia.Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Perform silent update check on startup
+            var updateService = Services.GetRequiredService<IUpdateService>();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(5000); // Wait 5 seconds to not impact startup time
+                await updateService.CheckForUpdateAsync();
+            });
+            
             // Check for local model on startup
             await using (var scope = Services.CreateAsyncScope())
             {
@@ -307,7 +320,7 @@ public class App : Avalonia.Application
         // Create the TrayIcon instance
         var trayIcon = new TrayIcon
         {
-            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://ProseFlow.UI/Assets/logo.ico"))),
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://ProseFlow/Assets/logo.ico"))),
             ToolTipText = "ProseFlow",
             Menu = new NativeMenu
             {
@@ -389,6 +402,7 @@ public class App : Avalonia.Application
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command",
                 LogEventLevel.Warning)
+            .MinimumLevel.Override("Velopack", LogEventLevel.Information) // Velopack logging
             .Enrich.FromLogContext()
 #if DEBUG
             .WriteTo.Debug()
@@ -426,6 +440,9 @@ public class App : Avalonia.Application
         services.AddSingleton<IModelCatalogService, ModelCatalogService>();
         services.AddSingleton<IDownloadManager, DownloadManager>();
         services.AddSingleton<ILocalModelManagementService, LocalModelManagementService>();
+
+        // Update Service
+        services.AddSingleton<IUpdateService, UpdateService>();
 
         // Add Application Services
         services.AddSingleton<ActionOrchestrationService>();
@@ -467,6 +484,7 @@ public class App : Avalonia.Application
         services.AddTransient<ProvidersViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HistoryViewModel>();
+        services.AddTransient<AboutViewModel>();
         
         // Download Management ViewModels
         services.AddTransient<DownloadsPopupViewModel>();
