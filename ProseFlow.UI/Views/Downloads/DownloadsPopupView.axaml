@@ -6,6 +6,7 @@
              xmlns:vm="using:ProseFlow.UI.ViewModels.Downloads"
              xmlns:dto="using:ProseFlow.Application.DTOs.Models"
              xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
              mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
              x:DataType="vm:DownloadsPopupViewModel">
 
@@ -15,7 +16,7 @@
             <DockPanel DockPanel.Dock="Top" Margin="16" VerticalAlignment="Center">
                 <Button DockPanel.Dock="Right" Classes="Destructive" Command="{Binding ClearAllCompletedCommand}">
                     <shadui:ButtonAssist.Icon>
-                        <LucideIcon Kind="Trash2" Size="16"/>
+                        <icons:SymbolIcon Symbol="Trash2" Size="16"/>
                     </shadui:ButtonAssist.Icon>
                     Clear
                 </Button>
@@ -30,7 +31,7 @@
                 <!-- Empty State -->
                 <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="48"
                             IsVisible="{Binding !Downloads.Count}">
-                    <LucideIcon Kind="CloudDownload" Size="48" Opacity="0.5" HorizontalAlignment="Center" />
+                    <icons:SymbolIcon Symbol="CloudDownload" Size="48" Opacity="0.5" HorizontalAlignment="Center" />
                     <TextBlock Classes="h4 Muted" Text="No Downloads" HorizontalAlignment="Center"/>
                     <TextBlock Classes="p Muted" Text="Your model downloads will appear here." HorizontalAlignment="Center"/>
                 </StackPanel>
@@ -52,16 +53,16 @@
                                     <!-- Status Icon -->
                                     <Panel Grid.Row="0" Grid.RowSpan="2" VerticalAlignment="Center">
                                         <!-- Downloading Icon -->
-                                        <LucideIcon Kind="Download" Size="24" Opacity="0.7"
+                                        <icons:SymbolIcon Symbol="Download" Size="24" Opacity="0.7"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Downloading}}" />
                                         <!-- Completed Icon -->
-                                        <LucideIcon Kind="CircleCheck" Size="24" Classes="Success"
+                                        <icons:SymbolIcon Symbol="CircleCheck" Size="24" Classes="Success"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Completed}}" />
                                         <!-- Canceled Icon -->
-                                        <LucideIcon Kind="CircleX" Size="24" Classes="Destructive"
+                                        <icons:SymbolIcon Symbol="CircleX" Size="24" Classes="Destructive"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Canceled}}" />
                                         <!-- Failed Icon -->
-                                        <LucideIcon Kind="TriangleAlert" Size="24" Classes="Destructive"
+                                        <icons:SymbolIcon Symbol="TriangleAlert" Size="24" Classes="Destructive"
                                                     IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Failed}}" />
                                     </Panel>
                                     
@@ -105,14 +106,14 @@
                                                            VerticalAlignment="Center" Classes="Ghost"
                                                            PopupWidth="180">
                                         <shadui:SimpleDropdown.TriggerContent>
-                                            <LucideIcon Kind="Command" Size="20" />
+                                            <icons:SymbolIcon Symbol="Command" Size="20" />
                                         </shadui:SimpleDropdown.TriggerContent>
                                         
                                         <!-- Cancel Action -->
                                         <Button Classes="Destructive" Command="{Binding CancelCommand}"
                                                 IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Downloading}}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Kind="X" Size="16"/>
+                                                <icons:SymbolIcon Symbol="X" Size="16"/>
                                             </shadui:ButtonAssist.Icon>
                                             Cancel
                                         </Button>
@@ -121,7 +122,7 @@
                                         <Button Command="{Binding RetryCommand}"
                                                 IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Failed}}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Kind="RefreshCw" Size="16"/>
+                                                <icons:SymbolIcon Symbol="RefreshCw" Size="16"/>
                                             </shadui:ButtonAssist.Icon>
                                             Retry
                                         </Button>
@@ -130,7 +131,7 @@
                                         <Button Command="{Binding $parent[UserControl].((vm:DownloadsPopupViewModel)DataContext).OpenDownloadsFolderCommand, FallbackValue={x:Null}}" CommandParameter="{Binding Task}"
                                                 IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static dto:DownloadStatus.Completed}}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Kind="Folder" Size="16"/>
+                                                <icons:SymbolIcon Symbol="Folder" Size="16"/>
                                             </shadui:ButtonAssist.Icon>
                                             Open Folder
                                         </Button>
@@ -141,7 +142,7 @@
                                         <Button Classes="Destructive" Command="{Binding ClearCommand}"
                                                 IsVisible="{Binding Task.Status, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static dto:DownloadStatus.Downloading}}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Kind="Trash2" Size="16"/>
+                                                <icons:SymbolIcon Symbol="Trash2" Size="16"/>
                                             </shadui:ButtonAssist.Icon>
                                             Clear from list
                                         </Button>

@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.History"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:HistoryViewModel">
 
     <UserControl.Styles>
@@ -22,7 +23,7 @@
                 Classes="Destructive"
                 Command="{Binding ClearHistoryCommand}">
                 <shadui:ButtonAssist.Icon>
-                    <LucideIcon Size="18" Kind="Trash" />
+                    <icons:SymbolIcon Size="18" Symbol="Trash" />
                 </shadui:ButtonAssist.Icon>
                 Clear History
             </Button>
@@ -42,7 +43,7 @@
                 <!-- No History Message -->
                 <Border IsVisible="{Binding !HistoryEntries.Count}">
                     <StackPanel Margin="0,80" Spacing="16" HorizontalAlignment="Center">
-                        <LucideIcon Size="36" Kind="History" Width="64" Height="64" HorizontalAlignment="Center" />
+                        <icons:SymbolIcon Size="36" Symbol="History" Width="64" Height="64" HorizontalAlignment="Center" />
                         <TextBlock Classes="h4 Muted" Text="No History Yet" HorizontalAlignment="Center" />
                         <TextBlock Classes="p Muted" Text="Your recent interactions will appear here." HorizontalAlignment="Center" />
                     </StackPanel>

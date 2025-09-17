@@ -9,6 +9,7 @@
     xmlns:models="clr-namespace:ProseFlow.Core.Models;assembly=ProseFlow.Core"
     xmlns:downloads="clr-namespace:ProseFlow.UI.Views.Downloads"
     xmlns:about="clr-namespace:ProseFlow.UI.ViewModels.About"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:MainViewModel"
     mc:Ignorable="d"
     d:DesignWidth="1920"
@@ -74,7 +75,7 @@
                 Command="{Binding SwitchThemeCommand}"
                 CornerRadius="{DynamicResource MdCornerRadius}"
                 ToolTip.Tip="Switch Theme">
-                <LucideIcon Size="18" Kind="Moon" />
+                <icons:SymbolIcon Size="18" Symbol="Moon" />
             </Button>
         </StackPanel>
     </shadui:Window.RightWindowTitleBarContent>
@@ -186,7 +187,7 @@
                                 </Flyout>
                             </Button.Flyout>
                             <Grid>
-                                <LucideIcon Size="18" Kind="Download" />
+                                <icons:SymbolIcon Size="18" Symbol="Download" />
                                 <TextBlock Text="{Binding ActiveDownloadCount}" VerticalAlignment="Top"
                                            HorizontalAlignment="Right" Margin="0,0,0,24" />
                             </Grid>
@@ -202,7 +203,7 @@
                             CornerRadius="{DynamicResource LgCornerRadius}"
                             Theme="{DynamicResource SideTogglerTheme}">
                             <Viewbox>
-                                <LucideIcon Size="24" Kind="Menu" />
+                                <icons:SymbolIcon Size="24" Symbol="Menu" />
                             </Viewbox>
                         </ToggleButton>
                     </StackPanel>

@@ -5,6 +5,7 @@
     xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Windows"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:ResultViewModel"
 
     Title="{Binding ActionName}"
@@ -36,7 +37,7 @@
                             Command="{Binding RefineCommand}"
                             CommandParameter="{Binding $parent[Window]}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <LucideIcon Size="18" Kind="Send" />
+                            <icons:SymbolIcon Size="18" Symbol="Send" />
                             <TextBlock Text="Refine" />
                         </StackPanel>
                     </Button>
@@ -50,7 +51,7 @@
                         Classes="Outline"
                         Command="{Binding CopyCommand}">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="Copy" />
+                            <icons:SymbolIcon Size="18" Symbol="Copy" />
                         </shadui:ButtonAssist.Icon>
                         Copy to Clipboard
                     </Button>
@@ -59,7 +60,7 @@
                         Click="CloseWindow"
                         IsDefault="True">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="X" />
+                            <icons:SymbolIcon Size="18" Symbol="X" />
                         </shadui:ButtonAssist.Icon>
                         Close
                     </Button>
@@ -87,7 +88,7 @@
                         Padding="16,8">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <LucideIcon Size="18" Kind="Book" /> 
+                                <icons:SymbolIcon Size="18" Symbol="Book" /> 
                                 <TextBlock Classes="Small Muted" FontWeight="Medium" VerticalAlignment="Center" Text="Show Explanation" />
                             </StackPanel>
                         </Expander.Header>

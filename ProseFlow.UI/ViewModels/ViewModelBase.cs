@@ -10,7 +10,7 @@ namespace ProseFlow.UI.ViewModels;
 public interface IPageViewModel : INotifyPropertyChanged
 {
     string Title { get; }
-    LucideIconKind Icon { get; }
+    IconSymbol Icon { get; }
     bool IsSelected { get; set; }
 
     Task OnNavigatedToAsync();
@@ -19,7 +19,7 @@ public interface IPageViewModel : INotifyPropertyChanged
 public abstract partial class ViewModelBase : ObservableObject, IPageViewModel
 {
     public virtual string Title { get; set; } = string.Empty;
-    public virtual LucideIconKind Icon => LucideIconKind.Atom;
+    public virtual IconSymbol Icon => IconSymbol.Atom;
     
     protected ILogger Logger { get; } = Ioc.Default.GetRequiredService<ILogger<ViewModelBase>>();
 

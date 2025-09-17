@@ -13,7 +13,7 @@ public partial class HistoryViewModel(
     IDialogService dialogService) : ViewModelBase
 {
     public override string Title => "History";
-    public override LucideIconKind Icon => LucideIconKind.History;
+    public override IconSymbol Icon => IconSymbol.History;
 
     public ObservableCollection<HistoryEntry> HistoryEntries { get; } = [];
 

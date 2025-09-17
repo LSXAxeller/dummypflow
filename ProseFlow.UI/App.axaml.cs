@@ -11,6 +11,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -65,141 +66,214 @@ public class App : Avalonia.Application
 
     public override async void OnFrameworkInitializationCompleted()
     {
-        Services = ConfigureServices();
-        Ioc.Default.ConfigureServices(Services);
+        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            base.OnFrameworkInitializationCompleted();
+            return;
+        }
+
+        // Create main window but without initializing it. It acts as an owner for startup error dialogs.
+        desktop.MainWindow = new MainWindow();
+        desktop.MainWindow.Show();
+
+        ILogger<App>? logger = null;
+        var isInitialized = false;
+
+        // Initialize database and services until successful, allowing reset on failure.
+        while (!isInitialized)
+        {
+            // Configure services and build the provider for this attempt.
+            var serviceProvider = ConfigureServices();
+            logger = serviceProvider.GetRequiredService<ILogger<App>>();
+
+            try
+            {
+                // Attempt to initialize the database.
+                await using (var scope = serviceProvider.CreateAsyncScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    await dbContext.Database.MigrateAsync();
+                }
+
+                // If successful, assign the provider to the App's properties and exit the loop.
+                Services = serviceProvider;
+                Ioc.Default.ConfigureServices(Services);
+                isInitialized = true;
+                logger.LogInformation("Database and services initialized successfully.");
+            }
+            catch (SqliteException ex)
+            {
+                logger.LogCritical(ex, "Database initialization failed due to a SQLite error (Code: {ErrorCode}). Prompting user for action.", ex.SqliteErrorCode);
+
+                // The failed ServiceProvider must be disposed to release its hold on services.
+                (serviceProvider as IDisposable)?.Dispose();
+
+                // Clear all SQLite connection pools to ensure no locks are held.
+                SqliteConnection.ClearAllPools();
+
+                // Force garbage collection to release any lingering unmanaged resources.
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                // Create a temporary, dependency-free service to show the critical dialog.
+                var tempDialogService = new DialogService(null!); 
+                var userWantsToReset = await tempDialogService.ShowCriticalConfirmationDialogAsync(
+                    desktop.MainWindow,
+                    "Database Error",
+                    "ProseFlow's data file is corrupted or inaccessible. To continue, the application must reset its data. This will erase all your settings, actions, and history. A backup of the corrupted file will be made.",
+                    "Backup & Reset",
+                    "Quit"
+                );
+
+                if (userWantsToReset)
+                {
+                    try
+                    {
+                        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                        var proseFlowDataPath = Path.Combine(appDataPath, "ProseFlow");
+                        var dbPath = Path.Combine(proseFlowDataPath, "proseflow.db");
+                        if (File.Exists(dbPath))
+                        {
+                            var backupPath = Path.Combine(proseFlowDataPath, $"proseflow.db.corrupt-{DateTime.Now:yyyyMMddHHmmss}.bak");
+                            File.Move(dbPath, backupPath, true);
+                            logger.LogInformation("Corrupted database backed up to {BackupPath}", backupPath);
+                        }
+                    }
+                    catch (Exception backupEx)
+                    {
+                        logger.LogError(backupEx, "Failed to back up and remove the corrupted database after cleanup.");
+                        await tempDialogService.ShowCriticalConfirmationDialogAsync(desktop.MainWindow, "Fatal Error", "Could not remove the corrupted database file. Please find it in the application's data folder and delete it manually. The application will now exit.", "OK", "Close");
+                        desktop.Shutdown();
+                        return;
+                    }
+                }
+                else // User chose to quit.
+                {
+                    desktop.Shutdown();
+                    return;
+                }
+            }
+        }
+        
+        if (Services is null || logger is null)
+            return;
 
         // Initialize local model native manager
         var nativeManager = Services.GetRequiredService<LocalNativeManager>();
         nativeManager.Initialize();
 
-        // Ensure database is created and migrated on startup
-        await using (var scope = Services.CreateAsyncScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await dbContext.Database.MigrateAsync();
-        }
-
+        // Initialize services that depend on the database
         var usageTrackingService = Services.GetRequiredService<UsageTrackingService>();
         await usageTrackingService.InitializeAsync();
-
         var settingsService = Services.GetRequiredService<SettingsService>();
 
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        // Perform silent update check on startup
+        var updateService = Services.GetRequiredService<IUpdateService>();
+        _ = Task.Run(async () =>
         {
-            // Perform silent update check on startup
-            var updateService = Services.GetRequiredService<IUpdateService>();
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(5000); // Wait 5 seconds to not impact startup time
-                await updateService.CheckForUpdateAsync();
-            });
-            
-            // Check for local model on startup
-            await using (var scope = Services.CreateAsyncScope())
-            {
-                var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
-                var logger = scope.ServiceProvider.GetRequiredService<ILogger<App>>();
+            await Task.Delay(5000); // Wait 5 seconds to not impact startup time
+            await updateService.CheckForUpdateAsync();
+        });
 
-                try
+        // Check for local model on startup
+        await using (var scope = Services.CreateAsyncScope())
+        {
+            var modelManager = scope.ServiceProvider.GetRequiredService<LocalModelManagerService>();
+            try
+            {
+                var providerSettings = await settingsService.GetProviderSettingsAsync();
+                if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
                 {
-                    var providerSettings = await settingsService.GetProviderSettingsAsync();
-                    if (providerSettings is { PrimaryServiceType: "Local", LocalModelLoadOnStartup: true })
+                    if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) ||
+                        !File.Exists(providerSettings.LocalModelPath))
                     {
-                        if (string.IsNullOrWhiteSpace(providerSettings.LocalModelPath) ||
-                            !File.Exists(providerSettings.LocalModelPath))
-                        {
-                            logger.LogWarning(
-                                "Auto-load skipped: Local model path is not configured or file does not exist.");
-                        }
-                        else
-                        {
-                            logger.LogInformation("Attempting to auto-load local model on startup...");
-                            if (!Design.IsDesignMode) // Don't auto-load model in design mode
-                                _ = modelManager.LoadModelAsync(providerSettings);
-                        }
+                        logger.LogWarning("Auto-load skipped: Local model path is not configured or file does not exist.");
+                    }
+                    else
+                    {
+                        logger.LogInformation("Attempting to auto-load local model on startup...");
+                        if (!Design.IsDesignMode) // Don't auto-load model in design mode
+                            _ = modelManager.LoadModelAsync(providerSettings);
                     }
                 }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "An error occurred during the local model auto-load check.");
-                }
             }
-
-            // Initialize and start background services
-            var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
-            orchestrationService.Initialize();
-
-            // Subscribe UI handlers to application-layer events
-            var osService = Services.GetRequiredService<IOsService>();
-            var generalSettings = await settingsService.GetGeneralSettingsAsync();
-            _ = osService.StartHookAsync();
-            osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
-
-            SubscribeToAppEvents();
-
-            // Setup Dialogs
-            var dialogManager = Services.GetRequiredService<DialogManager>();
-            dialogManager.Register<InputDialogView, InputDialogViewModel>();
-            dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
-            dialogManager.Register<DownloadsPopupView, DownloadsPopupViewModel>();
-
-            // Don't shut down the app when the main window is closed.
-            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            desktop.Exit += OnApplicationExit;
-
-            RequestedThemeVariant = generalSettings.Theme switch
+            catch (Exception ex)
             {
-                "Light" => ThemeVariant.Light,
-                "Dark" => ThemeVariant.Dark,
-                _ => ThemeVariant.Default
-            };
-
-            desktop.MainWindow = new MainWindow();
-            desktop.MainWindow.Show();
-            
-            // Onboarding process for new users
-            if (!generalSettings.IsOnboardingCompleted)
-            {
-                var onboardingVm = Services.GetRequiredService<OnboardingViewModel>();
-                var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
-
-                var completedSuccessfully = await onboardingWindow.ShowDialog<bool>(desktop.MainWindow);
-                if (completedSuccessfully)
-                {
-                    // Save all settings gathered during onboarding
-                    await onboardingVm.SaveSettingsAsync();
-
-                    // Mark onboarding as complete and save
-                    generalSettings = await settingsService.GetGeneralSettingsAsync();
-                    generalSettings.IsOnboardingCompleted = true;
-                    await settingsService.SaveGeneralSettingsAsync(generalSettings);
-                }
-                else
-                {
-                    // If the user closes the onboarding window, quit the application.
-                    desktop.Shutdown();
-                    return;
-                }
+                logger.LogError(ex, "An error occurred during the local model auto-load check.");
             }
-
-            // If onboarding completed, assign the view model
-            desktop.MainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
-            
-            // Handle the closing event to hide the window instead of closing
-            desktop.MainWindow.Closing += (_, e) =>
-            {
-                e.Cancel = true;
-                desktop.MainWindow.Hide();
-            };
-
-            // Create and set up the system tray icon
-            _trayIcon = CreateTrayIcon();
-            if (_trayIcon is not null) TrayIcon.SetIcons(this, [_trayIcon]);
         }
+
+        // Initialize and start background services
+        var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
+        orchestrationService.Initialize();
+
+        // Subscribe UI handlers to application-layer events
+        var osService = Services.GetRequiredService<IOsService>();
+        var generalSettings = await settingsService.GetGeneralSettingsAsync();
+        _ = osService.StartHookAsync();
+        osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
+
+        SubscribeToAppEvents();
+
+        // Setup Dialogs
+        var dialogManager = Services.GetRequiredService<DialogManager>();
+        dialogManager.Register<InputDialogView, InputDialogViewModel>();
+        dialogManager.Register<ModelLibraryView, ModelLibraryViewModel>();
+        dialogManager.Register<DownloadsPopupView, DownloadsPopupViewModel>();
+
+        // Don't shut down the app when the main window is closed.
+        desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        desktop.Exit += OnApplicationExit;
+
+        RequestedThemeVariant = generalSettings.Theme switch
+        {
+            "Light" => ThemeVariant.Light,
+            "Dark" => ThemeVariant.Dark,
+            _ => ThemeVariant.Default
+        };
+        
+        // Onboarding process for new users
+        if (!generalSettings.IsOnboardingCompleted)
+        {
+            var onboardingVm = Services.GetRequiredService<OnboardingViewModel>();
+            var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
+
+            var completedSuccessfully = await onboardingWindow.ShowDialog<bool>(desktop.MainWindow);
+            if (completedSuccessfully)
+            {
+                // Save all settings gathered during onboarding
+                await onboardingVm.SaveSettingsAsync();
+
+                // Mark onboarding as complete and save
+                generalSettings = await settingsService.GetGeneralSettingsAsync();
+                generalSettings.IsOnboardingCompleted = true;
+                await settingsService.SaveGeneralSettingsAsync(generalSettings);
+            }
+            else
+            {
+                // If the user closes the onboarding window, quit the application.
+                desktop.Shutdown();
+                return;
+            }
+        }
+
+        // If onboarding completed, assign the view model
+        desktop.MainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
+        
+        // Handle the closing event to hide the window instead of closing
+        desktop.MainWindow.Closing += (_, e) =>
+        {
+            e.Cancel = true;
+            desktop.MainWindow.Hide();
+        };
+
+        // Create and set up the system tray icon
+        _trayIcon = CreateTrayIcon();
+        if (_trayIcon is not null) TrayIcon.SetIcons(this, [_trayIcon]);
 
         base.OnFrameworkInitializationCompleted();
     }
-
+    
     private TrayIcon? CreateTrayIcon()
     {
         if (Services is null) return null;

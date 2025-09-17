@@ -6,7 +6,7 @@
 
 **Your Universal AI Text Processor, Powered by Local and Cloud LLMs.**
 
-[![Build Status](https://github.com/LSXPrime/ProseFlow/actions/workflows/build.yml/badge.svg)](https://github.com/LSXPrime/SoundFlow/actions/workflows/build.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0) [![Release](https://img.shields.io/github/v/release/LSXPrime/ProseFlow?color=black)](https://github.com/LSXPrime/ProseFlow/releases)
+[![Build Status](https://github.com/LSXPrime/ProseFlow/actions/workflows/build.yml/badge.svg)](https://github.com/LSXPrime/SoundFlow/actions/workflows/build.yml) [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0) [![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/download/dotnet/8.0) [![Release](https://img.shields.io/github/v/release/LSXPrime/ProseFlow?color=black)](https://github.com/LSXPrime/ProseFlow/releases)
 
 ProseFlow is a cross-platform desktop application that integrates powerful AI text processing into your daily workflow. With a simple hotkey, you can access a menu of customizable AI actions to proofread, summarize, refactor, or transform text in *any* application—be it your code editor, browser, or word processor.
 
@@ -29,16 +29,16 @@ Its unique hybrid engine allows you to seamlessly switch between the world's bes
     <td align="center"><strong>Comprehensive Dashboard</strong></td>
   </tr>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/LSXPrime/ProseFlow/master/assets/screenshot-menu.png" alt="Floating Action Menu"></td>
-    <td><img src="https://raw.githubusercontent.com/LSXPrime/ProseFlow/master/assets/screenshot-dashboard.png" alt="Dashboard"></td>
+    <td><img src="https://raw.githubusercontent.com/LSXPrime/_resources/refs/heads/main/ProseFlow/screenshot-floating-action-menu.png" alt="Floating Action Menu"></td>
+    <td><img src="https://raw.githubusercontent.com/LSXPrime/_resources/refs/heads/main/ProseFlow/screenshot-dashboard.png" alt="Dashboard"></td>
   </tr>
   <tr>
     <td align="center"><strong>Action Management</strong></td>
     <td align="center"><strong>Local Model Library</strong></td>
   </tr>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/LSXPrime/ProseFlow/master/assets/screenshot-actions.png" alt="Action Management"></td>
-    <td><img src="https://raw.githubusercontent.com/LSXPrime/ProseFlow/master/assets/screenshot-models.png" alt="Local Model Library"></td>
+    <td><img src="https://raw.githubusercontent.com/LSXPrime/_resources/refs/heads/main/ProseFlow/screenshot-actions.png" alt="Action Management"></td>
+    <td><img src="https://raw.githubusercontent.com/LSXPrime/_resources/refs/heads/main/ProseFlow/screenshot-local-model-library.png" alt="Local Model Library"></td>
   </tr>
 </table>
 
@@ -154,6 +154,7 @@ ProseFlow is built using a modern, layered architecture inspired by **Clean Arch
 *   **Hardware Monitoring:** [LibreHardwareMonitorLib](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)
 *   **Dependency Injection:** [Microsoft.Extensions.DependencyInjection](https://github.com/dotnet/runtime/tree/main/src/libraries/Microsoft.Extensions.DependencyInjection)
 *   **Logging:** [Serilog](https://serilog.net/)
+*   **Update:** [Velopack](https://github.com/velopack/velopack)
 
 ---
 
@@ -165,4 +166,4 @@ ProseFlow is free and open-source software licensed under the **GNU Affero Gener
 
 ### 🙏 Acknowledgements
 
-This project would not be possible without the incredible open-source libraries it is built upon. Special thanks to the teams and contributors behind Avalonia, LLamaSharp, LlmTornado, and all the other fantastic projects listed in the technology stack.
+This project would not be possible without the incredible open-source libraries it is built upon. Special thanks to the teams and contributors behind Avalonia, LLamaSharp, LlmTornado, all the other fantastic projects listed in the technology stack, and indeed the rest of the open-source libraries empowering this project.

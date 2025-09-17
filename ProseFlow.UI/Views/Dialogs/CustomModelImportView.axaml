@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Dialogs"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:CustomModelImportViewModel"
 
     Title="Import Custom GGUF Model"
@@ -59,7 +60,7 @@
                         Command="{Binding CancelCommand}"
                         CommandParameter="{Binding $parent[Window]}">
                     <shadui:ButtonAssist.Icon>
-                        <LucideIcon Size="18" Kind="X" />
+                        <icons:SymbolIcon Size="18" Symbol="X" />
                     </shadui:ButtonAssist.Icon>
                     Cancel
                 </Button>
@@ -67,7 +68,7 @@
                         Command="{Binding ImportCommand}"
                         CommandParameter="{Binding $parent[Window]}">
                     <shadui:ButtonAssist.Icon>
-                        <LucideIcon Size="18" Kind="Import" />
+                        <icons:SymbolIcon Size="18" Symbol="Import" />
                     </shadui:ButtonAssist.Icon>
                     Import
                 </Button>

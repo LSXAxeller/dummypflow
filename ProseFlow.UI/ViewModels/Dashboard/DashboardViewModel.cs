@@ -10,7 +10,7 @@ namespace ProseFlow.UI.ViewModels.Dashboard;
 public partial class DashboardViewModel : ViewModelBase, IDisposable
 {
     public override string Title => "Dashboard";
-    public override LucideIconKind Icon => LucideIconKind.LayoutDashboard;
+    public override IconSymbol Icon => IconSymbol.LayoutDashboard;
 
     [ObservableProperty]
     private int _selectedTabIndex;

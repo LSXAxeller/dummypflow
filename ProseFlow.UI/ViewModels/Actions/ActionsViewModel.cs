@@ -20,7 +20,7 @@ public partial class ActionsViewModel(
     IDialogService dialogService) : ViewModelBase
 {
     public override string Title => "Actions";
-    public override LucideIconKind Icon => LucideIconKind.Workflow;
+    public override IconSymbol Icon => IconSymbol.Workflow;
 
     private List<ActionGroup> _actionGroupsList = [];
     private readonly ObservableCollection<Action> _allActions = [];

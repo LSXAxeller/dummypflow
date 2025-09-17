@@ -8,6 +8,7 @@
     xmlns:c="using:ProseFlow.UI.Converters"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Actions"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:ActionsViewModel">
 
     <UserControl.Resources>
@@ -48,13 +49,13 @@
                                                        PopupPlacement="BottomEdgeAlignedRight" PopupWidth="150"
                                                        Cursor="Arrow">
                                     <shadui:SimpleDropdown.TriggerContent>
-                                        <LucideIcon Size="16" Kind="Command" />
+                                        <icons:SymbolIcon Size="16" Symbol="Command" />
                                     </shadui:SimpleDropdown.TriggerContent>
                                     <Button
                                         Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditGroupCommand, FallbackValue={x:Null}}"
                                         CommandParameter="{Binding Key}">
                                         <shadui:ButtonAssist.Icon>
-                                            <LucideIcon Size="18" Kind="Pen" />
+                                            <icons:SymbolIcon Size="18" Symbol="Pen" />
                                         </shadui:ButtonAssist.Icon>
                                         Rename
                                     </Button>
@@ -63,7 +64,7 @@
                                             Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteGroupCommand, FallbackValue={x:Null}}"
                                             CommandParameter="{Binding Key}">
                                         <shadui:ButtonAssist.Icon>
-                                            <LucideIcon Size="18" Kind="Trash2" />
+                                            <icons:SymbolIcon Size="18" Symbol="Trash2" />
                                         </shadui:ButtonAssist.Icon>
                                         Delete
                                     </Button>
@@ -91,25 +92,25 @@
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Classes="Primary" Command="{Binding AddActionCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <LucideIcon Size="18" Kind="Plus" />
+                            <icons:SymbolIcon Size="18" Symbol="Plus" />
                             <TextBlock Text="New Action" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Primary" Command="{Binding AddGroupCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <LucideIcon Size="18" Kind="Group" />
+                            <icons:SymbolIcon Size="18" Symbol="Group" />
                             <TextBlock Text="New Group" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Outline" Command="{Binding ImportActionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <LucideIcon Size="18" Kind="Download" />
+                            <icons:SymbolIcon Size="18" Symbol="Download" />
                             <TextBlock Text="Import from JSON" />
                         </StackPanel>
                     </Button>
                     <Button Classes="Outline" Command="{Binding ExportActionsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <LucideIcon Size="18" Kind="Upload" />
+                            <icons:SymbolIcon Size="18" Symbol="Upload" />
                             <TextBlock Text="Export to JSON" />
                         </StackPanel>
                     </Button>
@@ -129,7 +130,7 @@
                         <DataGridTemplateColumn Width="40">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <LucideIcon Size="18" Kind="MoveVertical"
+                                    <icons:SymbolIcon Size="18" Symbol="MoveVertical"
                                                 ToolTip.Tip="Drag and drop to reorder actions." />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -168,13 +169,13 @@
                                                            Classes="Ghost" PopupPlacement="BottomEdgeAlignedLeft"
                                                            PopupWidth="150">
                                         <shadui:SimpleDropdown.TriggerContent>
-                                            <LucideIcon Size="16" Kind="Command" />
+                                            <icons:SymbolIcon Size="16" Symbol="Command" />
                                         </shadui:SimpleDropdown.TriggerContent>
                                         <Button
                                             Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).EditActionCommand, FallbackValue={x:Null}}"
                                             CommandParameter="{Binding .}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Size="18" Kind="Pen" />
+                                                <icons:SymbolIcon Size="18" Symbol="Pen" />
                                             </shadui:ButtonAssist.Icon>
                                             Edit
                                         </Button>
@@ -183,7 +184,7 @@
                                                 Command="{Binding $parent[UserControl].((vm:ActionsViewModel)DataContext).DeleteActionCommand, FallbackValue={x:Null}}"
                                                 CommandParameter="{Binding .}">
                                             <shadui:ButtonAssist.Icon>
-                                                <LucideIcon Size="18" Kind="Trash2" />
+                                                <icons:SymbolIcon Size="18" Symbol="Trash2" />
                                             </shadui:ButtonAssist.Icon>
                                             Delete
                                         </Button>

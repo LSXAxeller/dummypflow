@@ -33,10 +33,10 @@ public class OverviewCard : TemplatedControl
         set => SetValue(HintProperty, value);
     }
 
-    public static readonly StyledProperty<LucideIconKind> IconProperty =
-        AvaloniaProperty.Register<OverviewCard, LucideIconKind>(nameof(Icon));
+    public static readonly StyledProperty<IconSymbol> IconProperty =
+        AvaloniaProperty.Register<OverviewCard, IconSymbol>(nameof(Icon));
 
-    public LucideIconKind Icon
+    public IconSymbol Icon
     {
         get => GetValue(IconProperty);
         set => SetValue(IconProperty, value);

@@ -14,7 +14,7 @@ namespace ProseFlow.UI.Converters;
 /// <summary>
 /// Converts a string into a renderable StreamGeometry icon by intelligently detecting the input format.
 /// Supported formats:
-/// 1. A LucideIconKind enum name (e.g., "Pen", "Save").
+/// 1. A IconSymbol enum name (e.g., "Pen", "Save").
 /// 2. Full SVG XML content (e.g., "<svg>...</svg>").
 /// 3. A URI to an asset (e.g., "avares://...") or a URL ("http://...").
 /// 4. An absolute filesystem path to an SVG file.
@@ -28,7 +28,6 @@ public partial class StringToIconConverter : IValueConverter
     private const string DefaultIconUri = "avares://ProseFlow/Assets/Icons/default.svg";
     public const string IconPath = "avares://ProseFlow/Assets/logo.svg";
 
-
     // Regex to extract the 'd' attribute from one or more <path> tags.
     private static readonly Regex SvgPathDataRegex = SvgPathRegex();
     private static StreamGeometry? _defaultIcon;
@@ -40,16 +39,16 @@ public partial class StringToIconConverter : IValueConverter
         
         var inputString = value as string;
 
-        // Handle direct binding of LucideIconKind for convenience (e.g., in previews)
-        if (value is LucideIconKind directKind) inputString = directKind.ToString();
+        // Handle direct binding of IconSymbol for convenience (e.g., in previews)
+        if (value is IconSymbol directKind) inputString = directKind.ToString();
 
         if (string.IsNullOrWhiteSpace(inputString))
             return GetDefaultIcon();
 
         try
         {
-            // 1. Check if the input is a valid LucideIconKind enum name
-            if (Enum.TryParse<LucideIconKind>(inputString, true, out var kind))
+            // 1. Check if the input is a valid IconSymbol enum name
+            if (Enum.TryParse<IconSymbol>(inputString, true, out var kind))
             {
                 var pathData = GetPathDataFromLucideKind(kind);
                 return StreamGeometry.Parse(pathData);
@@ -85,9 +84,9 @@ public partial class StringToIconConverter : IValueConverter
     }
 
     /// <summary>
-    /// Retrieves the path data for a LucideIconKind enum.
+    /// Retrieves the path data for a IconSymbol enum.
     /// </summary>
-    private static string GetPathDataFromLucideKind(LucideIconKind kind)
+    private static string GetPathDataFromLucideKind(IconSymbol kind)
     {
         return IconToGeometry.CreateGeometryString(kind);
     }

@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:ProseFlow.UI.ViewModels.Onboarding"
              xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
+             xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="vm:CloudOnboardingViewModel">
     <StackPanel Spacing="16" MinWidth="450">
@@ -27,9 +28,9 @@
                 <!-- Spinner for Testing -->
                 <ProgressBar IsIndeterminate="True" Width="16" Height="16" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:TestStatus.Testing}}" />
                 <!-- Success Icon -->
-                <LucideIcon Kind="CircleCheck" Size="16" Classes="Success" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:TestStatus.Success}}" />
+                <icons:SymbolIcon Symbol="CircleCheck" Size="16" Classes="Success" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:TestStatus.Success}}" />
                 <!-- Error Icon -->
-                <LucideIcon Kind="CircleX" Size="16" Classes="Destructive" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:TestStatus.Error}}" />
+                <icons:SymbolIcon Symbol="CircleX" Size="16" Classes="Destructive" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:TestStatus.Error}}" />
 
                 <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Classes="Small" />
             </StackPanel>

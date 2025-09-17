@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Providers"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:CloudProviderEditorViewModel"
 
     Title="Cloud Provider Editor"
@@ -91,7 +92,7 @@
                         CommandParameter="{Binding $parent[Window]}"
                         IsCancel="True">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="X" />
+                            <icons:SymbolIcon Size="18" Symbol="X" />
                         </shadui:ButtonAssist.Icon>
                         Cancel
                     </Button>
@@ -101,7 +102,7 @@
                         CommandParameter="{Binding $parent[Window]}"
                         IsDefault="True">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="Save" />
+                            <icons:SymbolIcon Size="18" Symbol="Save" />
                         </shadui:ButtonAssist.Icon>
                         Save
                     </Button>

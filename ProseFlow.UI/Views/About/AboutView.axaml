@@ -9,6 +9,7 @@
     xmlns:core="using:ProseFlow.Core.Models"
     xmlns:enums="using:ProseFlow.Core.Enums"
     xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia.Tight"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     mc:Ignorable="d"
     x:DataType="vm:AboutViewModel">
 
@@ -60,7 +61,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Size="24" Kind="PackageCheck" />
+                            <icons:SymbolIcon Size="24" Symbol="PackageCheck" />
                             <StackPanel>
                                 <shadui:CardTitle>Updates</shadui:CardTitle>
                                 <shadui:CardDescription>Update ProseFlow to the latest version without any hassle.</shadui:CardDescription>
@@ -109,7 +110,7 @@
                                         </Flyout>
                                     </Button.Flyout>
                                     <StackPanel Spacing="4" Orientation="Horizontal">
-                                        <LucideIcon Size="18" Kind="Notebook" />
+                                        <icons:SymbolIcon Size="18" Symbol="Notebook" />
                                         <TextBlock Text="View Release Notes" />
                                     </StackPanel>
                                 </Button>
@@ -147,7 +148,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Size="24" Kind="Heart" />
+                            <icons:SymbolIcon Size="24" Symbol="Heart" />
                             <StackPanel>
                                 <shadui:CardTitle>Support &amp; Contribute</shadui:CardTitle>
                                 <shadui:CardDescription>If you find ProseFlow useful, please consider supporting its development.</shadui:CardDescription>
@@ -157,19 +158,19 @@
                     <WrapPanel ItemSpacing="8" Margin="0,16,0,0">
                         <Button Classes="Outline" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppIssuesUrl}">
                             <shadui:ButtonAssist.Icon>
-                                <LucideIcon Kind="Bug" Size="16" />
+                                <icons:SymbolIcon Symbol="Bug" Size="16" />
                             </shadui:ButtonAssist.Icon>
                             Report a Bug
                         </Button>
                          <Button Classes="Outline" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppSponsorsUrl}">
                             <shadui:ButtonAssist.Icon>
-                                <LucideIcon Kind="Github" Size="16" />
+                                <icons:SymbolIcon Symbol="Github" Size="16" />
                             </shadui:ButtonAssist.Icon>
                             Sponsor on GitHub
                         </Button>
                         <Button Classes="Outline" Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppDonationUrl}">
                             <shadui:ButtonAssist.Icon>
-                                <LucideIcon Kind="Coffee" Size="16" />
+                                <icons:SymbolIcon Symbol="Coffee" Size="16" />
                             </shadui:ButtonAssist.Icon>
                             Buy Me a Ko-fi
                         </Button>
@@ -180,7 +181,7 @@
                 <shadui:Card HasShadow="True">
                     <shadui:Card.Header>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Size="24" Kind="Library" />
+                            <icons:SymbolIcon Size="24" Symbol="Library" />
                             <StackPanel>
                                 <shadui:CardTitle>Acknowledgements</shadui:CardTitle>
                             </StackPanel>

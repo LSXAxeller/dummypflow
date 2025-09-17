@@ -28,7 +28,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly ILocalModelManagementService _localModelService;
 
     public override string Title => "Providers";
-    public override LucideIconKind Icon => LucideIconKind.Cloud;
+    public override IconSymbol Icon => IconSymbol.Cloud;
     
     [ObservableProperty]
     private ProviderSettings? _settings;

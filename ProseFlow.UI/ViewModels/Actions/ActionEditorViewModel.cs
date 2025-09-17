@@ -40,12 +40,12 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
     private int _selectedIconTab;
 
     [ObservableProperty]
-    private LucideIconKind _selectedLucideIcon;
+    private IconSymbol _selectedLucideIcon;
 
     [ObservableProperty]
     private string _selectedIcon = string.Empty;
 
-    public List<LucideIconKind> LucideIcons { get; } = Enum.GetValues<LucideIconKind>().ToList();
+    public List<IconSymbol> LucideIcons { get; } = Enum.GetValues<IconSymbol>().ToList();
     
     public ObservableCollection<ActionGroup> AvailableGroups { get; } = [];
 
@@ -60,14 +60,14 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
         if (SelectedActionGroup is null && AvailableGroups.Count > 0) SelectedActionGroup = AvailableGroups.FirstOrDefault(g => g.Id == 1) ?? AvailableGroups[0];
 
         // Determine the initial state of the icon selection
-        if (Enum.TryParse<LucideIconKind>(Action.Icon, true, out var kind))
+        if (Enum.TryParse<IconSymbol>(Action.Icon, true, out var kind))
         {
             SelectedIcon = kind.ToString();
             SelectedIconTab = 0; // "Built-in" tab
         }
         else
         {
-            SelectedLucideIcon = LucideIconKind.Workflow;
+            SelectedLucideIcon = IconSymbol.Workflow;
             SelectedIcon = Action.Icon;
             SelectedIconTab = 1; // "Custom" tab
         }
@@ -84,7 +84,7 @@ public partial class ActionEditorViewModel(Action action, ActionManagementServic
         Action.Icon = value;
     }
 
-    partial void OnSelectedLucideIconChanged(LucideIconKind value)
+    partial void OnSelectedLucideIconChanged(IconSymbol value)
     {
         Action.Icon = value.ToString();
     }

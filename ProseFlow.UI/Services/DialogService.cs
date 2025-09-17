@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using ProseFlow.Application.DTOs;
@@ -15,10 +18,11 @@ using ProseFlow.UI.ViewModels.Downloads;
 using ProseFlow.UI.ViewModels.Providers;
 using ProseFlow.UI.Views.Actions;
 using ProseFlow.UI.Views.Dialogs;
-using ProseFlow.UI.Views.Downloads;
 using ShadUI;
 using Action = ProseFlow.Core.Models.Action;
 using Window = Avalonia.Controls.Window;
+using FontWeight = Avalonia.Media.FontWeight;
+using Thickness = Avalonia.Thickness;
 
 namespace ProseFlow.UI.Services;
 
@@ -196,5 +200,52 @@ public class DialogService(IServiceProvider serviceProvider) : IDialogService
         
         _ = dialog.ShowDialog(mainWindow);
         return await vm.CompletionSource.Task;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ShowCriticalConfirmationDialogAsync(Window owner, string title, string message, string confirmText, string cancelText)
+    {
+        // Native blocking window for startup-critical error.
+        var window = new Window
+        {
+            Title = title,
+            Width = 450,
+            SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            SystemDecorations = SystemDecorations.Full,
+            CanResize = false,
+            ShowInTaskbar = true
+        };
+
+        var confirmButton = new Button { Content = confirmText, IsDefault = true };
+        var cancelButton = new Button { Content = cancelText, IsCancel = true };
+
+        confirmButton.Click += (_, _) => window.Close(true);
+        cancelButton.Click += (_, _) => window.Close(false);
+
+        window.Content = new StackPanel
+        {
+            Margin = new Thickness(20),
+            Spacing = 15,
+            Children =
+            {
+                new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeight.SemiBold },
+                new TextBlock
+                {
+                    Text = message,
+                    TextWrapping = TextWrapping.Wrap
+                },
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 10,
+                    Margin = new Thickness(0, 10, 0, 0),
+                    Children = { cancelButton, confirmButton }
+                }
+            }
+        };
+
+        return window.ShowDialog<bool>(owner);
     }
 }

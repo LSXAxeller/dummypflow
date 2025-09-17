@@ -6,6 +6,7 @@
     xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
     xmlns:vm="using:ProseFlow.UI.ViewModels.Windows"
     xmlns:actions="clr-namespace:ProseFlow.UI.ViewModels.Actions"
+    xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
     x:DataType="vm:FloatingActionMenuViewModel"
 
     Width="500" SizeToContent="Height"
@@ -56,7 +57,7 @@
                         Command="{Binding ToggleServiceTypeCommand}"
                         ToolTip.Tip="Toggle AI Service Type for this run">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="Globe" />
+                            <icons:SymbolIcon Size="18" Symbol="Globe" />
                         </shadui:ButtonAssist.Icon>
                         <TextBlock Classes="Small" Text="{Binding CurrentServiceTypeName}" Margin="4,0,0,0" />
                     </Button>
@@ -66,7 +67,7 @@
                         Command="{Binding ToggleResultContainerCommand}"
                         ToolTip.Tip="Toggle the Final form of the result">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="AppWindow" />
+                            <icons:SymbolIcon Size="18" Symbol="AppWindow" />
                         </shadui:ButtonAssist.Icon>
                         <TextBlock Classes="Small" Text="{Binding ResultContainer}" Margin="4,0,0,0" />
                     </Button>
@@ -76,7 +77,7 @@
                         IsChecked="{Binding IsCustomInstructionActive}"
                         ToolTip.Tip="Toggle between Action List and Custom Instruction">
                         <StackPanel Orientation="Horizontal" Margin="8" Spacing="4">
-                            <LucideIcon Size="18" Kind="Sparkles" />
+                            <icons:SymbolIcon Size="18" Symbol="Sparkles" />
                             <TextBlock Classes="Small" Text="Custom Instruction" />
                         </StackPanel>
                     </ToggleButton>
@@ -86,7 +87,7 @@
                         Command="{Binding OpenSettingsCommand}"
                         ToolTip.Tip="Open Settings">
                         <shadui:ButtonAssist.Icon>
-                            <LucideIcon Size="18" Kind="Settings" />
+                            <icons:SymbolIcon Size="18" Symbol="Settings" />
                         </shadui:ButtonAssist.Icon>
                     </Button>
                 </DockPanel>

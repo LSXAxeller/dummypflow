@@ -33,7 +33,7 @@ public partial class SettingsViewModel(
     IOsService osService) : ViewModelBase
 {
     public override string Title => "Settings";
-    public override LucideIconKind Icon => LucideIconKind.Settings;
+    public override IconSymbol Icon => IconSymbol.Settings;
 
     [ObservableProperty]
     private GeneralSettings? _settings;

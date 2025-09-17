@@ -21,7 +21,7 @@ public partial class AboutViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
 
     public override string Title => "About";
-    public override LucideIconKind Icon => LucideIconKind.Info;
+    public override IconSymbol Icon => IconSymbol.Info;
 
     [ObservableProperty] private UpdateStatus _updateStatus;
     [ObservableProperty] private double _downloadProgress;

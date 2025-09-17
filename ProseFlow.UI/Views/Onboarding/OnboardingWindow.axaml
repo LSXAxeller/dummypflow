@@ -8,6 +8,7 @@
                xmlns:onboarding="clr-namespace:ProseFlow.UI.Views.Onboarding"
                xmlns:providers="clr-namespace:ProseFlow.UI.Views.Providers"
                xmlns:vmProviders="using:ProseFlow.UI.ViewModels.Providers"
+               xmlns:icons="clr-namespace:ProseFlow.UI.Controls.Icons"
                mc:Ignorable="d"
                x:DataType="vm:OnboardingViewModel"
                SizeToContent="Height"
@@ -87,7 +88,7 @@
                     <Button Grid.Column="0" Classes="Card" HorizontalAlignment="Stretch"
                             Command="{Binding ChooseProviderPathCommand}" CommandParameter="Cloud">
                         <StackPanel Spacing="8" TextBlock.TextAlignment="Center">
-                            <LucideIcon Kind="Cloud" Size="32" HorizontalAlignment="Center" />
+                            <icons:SymbolIcon Symbol="Cloud" Size="32" HorizontalAlignment="Center" />
                             <TextBlock Classes="h4" Text="Use the Cloud" />
                             <TextBlock Classes="Small Muted" TextWrapping="Wrap"
                                        Text="Connect to services like OpenAI, Groq, or Anthropic." />
@@ -96,7 +97,7 @@
                     <Button Grid.Column="1" Classes="Card" HorizontalAlignment="Stretch"
                             Command="{Binding ChooseProviderPathCommand}" CommandParameter="Local">
                         <StackPanel Spacing="8" TextBlock.TextAlignment="Center">
-                            <LucideIcon Kind="Laptop" Size="32" HorizontalAlignment="Center" />
+                            <icons:SymbolIcon Symbol="Laptop" Size="32" HorizontalAlignment="Center" />
                             <TextBlock Classes="h4" Text="Use a Local Model" />
                             <TextBlock Classes="Small Muted" TextWrapping="Wrap"
                                        Text="Run on your own hardware. Private and offline." />
@@ -119,19 +120,19 @@
                     </ItemsControl.ItemsPanel>
                     <Border Classes="ListItem" Padding="12">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Kind="SquarePen" Size="18" />
+                            <icons:SymbolIcon Symbol="SquarePen" Size="18" />
                             <TextBlock Text="Proofread &amp; Fix Grammar" />
                         </StackPanel>
                     </Border>
                     <Border Classes="ListItem" Padding="12">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Kind="MessageSquareText" Size="18" />
+                            <icons:SymbolIcon Symbol="MessageSquareText" Size="18" />
                             <TextBlock Text="Summarize Text" />
                         </StackPanel>
                     </Border>
                     <Border Classes="ListItem" Padding="12">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <LucideIcon Kind="Bot" Size="18" />
+                            <icons:SymbolIcon Symbol="Bot" Size="18" />
                             <TextBlock Text="Rephrase Casually" />
                         </StackPanel>
                     </Border>
@@ -160,7 +161,7 @@
             <!-- Graduation Step -->
             <StackPanel Spacing="16" Margin="24" TextBlock.TextAlignment="Center"
                         IsVisible="{Binding CurrentStep, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:OnboardingStep.Graduation}}">
-                <LucideIcon Kind="PartyPopper" Width="48" Height="48" Margin="0, 16" Classes="Success" />
+                <icons:SymbolIcon Symbol="PartyPopper" Width="48" Height="48" Margin="0, 16" Classes="Success" />
                 <TextBlock Classes="h2" Text="You're All Set!" />
                 <TextBlock Classes="p Muted" TextWrapping="Wrap"
                            Text="ProseFlow will now run quietly in your system tray. Use your hotkeys anytime to process text." />
