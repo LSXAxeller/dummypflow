@@ -220,7 +220,7 @@ public sealed class OsService(IActiveWindowTracker activeWindowTracker) : IOsSer
 
             if (isEnabled)
             {
-                var appPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var appPath = AppContext.BaseDirectory;
                 // For .app bundles, the path points inside, we need the path to the bundle itself.
                 var bundleIndex = appPath.IndexOf(".app/", StringComparison.OrdinalIgnoreCase);
                 if (bundleIndex != -1) appPath = appPath[..(bundleIndex + 4)];
