@@ -100,7 +100,7 @@ jobs:
           $originalNotesFile = "Changelogs/${{ github.event_name == 'push' && github.ref_name || inputs.version }}.md"
           $sanitizedNotesFile = "sanitized-notes.md"
           $originalContent = Get-Content -Path $originalNotesFile -Raw
-          $sanitizedContent = "<![CDATA[`n$($originalContent)`n]]>"
+          $sanitizedContent = [System.Security.SecurityElement]::Escape($originalContent)
           Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
           
           vpk pack `
