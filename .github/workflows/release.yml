@@ -42,7 +42,7 @@ jobs:
             rid: osx-x64
             tfm: net8.0-macos
 
-          - os: macos-14
+          - os: macos-15
             platform: osx-arm64
             rid: osx-arm64
             tfm: net8.0-macos
@@ -77,14 +77,20 @@ jobs:
 
       - name: Publish application
         run: >
-          dotnet publish ProseFlow.UI 
-          -c Release 
-          -r ${{ matrix.rid }} 
-          --self-contained 
-          -p:PublishSingleFile=true
-          -p:UseAppHost=true
-          -f ${{ matrix.tfm }} 
-          -o "publish"
+          EXTRA_ARGS=""
+          if [[ "${{ matrix.platform }}" == "osx-x64" ]]; then
+            EXTRA_ARGS="-p:PublishTrimmed=false"
+          fi
+          dotnet publish ProseFlow.UI \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained \
+            -p:PublishSingleFile=true \
+            -p:UseAppHost=true \
+            -f ${{ matrix.tfm }} \
+            -o "publish" \
+            $EXTRA_ARGS
+        shell: bash
 
       - name: Pack with Velopack
         run: |
