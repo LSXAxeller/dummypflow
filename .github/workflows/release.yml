@@ -88,7 +88,7 @@ jobs:
             -p "publish" `
             -r ${{ matrix.rid }} `
             --channel ${{ matrix.platform }} `
-            --releaseNotes "Changelogs/v${{ env.APP_VERSION }}.md"
+            --releaseNotes "Changelogs/${{ github.ref_name }}.md"
         shell: pwsh
 
       - name: Upload Release Artifacts
