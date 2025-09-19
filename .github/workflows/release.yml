@@ -94,14 +94,20 @@ jobs:
 
       - name: Pack with Velopack
         run: |
-          $releaseNotesFile = "Changelogs/${{ github.event_name == 'push' && github.ref_name || inputs.version }}.md"
+          $originalNotesFile = "Changelogs/${{ github.event_name == 'push' && github.ref_name || inputs.version }}.md"
+          $sanitizedNotesFile = "sanitized-notes.md"
+          $originalContent = Get-Content -Path $originalNotesFile -Raw
+          $sanitizedContent = "<![CDATA[`n$($originalContent)`n]]>"
+          Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
+          
           vpk pack `
             -u ProseFlow `
             -v ${{ env.APP_VERSION }} `
             -p "publish" `
+            -o "Velo-Output" `
             -r ${{ matrix.rid }} `
             --channel ${{ matrix.platform }} `
-            --releaseNotes $releaseNotesFile
+            --releaseNotes $sanitizedNotesFile
         shell: pwsh
 
       - name: Upload Release Artifacts
