@@ -82,6 +82,7 @@ jobs:
           -r ${{ matrix.rid }} 
           --self-contained 
           -p:PublishSingleFile=true
+          -p:UseAppHost=true
           -f ${{ matrix.tfm }} 
           -o "publish"
 
