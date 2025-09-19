@@ -60,7 +60,7 @@
         <ProjectReference Include="..\ProseFlow.Infrastructure\ProseFlow.Infrastructure.csproj" />
     </ItemGroup>
 
-    <Target Name="RemoveUnusedRuntimesAfterPublish" AfterTargets="Publish">
+    <Target Name="RemoveUnusedRuntimesAfterPublish" BeforeTargets="Publish">
         <PropertyGroup>
             <IsWindowsPublish Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('win'))">true</IsWindowsPublish>
             <IsMacOsPublish Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))">true</IsMacOsPublish>
