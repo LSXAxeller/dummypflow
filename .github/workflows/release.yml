@@ -87,13 +87,14 @@ jobs:
 
       - name: Pack with Velopack
         run: |
+          $releaseNotesFile = "Changelogs/${{ github.event_name == 'push' && github.ref_name || inputs.version }}.md"
           vpk pack `
             -u ProseFlow `
             -v ${{ env.APP_VERSION }} `
             -p "publish" `
             -r ${{ matrix.rid }} `
             --channel ${{ matrix.platform }} `
-            --releaseNotes "Changelogs/${{ github.ref_name }}.md"
+            --releaseNotes $releaseNotesFile
         shell: pwsh
 
       - name: Upload Release Artifacts
@@ -131,10 +132,7 @@ jobs:
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2.3.3
         with:
-          # Use the git tag that triggered this workflow as the release tag.
-          tag_name: ${{ github.ref_name }}
-          name: "ProseFlow v${{ env.APP_VERSION }}"
-          # Use the content of the corresponding changelog file as the release body.
-          body_path: "Changelogs/${{ github.ref_name }}.md"
-          # Upload all files from the directory where artifacts were downloaded.
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+          name: "ProseFlow ${{ github.event_name == 'push' && github.ref_name || inputs.version }}"
+          body_path: "Changelogs/${{ github.event_name == 'push' && github.ref_name || inputs.version }}.md"
           files: release-assets/*
