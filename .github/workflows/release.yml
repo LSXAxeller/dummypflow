@@ -77,19 +77,22 @@ jobs:
 
       - name: Publish application
         run: |
-          EXTRA_ARGS=""
-          if [[ "${{ matrix.platform }}" == "osx-x64" ]]; then
-            EXTRA_ARGS="-p:PublishTrimmed=false"
+          PUBLISH_ARGS=""
+          if [[ ! "${{ matrix.platform }}" =~ ^osx-.* ]]; then
+            PUBLISH_ARGS="-p:PublishSingleFile=true -p:UseAppHost=true"
           fi
+          
+          if [[ "${{ matrix.platform }}" == "osx-x64" ]]; then
+            PUBLISH_ARGS="$PUBLISH_ARGS -p:PublishTrimmed=false"
+          fi
+
           dotnet publish ProseFlow.UI \
             -c Release \
             -r ${{ matrix.rid }} \
             --self-contained \
-            -p:PublishSingleFile=true \
-            -p:UseAppHost=true \
             -f ${{ matrix.tfm }} \
             -o "publish" \
-            $EXTRA_ARGS
+            $PUBLISH_ARGS
         shell: bash
 
       - name: Pack with Velopack
