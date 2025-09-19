@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
         <TargetFrameworks>net8.0;net8.0-windows;net8.0-macos</TargetFrameworks>
         <ApplicationId>com.lsxprime.proseflow</ApplicationId>
         <UseAppHost>true</UseAppHost>
