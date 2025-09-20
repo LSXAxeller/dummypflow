@@ -20,6 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -79,7 +80,7 @@ jobs:
         run: |
           PUBLISH_ARGS=""
           if [[ ! "${{ matrix.platform }}" =~ ^osx-.* ]]; then
-            PUBLISH_ARGS="-p:PublishSingleFile=true
+            PUBLISH_ARGS="-p:PublishSingleFile=true"
           fi
 
           dotnet publish ProseFlow.UI \
@@ -87,7 +88,7 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained \
             -f ${{ matrix.tfm }} \
-            -p:UseAppHost=true" \
+            -p:UseAppHost=true \
             -o "publish" \
             $PUBLISH_ARGS
         shell: bash
