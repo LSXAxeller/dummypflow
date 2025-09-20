@@ -24,6 +24,20 @@
         <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) AND '$(HOST_ARCH)' == 'x64'">osx-x64</RuntimeIdentifier>
     </PropertyGroup>
 
+    <Target Name="DisplayBuildEnvironment" BeforeTargets="Build">
+        <PropertyGroup>
+            <DetectedOS Condition="$([MSBuild]::IsOSPlatform('Windows'))">Windows</DetectedOS>
+            <DetectedOS Condition="$([MSBuild]::IsOSPlatform('Linux'))">Linux</DetectedOS>
+            <DetectedOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">macOS</DetectedOS>
+        </PropertyGroup>
+
+        <Message Text="--- Build Environment ---" Importance="high" />
+        <Message Text="OS Platform: $(DetectedOS)" Importance="high" />
+        <Message Text="Host Architecture: $(HOST_ARCH)" Importance="high" />
+        <Message Text="Runtime Identifier: $(RuntimeIdentifier)" Importance="high" />
+        <Message Text="-------------------------" Importance="high" />
+    </Target>
+
     <ItemGroup>
         <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
         <PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.25.1" />
