@@ -82,7 +82,10 @@ jobs:
           if [[ ! "${{ matrix.platform }}" =~ ^osx-.* ]]; then
             PUBLISH_ARGS="-p:PublishSingleFile=true"
           fi
-
+          if [[ "${{ matrix.platform }}" =~ ^osx-.* ]]; then
+            PUBLISH_ARGS="$PUBLISH_ARGS -p:CreatePackage=false"
+          fi
+          
           dotnet publish ProseFlow.UI \
             -c Release \
             -r ${{ matrix.rid }} \
