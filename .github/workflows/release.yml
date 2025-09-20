@@ -38,12 +38,12 @@ jobs:
             rid: linux-arm64
             tfm: net8.0
 
-          - os: macos-13
+          - os: macos-latest
             platform: osx-x64
             rid: osx-x64
             tfm: net8.0-macos
 
-          - os: macos-15
+          - os: macos-latest
             platform: osx-arm64
             rid: osx-arm64
             tfm: net8.0-macos
@@ -101,19 +101,26 @@ jobs:
           $sanitizedContent = [System.Security.SecurityElement]::Escape($originalContent)
           Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
           
-          $vpkArgs = $null
           if ("${{ matrix.platform }}".StartsWith("osx-")) {
-            $vpkArgs = "--mainExe ProseFlow.app/Contents/MacOS/ProseFlow"
+            vpk pack `
+              -u ProseFlow `
+              -v ${{ env.APP_VERSION }} `
+              -p "publish" `
+              -o "Velo-Output" `
+              -r ${{ matrix.rid }} `
+              --channel ${{ matrix.platform }} `
+              --releaseNotes $sanitizedNotesFile `
+              --mainExe ProseFlow.app/Contents/MacOS/ProseFlow
+          } else {
+            vpk pack `
+              -u ProseFlow `
+              -v ${{ env.APP_VERSION }} `
+              -p "publish" `
+              -o "Velo-Output" `
+              -r ${{ matrix.rid }} `
+              --channel ${{ matrix.platform }} `
+              --releaseNotes $sanitizedNotesFile
           }
-
-          vpk pack `
-            -u ProseFlow `
-            -v ${{ env.APP_VERSION }} `
-            -p "publish" `
-            -o "Velo-Output" `
-            -r ${{ matrix.rid }} `
-            --channel ${{ matrix.platform }} `
-            --releaseNotes $sanitizedNotesFile $vpkArgs
         shell: pwsh
 
       - name: Upload Release Artifacts
