@@ -62,8 +62,8 @@ public class UpdateService : IUpdateService
         try
         {
             // TODO: Switch to GitHub updates before release
-            // var source = new GithubSource("https://github.com/LSXPrime/ProseFlow/", null, false);
-            var source = new GiteaSource("http://127.0.0.1:3600/LSXPrime/ProseFlow", null, false);
+            var source = new GithubSource("https://github.com/LSXAxeller/dummypflow", null, false);
+            // var source = new GiteaSource("http://127.0.0.1:3600/LSXPrime/ProseFlow", null, false);
             _updateManager = new UpdateManager(source);
         }
         catch (Exception ex)
