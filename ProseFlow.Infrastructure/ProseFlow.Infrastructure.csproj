@@ -18,10 +18,16 @@
     </PropertyGroup>
 
     <PropertyGroup>
+        <!-- Normalize to lowercase for easier comparison -->
+        <DetectedArch Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'X64'">x64</DetectedArch>
+        <DetectedArch Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">arm64</DetectedArch>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
-        <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) AND '$(HOST_ARCH)' == 'arm64'">osx-arm64</RuntimeIdentifier>
-        <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) AND '$(HOST_ARCH)' == 'x64'">osx-x64</RuntimeIdentifier>
+        <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) AND '$(DetectedArch)' == 'arm64'">osx-arm64</RuntimeIdentifier>
+        <RuntimeIdentifier Condition="$([MSBuild]::IsOSPlatform('OSX')) AND '$(DetectedArch)' == 'x64'">osx-x64</RuntimeIdentifier>
     </PropertyGroup>
 
     <Target Name="DisplayBuildEnvironment" BeforeTargets="Build">
@@ -33,7 +39,7 @@
 
         <Message Text="--- Build Environment ---" Importance="high" />
         <Message Text="OS Platform: $(DetectedOS)" Importance="high" />
-        <Message Text="Host Architecture: $(HOST_ARCH)" Importance="high" />
+        <Message Text="Host Architecture: $(DetectedArch)" Importance="high" />
         <Message Text="Runtime Identifier: $(RuntimeIdentifier)" Importance="high" />
         <Message Text="-------------------------" Importance="high" />
     </Target>

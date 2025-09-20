@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using ProseFlow.Core.Interfaces;
 
-#if MACOS
+#if OSX
 using AppKit;
 #endif
 
@@ -20,7 +20,7 @@ public class MacOsActiveWindowTracker(ILogger<MacOsActiveWindowTracker> logger) 
     /// <inheritdoc />
     public Task<string> GetActiveWindowProcessNameAsync()
     {
-#if MACOS
+#if OSX
         try
         {
             var frontmostApp = NSWorkspace.SharedWorkspace.FrontmostApplication;
