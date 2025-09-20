@@ -121,29 +121,40 @@
 
                     <StackPanel Spacing="16">
                         <!-- Model Path Selection -->
-                        <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
-                            <ComboBox
-                                shadui:ControlAssist.Label="Selected Model"
-                                ItemsSource="{Binding LocalModels}"
-                                SelectedItem="{Binding SelectedModel}"
-                                PlaceholderText="No model selected. Click 'Manage Models' to add one.">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate DataType="core:LocalModel">
-                                        <TextBlock Text="{Binding Name}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <Button
-                                Grid.Column="1"
-                                VerticalAlignment="Bottom"
-                                Classes="Outline"
-                                Command="{Binding ManageModelsCommand}"
-                                Content="Manage Models..." />
-                        </Grid>
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                                <ComboBox
+                                    shadui:ControlAssist.Label="Selected Model"
+                                    ItemsSource="{Binding LocalModels}"
+                                    SelectedItem="{Binding SelectedModel}"
+                                    PlaceholderText="No model selected. Click 'Manage Models' to add one.">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="core:LocalModel">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Classes="Outline"
+                                    Command="{Binding ManageModelsCommand}"
+                                    Content="Manage Models..." />
+                            </Grid>
+
+                            <!-- Resource Warning Message -->
+                            <Border Classes="Warning" IsVisible="{Binding IsResourceWarningVisible}" Padding="12"
+                                    CornerRadius="{DynamicResource MdCornerRadius}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <icons:SymbolIcon Symbol="TriangleAlert" Size="16" VerticalAlignment="Top" />
+                                    <TextBlock Text="{Binding ResourceWarningMessage}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
 
                         <!-- GPU and CPU Settings -->
                         <StackPanel Spacing="8" Margin="8,0">
-                            <ToggleSwitch IsChecked="{Binding Settings.PreferGpu, FallbackValue={x:False}}">
+                            <ToggleSwitch IsChecked="{Binding PreferGpu, FallbackValue={x:False}}">
                                 Prefer GPU acceleration (if available)
                             </ToggleSwitch>
 
@@ -236,7 +247,7 @@
 
                             <Panel Grid.Column="1" VerticalAlignment="Center">
                                 <StackPanel Spacing="8" Orientation="Horizontal"
-                                            IsVisible="{Binding ManagerStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static local:ModelStatus.NotLoaded}}">
+                                            IsVisible="{Binding ManagerStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static local:ModelStatus.Unloaded}}">
                                     <icons:SymbolIcon Size="18" Symbol="CircleAlert" />
                                     <TextBlock Classes="Muted" Text="Model is not loaded." VerticalAlignment="Center" />
                                 </StackPanel>
@@ -322,7 +333,7 @@
                             Classes="Outline Destructive"
                             HorizontalAlignment="Left"
                             Command="{Binding ResetUsageCommand}"
-                            ToolTip.Tip="Reset the usage counters for the current month to zero.">
+                            ToolTip.Tip="Reset the usage counters for the current month to zero. This cannot be undone.">
                             Reset Counter
                         </Button>
                     </shadui:Card.Footer>

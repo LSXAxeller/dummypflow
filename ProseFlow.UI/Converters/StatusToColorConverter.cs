@@ -18,7 +18,7 @@ public class StatusToColorConverter : IValueConverter
             ModelStatus.Loaded => Brushes.LimeGreen,
             ModelStatus.Loading => Brushes.Orange,
             ModelStatus.Error => Brushes.Red,
-            ModelStatus.NotLoaded => Brushes.SlateGray,
+            ModelStatus.Unloaded => Brushes.SlateGray,
             _ => Brushes.Gray
         };
     }

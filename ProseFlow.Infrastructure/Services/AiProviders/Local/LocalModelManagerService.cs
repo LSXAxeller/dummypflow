@@ -9,7 +9,7 @@ using Timer = System.Timers.Timer;
 
 namespace ProseFlow.Infrastructure.Services.AiProviders.Local;
 
-public enum ModelStatus { NotLoaded, Loading, Loaded, Error }
+public enum ModelStatus { Unloaded, Loading, Loaded, Error }
 
 /// <summary>
 /// Manages the lifecycle of the local LLM, including loading and unloading the model.
@@ -24,7 +24,7 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
     public event Action? StateChanged;
     public event Action<float>? ProgressChanged;
 
-    public ModelStatus Status { get; private set; } = ModelStatus.NotLoaded;
+    public ModelStatus Status { get; private set; } = ModelStatus.Unloaded;
     public string? ErrorMessage { get; private set; }
 
     public LLamaWeights? Model { get; private set; }
@@ -126,7 +126,7 @@ public class LocalModelManagerService(ILogger<LocalModelManagerService> logger)
         Executor = null;
         Model = null;
         
-        UpdateState(ModelStatus.NotLoaded);
+        UpdateState(ModelStatus.Unloaded);
         ProgressChanged?.Invoke(0);
 
         GC.Collect();

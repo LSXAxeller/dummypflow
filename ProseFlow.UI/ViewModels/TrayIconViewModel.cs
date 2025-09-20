@@ -42,7 +42,7 @@ public partial class TrayIconViewModel : ViewModelBase, IDisposable
 
     public string ModelStatusText => ManagerStatus switch
     {
-        ModelStatus.NotLoaded => "Local model is not loaded.",
+        ModelStatus.Unloaded => "Local model is not loaded.",
         ModelStatus.Loading => "Loading local model...",
         ModelStatus.Loaded => "Local model is loaded.",
         ModelStatus.Error => $"Error: {_modelManager.ErrorMessage}",

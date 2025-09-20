@@ -4,12 +4,13 @@
         <ApplicationId>com.lsxprime.proseflow</ApplicationId>
         <UseAppHost>true</UseAppHost>
         <AssemblyName>ProseFlow</AssemblyName>
+        <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <AvaloniaVersion>11.3.4</AvaloniaVersion>
-        <Version>0.1.0</Version>
+        <Version>0.2.0</Version>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">

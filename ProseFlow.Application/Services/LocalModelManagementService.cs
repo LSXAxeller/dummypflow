@@ -32,6 +32,13 @@ public class LocalModelManagementService : ILocalModelManagementService
         return ExecuteQueryAsync(unitOfWork => unitOfWork.LocalModels.GetAllAsync());
     }
 
+    public async Task<List<LocalModelStatusDto>> GetModelsWithStatusAsync()
+    {
+        var models = await GetModelsAsync();
+        return models.Select(model => new LocalModelStatusDto(model, !File.Exists(model.FilePath)))
+            .ToList();
+    }
+
     public string GetManagedModelsDirectory()
     {
         return _managedModelsDirectory;
@@ -160,6 +167,22 @@ public class LocalModelManagementService : ILocalModelManagementService
         RaiseModelsChanged();
     }
     
+    public Task UpdateModelPathAsync(int modelId, string newPath)
+    {
+        return ExecuteCommandAsync(async unitOfWork =>
+        {
+            var modelToUpdate = await unitOfWork.LocalModels.GetByIdAsync(modelId);
+            if (modelToUpdate is null)
+            {
+                _logger.LogWarning("Attempted to update path for non-existent model with ID {ModelId}", modelId);
+                return;
+            }
+
+            modelToUpdate.FilePath = newPath;
+            unitOfWork.LocalModels.Update(modelToUpdate);
+        });
+    }
+
     private async Task ExecuteCommandAsync(Func<IUnitOfWork, Task> command)
     {
         using var scope = _scopeFactory.CreateScope();

@@ -73,16 +73,16 @@ public partial class ModelLibraryViewModel(
     private async Task LoadLocalModelsAsync()
     {
         LocalModels.Clear();
-        var localModels = await localModelService.GetModelsAsync();
+        var modelsWithStatus = await localModelService.GetModelsWithStatusAsync();
         var settings = await settingsService.GetProviderSettingsAsync();
         
-        foreach (var entry in localModels)
+        foreach (var entry in modelsWithStatus)
         {
-            var vm = new LocalModelViewModel(entry, localModelService, settingsService, dialogService);
+            var vm = new LocalModelViewModel(entry.Model, entry.IsMissing, localModelService, settingsService, dialogService, RelocateModelAsync);
             LocalModels.Add(vm);
         }
         
-        var modelToSelect = LocalModels.FirstOrDefault(m => m.Model.FilePath == settings.LocalModelPath);
+        var modelToSelect = LocalModels.FirstOrDefault(m => !m.IsMissing && m.Model.FilePath == settings.LocalModelPath);
         if (modelToSelect != null) await SelectLocalModelAsync(modelToSelect);
     }
     
@@ -167,6 +167,18 @@ public partial class ModelLibraryViewModel(
         foreach (var otherModel in LocalModels) otherModel.IsSelected = otherModel == model;
         
         SelectedModel = model;
+    }
+    
+    private async Task RelocateModelAsync(LocalModelViewModel modelVm)
+    {
+        var newPath = await dialogService.ShowOpenFileDialogAsync($"Locate '{modelVm.Model.Name}'", "GGUF File", "*.gguf");
+        if (string.IsNullOrWhiteSpace(newPath)) return;
+
+        await localModelService.UpdateModelPathAsync(modelVm.Model.Id, newPath);
+        AppEvents.RequestNotification("Model path updated successfully.", NotificationType.Success);
+        
+        // Refresh the list to reflect the new state
+        await LoadLocalModelsAsync();
     }
 
     public void OnClosing()

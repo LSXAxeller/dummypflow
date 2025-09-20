@@ -13,6 +13,7 @@ using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Services.AiProviders.Local;
+using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Views.Providers;
 
@@ -26,6 +27,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     private readonly LocalModelManagerService _modelManager;
     private readonly UsageTrackingService _usageService;
     private readonly ILocalModelManagementService _localModelService;
+    private readonly HardwareMonitoringService _hardwareMonitoringService;
 
     public override string Title => "Providers";
     public override IconSymbol Icon => IconSymbol.Cloud;
@@ -49,6 +51,9 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     
     public List<string> AvailableServiceTypes => ["Cloud", "Local"];
     public List<string> AvailableFallbackServiceTypes => ["Cloud", "Local", "None"];
+    
+    [ObservableProperty]
+    private bool _preferGpu;
 
     [ObservableProperty]
     private float _localTemp;
@@ -69,13 +74,17 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private long _totalTokens;
 
+    [ObservableProperty] private bool _isResourceWarningVisible;
+    [ObservableProperty] private string _resourceWarningMessage = string.Empty;
+
     public ProvidersViewModel(
         SettingsService settingsService,
         CloudProviderManagementService providerService,
         IDialogService dialogService,
         LocalModelManagerService modelManager,
         UsageTrackingService usageService,
-        ILocalModelManagementService localModelService)
+        ILocalModelManagementService localModelService,
+        HardwareMonitoringService hardwareMonitoringService)
     {
         _settingsService = settingsService;
         _providerService = providerService;
@@ -83,11 +92,13 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         _modelManager = modelManager;
         _usageService = usageService;
         _localModelService = localModelService;
+        _hardwareMonitoringService = hardwareMonitoringService;
 
         // Subscribe to events
         _modelManager.StateChanged += OnManagerStateChanged;
         _modelManager.ProgressChanged += OnModelProgressChanged;
         _localModelService.ModelsChanged += OnLocalModelsChanged;
+        _hardwareMonitoringService.MetricsUpdated += OnHardwareMetricsUpdated;
 
         // Set initial state
         OnManagerStateChanged();
@@ -116,6 +127,18 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     {
         await LoadLocalModelsAsync();
     }
+    
+    private void OnHardwareMetricsUpdated(HardwareMetrics _)
+    {
+        Dispatcher.UIThread.Post(UpdateResourceWarning);
+    }
+    
+    partial void OnPreferGpuChanged(bool value)
+    {
+        if (Settings is null) return;
+        Settings.PreferGpu = value;
+        UpdateResourceWarning();
+    }
 
     partial void OnLocalTempChanged(float value)
     {
@@ -139,11 +162,13 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     {
         if (Settings is null || value is null) return;
         Settings.LocalModelPath = value.FilePath;
+        UpdateResourceWarning();
     }
     
     public override async Task OnNavigatedToAsync()
     {
         Settings = await _settingsService.GetProviderSettingsAsync();
+        PreferGpu = Settings.PreferGpu;
         LocalTemp = Settings.LocalModelTemperature;
         LocalContextSize = Settings.LocalModelContextSize;
         LocalMaxTokens = Settings.LocalModelMaxTokens;
@@ -151,6 +176,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         await LoadCloudProvidersAsync();
         await LoadLocalModelsAsync();
         UpdateUsageDisplay();
+        UpdateResourceWarning();
     }
     
     private async Task LoadCloudProvidersAsync()
@@ -169,7 +195,8 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
             foreach (var model in models) LocalModels.Add(model);
 
             // Reselect the current model if it exists in the new list
-            if (Settings is not null && !string.IsNullOrWhiteSpace(Settings.LocalModelPath)) SelectedModel = LocalModels.FirstOrDefault(m => m.FilePath == Settings.LocalModelPath);
+            if (Settings is not null && !string.IsNullOrWhiteSpace(Settings.LocalModelPath)) 
+                SelectedModel = LocalModels.FirstOrDefault(m => m.FilePath == Settings.LocalModelPath);
         });
     }
     
@@ -181,6 +208,46 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         TotalTokens = usage.PromptTokens + usage.CompletionTokens;
     }
     
+    private void UpdateResourceWarning()
+    {
+        if (SelectedModel is null || Settings is null)
+        {
+            IsResourceWarningVisible = false;
+            return;
+        }
+
+        var modelSizeGb = SelectedModel.FileSizeGb;
+        var preferGpu = Settings.PreferGpu;
+        var metrics = _hardwareMonitoringService.GetCurrentMetrics();
+        
+        if (preferGpu && metrics.VramTotalGb > 0)
+        {
+            var availableVramGb = metrics.VramTotalGb - metrics.VramUsedGb;
+            if (modelSizeGb > availableVramGb)
+            {
+                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) exceeds available VRAM ({availableVramGb:F1} GB). Performance may be severely degraded or the model may fail to load.";
+                IsResourceWarningVisible = true;
+            }
+            else
+            {
+                IsResourceWarningVisible = false;
+            }
+        }
+        else
+        {
+            var availableRamGb = metrics.RamTotalGb - metrics.RamUsedGb;
+            if (modelSizeGb > availableRamGb)
+            {
+                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) exceeds available system RAM ({availableRamGb:F1} GB). System instability may occur.";
+                IsResourceWarningVisible = true;
+            }
+            else
+            {
+                IsResourceWarningVisible = false;
+            }
+        }
+    }
+
     [RelayCommand]
     private async Task ManageModelsAsync()
     {
@@ -295,6 +362,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         _modelManager.StateChanged -= OnManagerStateChanged;
         _modelManager.ProgressChanged -= OnModelProgressChanged;
         _localModelService.ModelsChanged -= OnLocalModelsChanged;
+        _hardwareMonitoringService.MetricsUpdated -= OnHardwareMetricsUpdated;
         GC.SuppressFinalize(this);
     }
 }

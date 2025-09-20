@@ -3,7 +3,7 @@
 public static class Constants
 {
     public const string AppName = "ProseFlow";
-    public const string AppVersion = "0.1.0";
+    public const string AppVersion = "0.2.0";
     public const string AppDescription = "Your personal writing assistant, available everywhere with a keystroke.";
     public const string AppAuthor = "LSXPrime";
     public const string AppWebsite = "https://lsxprime.github.io/ProseFlow-web/";

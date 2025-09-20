@@ -140,7 +140,6 @@
                         </ItemsControl>
                     </ScrollViewer>
                 </Grid>
-
             </TabItem>
 
             <TabItem Header="My Models" HorizontalAlignment="Center">
@@ -170,20 +169,32 @@
                               CanUserReorderColumns="False" IsReadOnly="True" GridLinesVisibility="None"
                               Margin="16,0,16,16">
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Status" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="downloads:LocalModelViewModel">
+                                        <icons:SymbolIcon Size="16" Symbol="TriangleAlert" Classes="Destructive"
+                                                          IsVisible="{Binding IsMissing}"
+                                                          ToolTip.Tip="{Binding Model.FilePath, StringFormat='File not found at:&#x0a;{0}'}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTemplateColumn Header="Name" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="downloads:LocalModelViewModel">
                                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                            <icons:SymbolIcon Size="16" Symbol="CircleCheck" IsVisible="{Binding IsSelected}"
-                                                        Foreground="LimeGreen" />
+                                            <icons:SymbolIcon Size="16" Symbol="CircleCheck"
+                                                        IsVisible="{Binding IsSelected}" Foreground="LimeGreen" />
                                             <TextBlock Text="{Binding Model.Name}" FontWeight="Medium" />
-                                            <icons:SymbolIcon Size="14" Symbol="Link" IsVisible="{Binding !Model.IsManaged}"
-                                                        ToolTip.Tip="{Binding Model.FilePath, StringFormat='This is an externally linked model. The original file will not be deleted.&#x0A;File Path: {0}'}"
+                                            <icons:SymbolIcon Size="14" Symbol="Link"
+                                                        IsVisible="{Binding !Model.IsManaged}"
+                                                        ToolTip.Tip="{Binding Model.FilePath, StringFormat='This is an externally linked model. The original file will not be deleted.&#x0a;File Path: {0}'}"
                                                         Classes="Muted" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
                             <DataGridTextColumn Header="Size" Width="100"
                                                 Binding="{Binding Model.FileSizeGb, StringFormat='{}{0:F1} GB'}" />
                             <DataGridTextColumn Header="Added" Width="150"
@@ -192,12 +203,27 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="downloads:LocalModelViewModel">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <!-- Actions for existing models -->
                                             <Button Classes="Primary" IsEnabled="{Binding !IsSelected}"
+                                                    IsVisible="{Binding !IsMissing}"
                                                     Command="{Binding $parent[UserControl].((vm:ModelLibraryViewModel)DataContext).SelectLocalModelCommand, FallbackValue={x:Null}}"
                                                     CommandParameter="{Binding .}">
                                                 Select
                                             </Button>
-                                            <Button Classes="Destructive Outline" Command="{Binding DeleteCommand}">Delete</Button>
+                                            <Button Classes="Destructive Outline" Command="{Binding DeleteCommand}"
+                                                    IsVisible="{Binding !IsMissing}">
+                                                Delete
+                                            </Button>
+
+                                            <!-- Actions for missing models -->
+                                            <Button Classes="Outline" IsVisible="{Binding IsMissing}"
+                                                    Command="{Binding RelocateCommand}">
+                                                Relocate...
+                                            </Button>
+                                            <Button Classes="Destructive" IsVisible="{Binding IsMissing}"
+                                                    Command="{Binding DeleteCommand}">
+                                                Remove
+                                            </Button>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

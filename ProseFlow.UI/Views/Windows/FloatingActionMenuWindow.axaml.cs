@@ -19,15 +19,6 @@ public partial class FloatingActionMenuWindow : Window
     public FloatingActionMenuWindow()
     {
         InitializeComponent();
-        
-        // TODO: Remove this once I finish recording videos for the website
-        #if DEBUG
-        Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            await Task.Delay(TimeSpan.FromSeconds(3));
-            Process.GetProcessesByName("keyviz").ToList().ForEach(p => p.Kill());
-        });
-        #endif
     }
 
     private void OnWindowOpened(object? sender, EventArgs e)
