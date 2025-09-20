@@ -105,10 +105,11 @@ jobs:
           Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
           
           if ("${{ matrix.platform }}".StartsWith("osx-")) {
+            $packDir = "ProseFlow.UI/bin/Release/${{ matrix.tfm }}/${{ matrix.rid }}"
             vpk pack `
               -u ProseFlow `
               -v ${{ env.APP_VERSION }} `
-              -p "publish" `
+              -p $packDir `
               -o "Velo-Output" `
               -r ${{ matrix.rid }} `
               --channel ${{ matrix.platform }} `
