@@ -103,6 +103,11 @@ jobs:
           $sanitizedContent = [System.Security.SecurityElement]::Escape($originalContent)
           Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
           
+          $vpkArgs = ""
+          if ("${{ matrix.platform }}".StartsWith("osx-")) {
+            $vpkArgs = "--mainExe ProseFlow.app/Contents/MacOS/ProseFlow"
+          }
+
           vpk pack `
             -u ProseFlow `
             -v ${{ env.APP_VERSION }} `
@@ -110,7 +115,8 @@ jobs:
             -o "Velo-Output" `
             -r ${{ matrix.rid }} `
             --channel ${{ matrix.platform }} `
-            --releaseNotes $sanitizedNotesFile
+            --releaseNotes $sanitizedNotesFile `
+            $vpkArgs
         shell: pwsh
 
       - name: Upload Release Artifacts
