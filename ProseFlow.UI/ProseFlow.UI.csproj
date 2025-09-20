@@ -60,41 +60,4 @@
         <ProjectReference Include="..\ProseFlow.Infrastructure\ProseFlow.Infrastructure.csproj" />
     </ItemGroup>
 
-    <Target Name="RemoveUnusedRuntimesAfterPublish" BeforeTargets="Publish">
-        <PropertyGroup>
-            <IsWindowsPublish Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('win'))">true</IsWindowsPublish>
-            <IsMacOsPublish Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('osx'))">true</IsMacOsPublish>
-            <IsLinuxPublish Condition="$([System.String]::new('$(RuntimeIdentifier)').StartsWith('linux'))">true</IsLinuxPublish>
-        </PropertyGroup>
-
-        <ItemGroup>
-            <RuntimesToDelete Include="$(PublishDir)runtimes\win-x64" />
-            <RuntimesToDelete Include="$(PublishDir)runtimes\osx-arm64" />
-            <RuntimesToDelete Include="$(PublishDir)runtimes\osx-x64" />
-            <RuntimesToDelete Include="$(PublishDir)runtimes\linux-arm64" />
-            <RuntimesToDelete Include="$(PublishDir)runtimes\linux-x64" />
-            <RuntimesToDelete Include="$(PublishDir)runtimes\linux-musl-x64" />
-        </ItemGroup>
-        
-        <ItemGroup Condition="'$(IsWindowsPublish)' == 'true'">
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\win-x64" />
-        </ItemGroup>
-        <ItemGroup Condition="'$(IsMacOsPublish)' == 'true'">
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\osx-arm64" />
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\osx-x64" />
-        </ItemGroup>
-        <ItemGroup Condition="'$(IsLinuxPublish)' == 'true'">
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\linux-arm64" />
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\linux-x64" />
-            <RuntimesToDelete Remove="$(PublishDir)runtimes\linux-musl-x64" />
-        </ItemGroup>
-
-        <Message Condition="'@(RuntimesToDelete)' != ''"
-                 Text="[ProseFlow.UI] Publishing for '$(RuntimeIdentifier)'. Removing unused runtimes: @(RuntimesToDelete, '; ')"
-                 Importance="high" />
-
-        <RemoveDir Directories="@(RuntimesToDelete)" />
-    </Target>
-
-
 </Project>
