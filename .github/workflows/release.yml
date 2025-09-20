@@ -79,11 +79,7 @@ jobs:
         run: |
           PUBLISH_ARGS=""
           if [[ ! "${{ matrix.platform }}" =~ ^osx-.* ]]; then
-            PUBLISH_ARGS="-p:PublishSingleFile=true -p:UseAppHost=true"
-          fi
-          
-          if [[ "${{ matrix.platform }}" == "osx-x64" ]]; then
-            PUBLISH_ARGS="$PUBLISH_ARGS -p:PublishTrimmed=false"
+            PUBLISH_ARGS="-p:PublishSingleFile=true
           fi
 
           dotnet publish ProseFlow.UI \
@@ -91,6 +87,7 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained \
             -f ${{ matrix.tfm }} \
+            -p:UseAppHost=true" \
             -o "publish" \
             $PUBLISH_ARGS
         shell: bash
@@ -103,7 +100,7 @@ jobs:
           $sanitizedContent = [System.Security.SecurityElement]::Escape($originalContent)
           Set-Content -Path $sanitizedNotesFile -Value $sanitizedContent -Encoding utf8
           
-          $vpkArgs = ""
+          $vpkArgs = $null
           if ("${{ matrix.platform }}".StartsWith("osx-")) {
             $vpkArgs = "--mainExe ProseFlow.app/Contents/MacOS/ProseFlow"
           }
