@@ -94,7 +94,7 @@ jobs:
             --self-contained \
             -f ${{ matrix.tfm }} \
             -p:UseAppHost=true \
-            -o "publish" \
+            -o "./publish" \
             -p:PublishDir=./publish \
             $PUBLISH_ARGS
           
