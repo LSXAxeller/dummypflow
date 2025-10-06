@@ -95,6 +95,13 @@ jobs:
             -p:UseAppHost=true \
             -o "publish" \
             $PUBLISH_ARGS
+          
+      - name: Install 'tree' and List Directory (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: pwsh
+        run: |
+          & /bin/bash -c "brew install tree"
+          tree -F
 
       - name: Pack with Velopack
         shell: pwsh
@@ -148,11 +155,10 @@ jobs:
               $plistContent = $plistLines -join "`n"
               Set-Content -Path $generatedPListPath -Value $plistContent -Encoding utf8
 
-              $packDir = "ProseFlow.UI/bin/Release/${{ matrix.tfm }}/${{ matrix.rid }}"
               vpk pack `
                 -u ProseFlow `
                 -v ${{ env.APP_VERSION }} `
-                -p $packDir `
+                -p "publish" `
                 -o "Velo-Output" `
                 -r ${{ matrix.rid }} `
                 --icon "ProseFlow.UI/Assets/logo.icns" `
@@ -160,6 +166,9 @@ jobs:
                 --releaseNotes $sanitizedNotesFile `
                 --mainExe ProseFlow.app/Contents/MacOS/ProseFlow `
                 --plist $generatedPListPath
+              
+              & /bin/bash -c "brew install tree"
+              tree -F
           } else {
             vpk pack `
               -u ProseFlow `
