@@ -85,6 +85,7 @@ jobs:
           fi
           if [[ "${{ matrix.platform }}" =~ ^osx-.* ]]; then
             PUBLISH_ARGS="$PUBLISH_ARGS -p:CreatePackage=false"
+            PUBLISH_ARGS="$PUBLISH_ARGS -p:AppBundleOutputPath=./publish" 
           fi
           
           dotnet publish ProseFlow.UI \
