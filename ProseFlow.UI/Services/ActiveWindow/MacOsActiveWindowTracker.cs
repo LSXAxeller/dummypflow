@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ProseFlow.Core.Interfaces;
+using ProseFlow.Core.Interfaces.Os;
 
 #if OSX
 using AppKit;
@@ -13,7 +13,9 @@ namespace ProseFlow.UI.Services.ActiveWindow;
 /// <summary>
 /// Tracks the active window process on Apple macOS using the AppKit framework.
 /// </summary>
-public class MacOsActiveWindowTracker(ILogger<MacOsActiveWindowTracker> logger) : IActiveWindowTracker
+#pragma warning disable CS9113 // Parameter is unread.
+public class MacOsActiveWindowTracker(ILogger<MacOsActiveWindowTracker> logger) : IActiveWindowService
+#pragma warning restore CS9113 // Parameter is unread.
 {
     private const string UnknownProcess = "unknown.exe";
 

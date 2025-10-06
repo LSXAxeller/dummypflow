@@ -21,6 +21,11 @@ public class LocalModel : EntityBase
     /// A user-provided description of the model.
     /// </summary>
     public string Description { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// A tag for the model, e.g., "Recommended", "Experimental", "Code".
+    /// </summary>
+    public string Tag { get; set; } = string.Empty;
 
     /// <summary>
     /// The absolute path to the .gguf file on the user's filesystem.

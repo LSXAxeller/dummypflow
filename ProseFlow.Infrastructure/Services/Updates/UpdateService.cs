@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
-using NuGet.Versioning;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Enums;
-using ProseFlow.Core.Models;
 using Velopack;
-using Velopack.Locators;
+using Velopack.Exceptions;
 using Velopack.Sources;
 using Action = System.Action;
 
@@ -61,9 +59,7 @@ public class UpdateService : IUpdateService
         _logger = logger;
         try
         {
-            // TODO: Switch to GitHub updates before release
-            var source = new GithubSource("https://github.com/LSXAxeller/dummypflow", null, false);
-            // var source = new GiteaSource("http://127.0.0.1:3600/LSXPrime/ProseFlow", null, false);
+            var source = new GithubSource("https://github.com/LSXPrime/ProseFlow", null, false);
             _updateManager = new UpdateManager(source);
         }
         catch (Exception ex)
@@ -78,7 +74,7 @@ public class UpdateService : IUpdateService
 
         CurrentStatus = UpdateStatus.Checking;
         _logger.LogInformation("Checking for updates...");
-        
+
         try
         {
             var updateInfo = await _updateManager.CheckForUpdatesAsync();
@@ -95,6 +91,11 @@ public class UpdateService : IUpdateService
                 CurrentStatus = UpdateStatus.Idle;
                 _logger.LogInformation("No updates found. You are running the latest version.");
             }
+        }
+        catch (NotInstalledException)
+        {
+            CurrentStatus = UpdateStatus.Error;
+            _logger.LogWarning("ProseFlow is not installed, likely it's a development build. Updates will be disabled.");
         }
         catch (Exception ex)
         {

@@ -54,6 +54,9 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
     
     [ObservableProperty]
     private bool _preferGpu;
+    
+    [ObservableProperty]
+    private int _localCpuCores;
 
     [ObservableProperty]
     private float _localTemp;
@@ -76,6 +79,14 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty] private bool _isResourceWarningVisible;
     [ObservableProperty] private string _resourceWarningMessage = string.Empty;
+
+    public ObservableCollection<GpuDeviceInfo> AvailableGpus { get; } = [];
+    
+    [ObservableProperty]
+    private GpuDeviceInfo? _selectedGpu;
+
+    public bool HasCloudProviders => CloudProviders.Any();
+    public int AvailableCpuCores => Environment.ProcessorCount;
 
     public ProvidersViewModel(
         SettingsService settingsService,
@@ -140,6 +151,12 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         UpdateResourceWarning();
     }
 
+    partial void OnLocalCpuCoresChanged(int value)
+    {
+        if (Settings is null) return;
+        Settings.LocalCpuCores = value;
+    }
+
     partial void OnLocalTempChanged(float value)
     {
         if (Settings is null) return;
@@ -165,16 +182,25 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         UpdateResourceWarning();
     }
     
+    partial void OnSelectedGpuChanged(GpuDeviceInfo? value)
+    {
+        if (Settings is null || value is null) return;
+        Settings.GpuDeviceIndex = value.Index;
+    }
+    
     public override async Task OnNavigatedToAsync()
     {
         Settings = await _settingsService.GetProviderSettingsAsync();
         PreferGpu = Settings.PreferGpu;
+        LocalCpuCores = Settings.LocalCpuCores;
+        SelectedGpu = AvailableGpus.FirstOrDefault(g => g.Index == Settings.GpuDeviceIndex);
         LocalTemp = Settings.LocalModelTemperature;
         LocalContextSize = Settings.LocalModelContextSize;
         LocalMaxTokens = Settings.LocalModelMaxTokens;
 
         await LoadCloudProvidersAsync();
         await LoadLocalModelsAsync();
+        LoadGpuDevices();
         UpdateUsageDisplay();
         UpdateResourceWarning();
     }
@@ -184,6 +210,7 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         CloudProviders.Clear();
         var providers = await _providerService.GetConfigurationsAsync();
         foreach (var provider in providers) CloudProviders.Add(provider);
+        OnPropertyChanged(nameof(HasCloudProviders));
     }
 
     private async Task LoadLocalModelsAsync()
@@ -198,6 +225,28 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
             if (Settings is not null && !string.IsNullOrWhiteSpace(Settings.LocalModelPath)) 
                 SelectedModel = LocalModels.FirstOrDefault(m => m.FilePath == Settings.LocalModelPath);
         });
+    }
+
+    private void LoadGpuDevices()
+    {
+        AvailableGpus.Clear();
+        var gpus = _hardwareMonitoringService.GetGpuDevices();
+        
+        gpus.Add(new GpuDeviceInfo
+        {
+            Index = -1,
+            Name = "Automatic",
+            VramGb = 0,
+            Type = "Unspecified"
+        });
+        
+        foreach (var gpu in gpus)
+        {
+            AvailableGpus.Add(gpu);
+        }
+
+        if (Settings is not null)
+            SelectedGpu = AvailableGpus.FirstOrDefault(g => g.Index == Settings.GpuDeviceIndex) ?? AvailableGpus.FirstOrDefault();
     }
     
     private void UpdateUsageDisplay()
@@ -223,9 +272,9 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         if (preferGpu && metrics.VramTotalGb > 0)
         {
             var availableVramGb = metrics.VramTotalGb - metrics.VramUsedGb;
-            if (modelSizeGb > availableVramGb)
+            if (modelSizeGb * 1.25 > availableVramGb) // 1.25x is a safe margin for model & kv cache
             {
-                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) exceeds available VRAM ({availableVramGb:F1} GB). Performance may be severely degraded or the model may fail to load.";
+                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) and it's KV cache exceeds available VRAM ({availableVramGb:F1} GB). Performance may be severely degraded or the model may fail to load.";
                 IsResourceWarningVisible = true;
             }
             else
@@ -236,9 +285,9 @@ public partial class ProvidersViewModel : ViewModelBase, IDisposable
         else
         {
             var availableRamGb = metrics.RamTotalGb - metrics.RamUsedGb;
-            if (modelSizeGb > availableRamGb)
+            if (modelSizeGb * 1.25 > availableRamGb) // 1.25x is a safe margin for model & kv cache
             {
-                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) exceeds available system RAM ({availableRamGb:F1} GB). System instability may occur.";
+                ResourceWarningMessage = $"Warning: Model size ({modelSizeGb:F1} GB) and it's KV cache exceeds available system RAM ({availableRamGb:F1} GB). System instability may occur.";
                 IsResourceWarningVisible = true;
             }
             else

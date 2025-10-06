@@ -7,13 +7,14 @@ using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProseFlow.Application.DTOs;
-using ProseFlow.UI.Utils;
 using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Enums;
-using ProseFlow.Core.Interfaces;
+using ProseFlow.Core.Interfaces.Os;
 using ProseFlow.Core.Models;
+using ProseFlow.UI.Services;
+using ProseFlow.UI.Utils;
 using Action = ProseFlow.Core.Models.Action;
 
 namespace ProseFlow.UI.ViewModels.Settings;
@@ -26,14 +27,22 @@ public partial class PresetViewModel(PresetDto preset) : ViewModelBase
     public PresetDto Preset { get; } = preset;
 }
 
-public partial class SettingsViewModel(
-    SettingsService settingsService, 
-    ActionManagementService actionService,
-    IPresetService presetService,
-    IOsService osService) : ViewModelBase
+public partial class SettingsViewModel : ViewModelBase, IDisposable
 {
     public override string Title => "Settings";
     public override IconSymbol Icon => IconSymbol.Settings;
+
+    private readonly SettingsService _settingsService;
+    private readonly ActionManagementService _actionService;
+    private readonly IPresetService _presetService;
+    private readonly ISystemService _systemService;
+    private readonly IHotkeyService _hotkeyService;
+    private readonly IHotkeyRecordingService _recordingService;
+    private readonly IWorkspaceManager _workspaceManager;
+    private readonly IDialogService _dialogService;
+    private readonly FloatingOrbService _floatingOrbService;
+
+    private const string RecordingPrompt = "Press a key combination...";
 
     [ObservableProperty]
     private GeneralSettings? _settings;
@@ -41,9 +50,25 @@ public partial class SettingsViewModel(
     [ObservableProperty]
     private bool _hasHotkeyConflict;
 
+    // Properties to manage the text displayed in the hotkey text boxes
+    [ObservableProperty]
+    private string _actionMenuHotkeyText = string.Empty;
+
+    [ObservableProperty]
+    private string _smartPasteHotkeyText = string.Empty;
+    
+    // Properties to manage the recording state
+    [ObservableProperty]
+    private bool _isRecordingActionMenu;
+    
+    [ObservableProperty]
+    private bool _isRecordingSmartPaste;
+
     public ObservableCollection<Action> AvailableActions { get; } = [];
     public ObservableCollection<PresetViewModel> AvailablePresets { get; } = [];
     public List<string> AvailableThemes => Enum.GetNames(typeof(ThemeType)).ToList();
+    public List<WorkspaceSyncMode> AvailableSyncModes => Enum.GetValues<WorkspaceSyncMode>().ToList();
+    public List<ActionConflictResolutionStrategy> AvailableSyncConflictStrategies => Enum.GetValues<ActionConflictResolutionStrategy>().ToList();
     
     [ObservableProperty]
     private Action? _selectedSmartPasteAction;
@@ -51,8 +76,46 @@ public partial class SettingsViewModel(
     [ObservableProperty]
     private string _selectedTheme = nameof(ThemeType.System);
 
+    [ObservableProperty] private bool _isWorkspaceConnected;
+    [ObservableProperty] private string? _workspacePath;
+    
+    public SettingsViewModel(
+        SettingsService settingsService, 
+        ActionManagementService actionService,
+        IPresetService presetService,
+        ISystemService systemService,
+        IHotkeyService hotkeyService,
+        IHotkeyRecordingService recordingService,
+        IWorkspaceManager workspaceManager,
+        IDialogService dialogService,
+        FloatingOrbService floatingOrbService)
+    {
+        _settingsService = settingsService;
+        _actionService = actionService;
+        _presetService = presetService;
+        _systemService = systemService;
+        _hotkeyService = hotkeyService;
+        _recordingService = recordingService;
+        _workspaceManager = workspaceManager;
+        _dialogService = dialogService;
+        _floatingOrbService = floatingOrbService;
+
+        _recordingService.HotkeyDetected += OnHotkeyDetected;
+        _recordingService.RecordingStateUpdated += OnRecordingStateUpdated;
+        _workspaceManager.StateChanged += OnWorkspaceStateChanged;
+    }
+
+    private void OnWorkspaceStateChanged()
+    {
+        IsWorkspaceConnected = _workspaceManager.IsConnected;
+        WorkspacePath = _workspaceManager.CurrentState.SharedPath;
+    }
+    
     partial void OnSettingsChanged(GeneralSettings? value)
     {
+        if (value is null) return;
+        ActionMenuHotkeyText = value.ActionMenuHotkey;
+        SmartPasteHotkeyText = value.SmartPasteHotkey;
         ValidateHotkeys();
     }
     
@@ -83,18 +146,19 @@ public partial class SettingsViewModel(
         await LoadSettingsAsync();
         await LoadActionsAsync();
         await LoadPresetsAsync();
+        OnWorkspaceStateChanged();
     }
     
     private async Task LoadSettingsAsync()
     {
-        Settings = await settingsService.GetGeneralSettingsAsync();
+        Settings = await _settingsService.GetGeneralSettingsAsync();
         SelectedTheme = Settings.Theme;
     }
     
     private async Task LoadActionsAsync()
     {
         AvailableActions.Clear();
-        var actions = await actionService.GetActionsAsync();
+        var actions = await _actionService.GetActionsAsync();
         foreach (var action in actions) AvailableActions.Add(action);
         SelectedSmartPasteAction = AvailableActions.FirstOrDefault(a => a.Id == Settings?.SmartPasteActionId);
     }
@@ -102,8 +166,8 @@ public partial class SettingsViewModel(
     private async Task LoadPresetsAsync()
     {
         AvailablePresets.Clear();
-        var presets = await presetService.GetAvailablePresetsAsync();
-        var existingGroupsWithActions = await actionService.GetActionGroupsWithActionsAsync();
+        var presets = await _presetService.GetAvailablePresetsAsync();
+        var existingGroupsWithActions = await _actionService.GetActionGroupsWithActionsAsync();
         
         var existingActionsByGroup = existingGroupsWithActions
             .ToDictionary(g => g.Name, 
@@ -116,7 +180,7 @@ public partial class SettingsViewModel(
             
             if (existingActionsByGroup.TryGetValue(presetDto.Name, out var existingActionNames))
             {
-                var presetActionNames = await presetService.GetActionNamesFromPresetAsync(presetDto.ResourcePath);
+                var presetActionNames = await _presetService.GetActionNamesFromPresetAsync(presetDto.ResourcePath);
                 if (presetActionNames.Overlaps(existingActionNames)) 
                     presetVm.IsImported = true;
             }
@@ -130,7 +194,7 @@ public partial class SettingsViewModel(
     {
         try
         {
-            await presetService.ImportPresetAsync(presetVm.Preset.ResourcePath);
+            await _presetService.ImportPresetAsync(presetVm.Preset.ResourcePath);
             AppEvents.RequestNotification($"'{presetVm.Preset.Name}' presets imported successfully!", NotificationType.Success);
             presetVm.IsImported = true;
         }
@@ -139,11 +203,21 @@ public partial class SettingsViewModel(
             AppEvents.RequestNotification($"Failed to import '{presetVm.Preset.Name}'.", NotificationType.Error);
         }
     }
+
+    [RelayCommand]
+    private async Task ManageConnectionAsync()
+    {
+        var changed = await _dialogService.ShowManageConnectionDialogAsync();
+        if (changed)
+            await OnNavigatedToAsync(); // If connection changed, reload all data that might be affected
+    }
     
     [RelayCommand]
     private async Task SaveAsync()
     {
         if (Settings is null) return;
+        
+        if (_recordingService.IsRecording) StopRecording();
         
         ValidateHotkeys();
         if (HasHotkeyConflict)
@@ -152,13 +226,14 @@ public partial class SettingsViewModel(
             return;
         }
 
-        osService.SetLaunchAtLogin(Settings.LaunchAtLogin);
-        osService.UpdateHotkeys(Settings.ActionMenuHotkey, Settings.SmartPasteHotkey);
-        await settingsService.SaveGeneralSettingsAsync(Settings);
+        _systemService.SetLaunchAtLogin(Settings.LaunchAtLogin);
+        _hotkeyService.UpdateHotkeys(Settings.ActionMenuHotkey, Settings.SmartPasteHotkey);
+        _floatingOrbService.SetEnabled(!Settings.IsFloatingButtonHidden);
+        await _settingsService.SaveGeneralSettingsAsync(Settings);
         AppEvents.RequestNotification("Settings saved successfully.", NotificationType.Success);
     }
     
-    public void ValidateHotkeys()
+    private void ValidateHotkeys()
     {
         if (Settings is null)
         {
@@ -168,5 +243,82 @@ public partial class SettingsViewModel(
 
         HasHotkeyConflict = !string.IsNullOrWhiteSpace(Settings.ActionMenuHotkey) &&
                             Settings.ActionMenuHotkey.Equals(Settings.SmartPasteHotkey, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    [RelayCommand]
+    private void StartRecording(string hotkeyName)
+    {
+        StopRecording(); // Stop any other recording first
+
+        if (hotkeyName == "ActionMenu")
+        {
+            IsRecordingActionMenu = true;
+            ActionMenuHotkeyText = RecordingPrompt;
+        }
+        else if (hotkeyName == "SmartPaste")
+        {
+            IsRecordingSmartPaste = true;
+            SmartPasteHotkeyText = RecordingPrompt;
+        }
+
+        _recordingService.BeginRecording();
+    }
+    
+    [RelayCommand]
+    private void StopRecording()
+    {
+        if (!_recordingService.IsRecording) return;
+        
+        IsRecordingActionMenu = false;
+        IsRecordingSmartPaste = false;
+        _recordingService.EndRecording();
+
+        if (Settings is not null)
+        {
+            ActionMenuHotkeyText = Settings.ActionMenuHotkey;
+            SmartPasteHotkeyText = Settings.SmartPasteHotkey;
+        }
+    }
+    
+    private void OnRecordingStateUpdated(string partialHotkeyText)
+    {
+        if (IsRecordingActionMenu) ActionMenuHotkeyText = partialHotkeyText;
+        else if (IsRecordingSmartPaste) SmartPasteHotkeyText = partialHotkeyText;
+    }
+
+    private void OnHotkeyDetected(HotkeyData data)
+    {
+        if (Settings is null) return;
+
+        var hotkeyString = FormatHotkeyData(data);
+        
+        if (IsRecordingActionMenu)
+        {
+            Settings.ActionMenuHotkey = hotkeyString;
+            ActionMenuHotkeyText = hotkeyString;
+        }
+        else if (IsRecordingSmartPaste)
+        {
+            Settings.SmartPasteHotkey = hotkeyString;
+            SmartPasteHotkeyText = hotkeyString;
+        }
+
+        ValidateHotkeys();
+        StopRecording();
+    }
+    
+    private string FormatHotkeyData(HotkeyData data)
+    {
+        var allParts = data.Modifiers.ToList();
+        allParts.Add(data.Key);
+        return string.Join("+", allParts);
+    }
+    
+    public void Dispose()
+    {
+        _recordingService.HotkeyDetected -= OnHotkeyDetected;
+        _recordingService.RecordingStateUpdated -= OnRecordingStateUpdated;
+        _workspaceManager.StateChanged -= OnWorkspaceStateChanged;
+        GC.SuppressFinalize(this);
     }
 }

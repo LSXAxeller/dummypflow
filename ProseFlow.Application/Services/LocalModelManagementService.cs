@@ -125,6 +125,7 @@ public class LocalModelManagementService : ILocalModelManagementService
             Name = catalogEntry.Name,
             Creator = catalogEntry.Creator,
             Description = catalogEntry.Description,
+            Tag = catalogEntry.Tag,
             FilePath = destinationPath,
             FileSizeGb = quantization.FileSizeGb,
             IsManaged = true,

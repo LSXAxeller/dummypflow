@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Core.Models;
 
@@ -39,6 +40,7 @@ public class ModelCatalogService(ILogger<ModelCatalogService> logger) : IModelCa
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to fetch or parse the model catalog.");
+            AppEvents.RequestNotification("Failed to fetch or parse the model catalog.", NotificationType.Error);
         }
         
         return [];

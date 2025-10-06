@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ProseFlow.Application.Events;
+using ProseFlow.Application.DTOs;
+using ProseFlow.Core.Enums;
 using ProseFlow.Core.Models;
 using ProseFlow.UI.ViewModels.Actions;
 using Action = ProseFlow.Core.Models.Action;
@@ -27,6 +28,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [ObservableProperty] private bool _isCustomInstructionActive;
 
     public bool ShouldClose { get; private set; }
+    public bool HasNoActions { get; }
 
     public ObservableCollection<ActionGroupViewModel> ActionGroups { get; } = [];
 
@@ -36,7 +38,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         _allAvailableActions = availableActions.ToList();
         _activeAppContext = activeAppContext;
         CurrentServiceTypeName = providerSettings.PrimaryServiceType;
-        
+        HasNoActions = _allAvailableActions.Count == 0;
         FilterAndGroupActions();
     }
 
@@ -84,6 +86,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         {
             var searchResults = _allAvailableActions
                 .Where(a => a.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(a => a.IsFavorite)
                 .Select(a => new ActionItemViewModel(a)).ToList();
     
             if (searchResults.Count != 0)
@@ -95,27 +98,50 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
         }
         else
         {
-            // Otherwise, group by the actual ActionGroup
-            var groupedActions = _allAvailableActions
+            var favoriteActions = _allAvailableActions.Where(a => a.IsFavorite).ToList();
+            var nonFavoriteActions = _allAvailableActions.Where(a => !a.IsFavorite).ToList();
+
+            // Create and add the Favorites group if it has any actions
+            if (favoriteActions.Count > 0)
+            {
+                var favoritesGroup = new ActionGroupViewModel("Favorites")
+                {
+                    IsExpanded = true,
+                    IsFavoritesGroup = true
+                };
+                
+                foreach (var action in favoriteActions.OrderBy(a => a.SortOrder))
+                {
+                    favoritesGroup.Actions.Add(new ActionItemViewModel(action) { IsContextual = IsActionContextual(action) });
+                }
+                ActionGroups.Add(favoritesGroup);
+            }
+
+            // Group the remaining actions by their actual ActionGroup
+            var groupedActions = nonFavoriteActions
                 .GroupBy(a => a.ActionGroup)
                 .OrderBy(g => g.Key?.SortOrder ?? int.MaxValue);
-    
+
             foreach (var group in groupedActions)
             {
                 var groupName = group.Key?.Name ?? "Uncategorized";
                 var actionGroupVm = new ActionGroupViewModel(groupName);
-    
+
                 foreach (var action in group.OrderBy(a => a.SortOrder))
                 {
-                    var isContextual = action.ApplicationContext.Count > 0 &&
-                                       action.ApplicationContext.Any(a => a.Contains(_activeAppContext, StringComparison.OrdinalIgnoreCase));
-                    actionGroupVm.Actions.Add(new ActionItemViewModel(action) { IsContextual = isContextual });
+                    actionGroupVm.Actions.Add(new ActionItemViewModel(action) { IsContextual = IsActionContextual(action) });
                 }
                 ActionGroups.Add(actionGroupVm);
             }
         }
     
         SelectedItem = GetFlatListOfVisibleItems().FirstOrDefault();
+    }
+
+    private bool IsActionContextual(Action action)
+    {
+        return action.ApplicationContext.Count > 0 &&
+               action.ApplicationContext.Any(a => a.Contains(_activeAppContext, StringComparison.OrdinalIgnoreCase));
     }
 
     private List<object> GetFlatListOfVisibleItems()
@@ -134,26 +160,27 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     {
         ShouldClose = false;
 
-        // Prioritize custom instruction if it exists
+        OutputMode mode = ResultContainer switch
+        {
+            "In-place" => OutputMode.InPlace,
+            "Windowed" => OutputMode.Windowed,
+            "Diff" => OutputMode.Diff,
+            _ => OutputMode.Default
+        };
+
         if (IsCustomInstructionActive && !string.IsNullOrWhiteSpace(CustomInstruction))
         {
             var customAction = new Action
             {
                 Name = "Custom Instruction",
                 Instruction = CustomInstruction,
-                OpenInWindow = false, // Default for custom actions is in-place replacement
+                OutputMode = mode,
                 ExplainChanges = false,
                 Prefix = string.Empty,
                 Icon = "Sparkles"
             };
 
-            var forceOpenInWindow = ResultContainer == "Default" ? customAction.OpenInWindow : ResultContainer == "Windowed";
-
-            var request = new ActionExecutionRequest(
-                customAction,
-                forceOpenInWindow,
-                CurrentServiceTypeName
-            );
+            var request = new ActionExecutionRequest(customAction, mode, CurrentServiceTypeName);
 
             if (!_selectionTcs.Task.IsCompleted)
                 _selectionTcs.SetResult(request);
@@ -174,15 +201,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
             // If an action item is selected, execute it
             case ActionItemViewModel actionItem:
             {
-                var forceOpenInWindow = ResultContainer == "Default" 
-                    ? actionItem.Action.OpenInWindow 
-                    : ResultContainer == "Windowed";
-
-                var request = new ActionExecutionRequest(
-                    actionItem.Action,
-                    forceOpenInWindow,
-                    CurrentServiceTypeName
-                );
+                var request = new ActionExecutionRequest(actionItem.Action, mode, CurrentServiceTypeName);
 
                 if (!_selectionTcs.Task.IsCompleted)
                     _selectionTcs.SetResult(request);
@@ -212,7 +231,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     [RelayCommand]
     private void ToggleResultContainer()
     {
-        var states = new[] { "Default", "Windowed", "In-place" };
+        var states = new[] { "Default", "Windowed", "In-place", "Diff" };
         var currentIndex = Array.IndexOf(states, ResultContainer);
         ResultContainer = states[(currentIndex + 1) % states.Length];
     }
@@ -269,7 +288,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenSettings()
+    private void NavigateToPage(string pageTitle)
     {
         var mainWindow =
             Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
@@ -281,7 +300,7 @@ public partial class FloatingActionMenuViewModel : ViewModelBase
             mainWindow.Show();
             mainWindow.Activate();
             mainWindowViewModel.Navigate(
-                mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == "Providers"));
+                mainWindowViewModel.PageViewModels.FirstOrDefault(x => x.Title == pageTitle));
         }
 
         CancelSelection();

@@ -19,6 +19,8 @@ using ProseFlow.Application.Events;
 using ProseFlow.Application.Interfaces;
 using ProseFlow.Application.Services;
 using ProseFlow.Core.Interfaces;
+using ProseFlow.Core.Interfaces.Os;
+using ProseFlow.Core.Models;
 using ProseFlow.Infrastructure.Data;
 using ProseFlow.Infrastructure.Security;
 using ProseFlow.Infrastructure.Services.AiProviders;
@@ -26,9 +28,12 @@ using ProseFlow.Infrastructure.Services.AiProviders.Local;
 using ProseFlow.Infrastructure.Services.Models;
 using ProseFlow.Infrastructure.Services.Monitoring;
 using ProseFlow.Infrastructure.Services.Os;
+using ProseFlow.Infrastructure.Services.Os.Clipboard;
+using ProseFlow.Infrastructure.Services.Os.Hotkeys;
 using ProseFlow.Infrastructure.Services.Updates;
 using ProseFlow.UI.Services;
 using ProseFlow.UI.Services.ActiveWindow;
+using ProseFlow.UI.Services.Logging;
 using ProseFlow.UI.ViewModels;
 using ProseFlow.UI.ViewModels.About;
 using ProseFlow.UI.ViewModels.Actions;
@@ -71,10 +76,20 @@ public class App : Avalonia.Application
             base.OnFrameworkInitializationCompleted();
             return;
         }
+        
+        // Show the splash screen immediately to provide instant feedback.
+        var splashViewModel = new SplashScreenViewModel();
+        var splashScreenView = new SplashScreenWindow { DataContext = splashViewModel, Topmost = true };
+        
+        // Ensure the window is properly initialized before showing
+        splashScreenView.Show();
+        splashScreenView.Activate();
+        
+        // Force a UI update to ensure the splash screen is rendered
+        await Task.Delay(10);
 
-        // Create main window but without initializing it. It acts as an owner for startup error dialogs.
+        // Create main window, It acts as an owner for startup dialogs.
         desktop.MainWindow = new MainWindow();
-        desktop.MainWindow.Show();
 
         ILogger<App>? logger = null;
         var isInitialized = false;
@@ -82,13 +97,14 @@ public class App : Avalonia.Application
         // Initialize database and services until successful, allowing reset on failure.
         while (!isInitialized)
         {
-            // Configure services and build the provider for this attempt.
+            splashViewModel.Report("Configuring services...");
             var serviceProvider = ConfigureServices();
             logger = serviceProvider.GetRequiredService<ILogger<App>>();
 
             try
             {
                 // Attempt to initialize the database.
+                splashViewModel.Report("Initializing database...");
                 await using (var scope = serviceProvider.CreateAsyncScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -104,6 +120,9 @@ public class App : Avalonia.Application
             catch (SqliteException ex)
             {
                 logger.LogCritical(ex, "Database initialization failed due to a SQLite error (Code: {ErrorCode}). Prompting user for action.", ex.SqliteErrorCode);
+                
+                // Hide splash screen before showing critical error dialog.
+                splashScreenView.Close();
 
                 // The failed ServiceProvider must be disposed to release its hold on services.
                 (serviceProvider as IDisposable)?.Dispose();
@@ -138,6 +157,10 @@ public class App : Avalonia.Application
                             File.Move(dbPath, backupPath, true);
                             logger.LogInformation("Corrupted database backed up to {BackupPath}", backupPath);
                         }
+                        
+                        // Re-show the splash screen for the next initialization attempt.
+                        splashScreenView = new SplashScreenWindow { DataContext = splashViewModel };
+                        splashScreenView.Show();
                     }
                     catch (Exception backupEx)
                     {
@@ -157,6 +180,8 @@ public class App : Avalonia.Application
         
         if (Services is null || logger is null)
             return;
+            
+        splashViewModel.Report("Loading services...");
 
         // Initialize local model native manager
         var nativeManager = Services.GetRequiredService<LocalNativeManager>();
@@ -166,6 +191,8 @@ public class App : Avalonia.Application
         var usageTrackingService = Services.GetRequiredService<UsageTrackingService>();
         await usageTrackingService.InitializeAsync();
         var settingsService = Services.GetRequiredService<SettingsService>();
+        var workspaceManager = Services.GetRequiredService<IWorkspaceManager>();
+        await workspaceManager.LoadStateAsync();
 
         // Perform silent update check on startup
         var updateService = Services.GetRequiredService<IUpdateService>();
@@ -191,6 +218,7 @@ public class App : Avalonia.Application
                     }
                     else
                     {
+                        splashViewModel.Report("Loading local model...");
                         logger.LogInformation("Attempting to auto-load local model on startup...");
                         if (!Design.IsDesignMode) // Don't auto-load model in design mode
                             _ = modelManager.LoadModelAsync(providerSettings);
@@ -206,13 +234,21 @@ public class App : Avalonia.Application
         // Initialize and start background services
         var orchestrationService = Services.GetRequiredService<ActionOrchestrationService>();
         orchestrationService.Initialize();
+        
+        // Initialize the floating button service
+        var floatingOrbService = Services.GetRequiredService<FloatingOrbService>();
+        floatingOrbService.Initialize();
 
-        // Subscribe UI handlers to application-layer events
-        var osService = Services.GetRequiredService<IOsService>();
+        // Hook up hotkeys
+        var hotkeyService = Services.GetRequiredService<IHotkeyService>();
         var generalSettings = await settingsService.GetGeneralSettingsAsync();
-        _ = osService.StartHookAsync();
-        osService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
+        _ = hotkeyService.StartHookAsync();
+        hotkeyService.UpdateHotkeys(generalSettings.ActionMenuHotkey, generalSettings.SmartPasteHotkey);
 
+        // Set the initial state of the floating button based on settings
+        floatingOrbService.SetEnabled(!generalSettings.IsFloatingButtonHidden);
+        
+        // Subscribe UI handlers to application-layer events
         SubscribeToAppEvents();
 
         // Setup Dialogs
@@ -232,32 +268,7 @@ public class App : Avalonia.Application
             _ => ThemeVariant.Default
         };
         
-        // Onboarding process for new users
-        if (!generalSettings.IsOnboardingCompleted)
-        {
-            var onboardingVm = Services.GetRequiredService<OnboardingViewModel>();
-            var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
-
-            var completedSuccessfully = await onboardingWindow.ShowDialog<bool>(desktop.MainWindow);
-            if (completedSuccessfully)
-            {
-                // Save all settings gathered during onboarding
-                await onboardingVm.SaveSettingsAsync();
-
-                // Mark onboarding as complete and save
-                generalSettings = await settingsService.GetGeneralSettingsAsync();
-                generalSettings.IsOnboardingCompleted = true;
-                await settingsService.SaveGeneralSettingsAsync(generalSettings);
-            }
-            else
-            {
-                // If the user closes the onboarding window, quit the application.
-                desktop.Shutdown();
-                return;
-            }
-        }
-
-        // If onboarding completed, assign the view model
+        // Assign the main view model now, so the window is ready.
         desktop.MainWindow.DataContext = Services.GetRequiredService<MainViewModel>();
         
         // Handle the closing event to hide the window instead of closing
@@ -265,11 +276,69 @@ public class App : Avalonia.Application
         {
             e.Cancel = true;
             desktop.MainWindow.Hide();
+            AppEvents.OnMainWindowVisibilityChanged(false);
         };
 
         // Create and set up the system tray icon
         _trayIcon = CreateTrayIcon();
         if (_trayIcon is not null) TrayIcon.SetIcons(this, [_trayIcon]);
+        
+        splashViewModel.Report("Finalizing...");
+        await Task.Delay(500); // Allow user to see final message
+        splashScreenView.Close();
+
+        // Onboarding is the last step. It runs on top of the fully initialized but hidden application.
+        if (!generalSettings.IsOnboardingCompleted)
+        {
+            // Disable the floating menu while onboarding is active.
+            AppEvents.IsShowFloatingMenuEnabled = false;
+
+            var onboardingVm = Services.GetRequiredService<OnboardingViewModel>();
+            var onboardingWindow = new OnboardingWindow { DataContext = onboardingVm };
+
+            // Handle the closing of the non-modal onboarding window to determine the next step.
+            onboardingWindow.Closing += async (_, _) =>
+            {
+                // Re-enable the floating menu regardless of outcome.
+                AppEvents.IsShowFloatingMenuEnabled = true;
+
+                if (onboardingVm.IsCompletedSuccessfully)
+                {
+                    await onboardingVm.SaveSettingsAsync();
+                    
+                    var freshSettings = await settingsService.GetGeneralSettingsAsync();
+                    freshSettings.IsOnboardingCompleted = true;
+                    await settingsService.SaveGeneralSettingsAsync(freshSettings);
+                    
+                    desktop.MainWindow.Show();
+                    desktop.MainWindow.Activate();
+                    AppEvents.OnMainWindowVisibilityChanged(true);
+                }
+                else
+                {
+                    Dispatcher.UIThread.Post(() => desktop.Shutdown());
+                }
+            };
+            
+            onboardingWindow.Show(desktop.MainWindow);
+        }
+        else
+        {
+            // For returning users, show the main window or start minimized.
+            if (generalSettings.StartMinimized)
+            {
+                // App starts hidden, only tray icon is visible.
+                desktop.MainWindow.Hide();
+                desktop.MainWindow.WindowState = WindowState.Minimized;
+                AppEvents.OnMainWindowVisibilityChanged(false);
+            }
+            else
+            {
+                // Normal startup, show the main window.
+                desktop.MainWindow.Show();
+                AppEvents.OnMainWindowVisibilityChanged(true);
+            }
+        }
 
         base.OnFrameworkInitializationCompleted();
     }
@@ -290,6 +359,7 @@ public class App : Avalonia.Application
                 {
                     desktop.MainWindow.Show();
                     desktop.MainWindow.Activate();
+                    AppEvents.OnMainWindowVisibilityChanged(true);
                 });
         };
 
@@ -301,6 +371,7 @@ public class App : Avalonia.Application
                      desktop.MainWindow.Show();
                      desktop.MainWindow.Activate();
                      mainVm.ShowDownloadsPopupCommand.Execute(null);
+                     AppEvents.OnMainWindowVisibilityChanged(true);
                  });
         };
 
@@ -433,7 +504,30 @@ public class App : Avalonia.Application
             return Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var viewModel = new ResultViewModel(data);
-                var window = new ResultWindow { DataContext = viewModel };
+                var window = new ResultWindow
+                {
+                    DataContext = viewModel,
+                    Focusable = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowState = WindowState.Normal,
+                };
+                window.Show();
+                return await viewModel.CompletionSource.Task;
+            });
+        };
+
+        AppEvents.ShowDiffViewRequested += data =>
+        {
+            return Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var viewModel = new DiffViewModel(data);
+                var window = new DiffViewWindow
+                {
+                    DataContext = viewModel,
+                    Focusable = true,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowState = WindowState.Normal,
+                };
                 window.Show();
                 return await viewModel.CompletionSource.Task;
             });
@@ -471,24 +565,39 @@ public class App : Avalonia.Application
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var proseFlowDataPath = Path.Combine(appDataPath, "ProseFlow");
         Directory.CreateDirectory(proseFlowDataPath);
+        Directory.CreateDirectory(Constants.LogDirectoryPath);
 
-        var logPath = Path.Combine(proseFlowDataPath, "logs", "proseflow-.log");
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command",
-                LogEventLevel.Warning)
-            .MinimumLevel.Override("Velopack", LogEventLevel.Information) // Velopack logging
+        // The template to use for formatting log messages.
+        const string outputTemplate = "[{Timestamp:HH:mm:ss} {Level:u3}] [{ClassName}] {Message:lj}{NewLine}{Exception}";
+
+        // Create and register the log collector instance so Serilog can use it.
+        var logCollector = new ApplicationLogCollectorService(outputTemplate);
+        services.AddSingleton(logCollector);
+    
+        var logPath = Path.Combine(Constants.LogDirectoryPath, "proseflow-.log");
+
+        // Create the logger instance.
+        var logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+            .MinimumLevel.Override("Velopack", LogEventLevel.Information)
             .Enrich.FromLogContext()
+            .Enrich.With<ClassNameEnricher>()
 #if DEBUG
             .WriteTo.Debug()
-            .WriteTo.Console()
+            .WriteTo.Console(outputTemplate: outputTemplate)
 #endif
-            .WriteTo.File(logPath, rollingInterval: RollingInterval.Month)
+            .WriteTo.File(logPath,
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: outputTemplate)
+            .WriteTo.Sink(logCollector)
             .CreateLogger();
+        
+        Log.Logger = logger;
 
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
-            builder.AddSerilog(dispose: true);
+            builder.AddSerilog(logger: logger, dispose: true);
         });
 
         services.AddDataProtection()
@@ -506,9 +615,23 @@ public class App : Avalonia.Application
         services.AddSingleton<ILocalSessionService, LocalSessionService>();
         services.AddSingleton<IAiProvider, CloudProvider>();
         services.AddSingleton<IAiProvider, LocalProvider>();
-        services.AddSingleton<IOsService, OsService>();
         services.AddSingleton<HardwareMonitoringService>();
         services.AddSingleton<LocalNativeManager>();
+        
+        // Add System Services
+        services.AddSingleton<HotkeyRecordingService>();
+        services.AddSingleton<IHotkeyRecordingService>(sp => sp.GetRequiredService<HotkeyRecordingService>());
+        services.AddSingleton<IHotkeyService, HotkeyService>();
+        services.AddSingleton<ISystemService, SystemService>();
+        
+        // Add Clipboard Services
+        services.AddKeyedSingleton<IFallbackClipboardService, NativeShellClipboardService>(
+            "NativeShellClipboardService");
+        services.AddKeyedSingleton<IFallbackClipboardService, AvaloniaClipboardService>(
+            "AvaloniaClipboardService");
+        services.AddKeyedSingleton<IFallbackClipboardService, TextCopyClipboardService>(
+            "TextCopyClipboardService");
+        services.AddSingleton<IClipboardService, ClipboardService>();
         
         // Model Download Services
         services.AddSingleton<IModelCatalogService, ModelCatalogService>();
@@ -519,6 +642,7 @@ public class App : Avalonia.Application
         services.AddSingleton<IUpdateService, UpdateService>();
 
         // Add Application Services
+        services.AddSingleton<IBackgroundActionTrackerService, BackgroundActionTrackerService>();
         services.AddSingleton<ActionOrchestrationService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<ActionManagementService>();
@@ -526,26 +650,36 @@ public class App : Avalonia.Application
         services.AddScoped<HistoryService>();
         services.AddScoped<CloudProviderManagementService>();
         services.AddSingleton<IPresetService, PresetService>();
+        
+        // Workspace Services
+        services.AddSingleton<IWorkspaceWatcherService, WorkspaceWatcherService>();
+        services.AddSingleton<IWorkspaceProtector, WorkspaceProtector>();
+        services.AddSingleton<IWorkspaceManager, WorkspaceManager>();
+        services.AddScoped<WorkspaceSyncService>();
 
         // Add Platform-Specific Services
         if (OperatingSystem.IsLinux())
-            services.AddSingleton<IActiveWindowTracker, LinuxActiveWindowTracker>();
+            services.AddSingleton<IActiveWindowService, LinuxActiveWindowTracker>();
         else if (OperatingSystem.IsWindows())
-            services.AddSingleton<IActiveWindowTracker, WindowsActiveWindowTracker>();
+            services.AddSingleton<IActiveWindowService, WindowsActiveWindowTracker>();
         else if (OperatingSystem.IsMacOS())
-            services.AddSingleton<IActiveWindowTracker, MacOsActiveWindowTracker>();
+            services.AddSingleton<IActiveWindowService, MacOsActiveWindowTracker>();
         else
-            services.AddSingleton<IActiveWindowTracker, DefaultActiveWindowTracker>();
+            services.AddSingleton<IActiveWindowService, DefaultActiveWindowTracker>();
         
         // Add UI Services
         services.AddSingleton<DialogManager>();
         services.AddSingleton<ToastManager>();
         services.AddSingleton<NotificationService>();
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<FloatingOrbService>();
 
         // Add ViewModels
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<TrayIconViewModel>();
+        services.AddTransient<FloatingOrbMenuViewModel>();
+        services.AddTransient<FloatingOrbViewModel>();
+        services.AddTransient<SplashScreenViewModel>();
 
         // Dashboard ViewModels
         services.AddTransient<DashboardViewModel>();
@@ -573,12 +707,19 @@ public class App : Avalonia.Application
         services.AddTransient<CustomModelImportViewModel>();
         services.AddTransient<ConflictResolutionViewModel>();
         services.AddTransient<ModelLibraryViewModel>();
+        services.AddTransient<ManageConnectionViewModel>();
+        services.AddTransient<WorkspacePasswordViewModel>();
+        services.AddTransient<SyncViewModel>();
         
         // Onboarding ViewModels
         services.AddTransient<OnboardingViewModel>();
         services.AddTransient<CloudOnboardingViewModel>();
         services.AddTransient<HotkeyTutorialViewModel>();
-
+        
+        // Injectable Windows
+        services.AddTransient<ArcMenuViewModel>();
+        services.AddTransient<ArcMenuItemViewModel>();
+        services.AddTransient<FloatingOrbWindow>();
 
         return services.BuildServiceProvider();
     }
@@ -596,7 +737,7 @@ public class App : Avalonia.Application
 
         // Dispose singleton infrastructure services
         Services.GetService<HardwareMonitoringService>()?.Dispose();
-        Services.GetService<IOsService>()?.Dispose();
+        Services.GetService<IHotkeyService>()?.Dispose();
         Services.GetService<LocalModelManagerService>()?.UnloadModel();
 
         logger?.LogInformation("Cleanup complete. Application will now exit.");

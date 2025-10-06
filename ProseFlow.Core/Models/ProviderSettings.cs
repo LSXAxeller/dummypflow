@@ -41,6 +41,11 @@ public class ProviderSettings : EntityBase
     public bool PreferGpu { get; set; } = true;
     
     /// <summary>
+    /// The index of the GPU device to use for local inference. A value of -1 indicates automatic selection.
+    /// </summary>
+    public int GpuDeviceIndex { get; set; } = -1;
+    
+    /// <summary>
     /// If true, the application will attempt to load the local model on startup.
     /// </summary>
     public bool LocalModelLoadOnStartup { get; set; }
@@ -75,7 +80,18 @@ public class ProviderSettings : EntityBase
     /// when <see cref="LocalModelMemoryMap"/> is <c>true</c> and requires that the entire model
     /// fits within the available physical RAM.
     /// </remarks>
-    public bool LocalModelMemorylock { get; set; } = false;
+    public bool LocalModelMemorylock { get; set; }
+    
+    /// <summary>
+    /// Gets or sets a value indicating whether to enable Flash Attention.
+    /// </summary>
+    /// <remarks>
+    /// Flash Attention is a highly optimized attention algorithm that can significantly increase
+    /// inference speed and reduce memory usage, especially for long sequences.
+    /// This option is only effective when using GPU acceleration on compatible hardware
+    /// (e.g., modern NVIDIA GPUs). Defaults to <c>true</c>.
+    /// </remarks>
+    public bool EnableFlashAttention { get; set; } = true;
 
     #endregion
 

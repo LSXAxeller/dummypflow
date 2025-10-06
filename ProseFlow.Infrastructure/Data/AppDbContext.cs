@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using ProseFlow.Core.Abstracts;
 using ProseFlow.Core.Models;
 using Action = ProseFlow.Core.Models.Action;
@@ -41,6 +42,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(a => a.ActionGroupId)
                 .HasDefaultValue(1);
 
+            // Define a value comparer for the List<string> to ensure EF Core can track changes correctly.
+            var valueComparer = new ValueComparer<List<string>>(
+                (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+                c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                c => c.ToList());
+            
             // Configure the List<string> to be stored as a JSON string in the database.
             entity.Property(a => a.ApplicationContext)
                 .HasConversion(
@@ -48,7 +55,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     list => JsonSerializer.Serialize(list, (JsonSerializerOptions?)null),
                     // Convert JSON string back to List<string> when reading
                     jsonString => JsonSerializer.Deserialize<List<string>>(jsonString, (JsonSerializerOptions?)null) ??
-                                  new List<string>());
+                                  new List<string>())
+                .Metadata.SetValueComparer(valueComparer);
         });
         
         // Ensure Year and Month are a unique combination for usage statistics.

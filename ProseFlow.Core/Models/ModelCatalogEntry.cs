@@ -9,5 +9,6 @@ public record ModelCatalogEntry
     public required string Name { get; init; }
     public required string Creator { get; init; }
     public required string Description { get; init; }
+    public required string Tag { get; init; }
     public required IEnumerable<ModelQuantization> Quantizations { get; init; } = [];
 }

@@ -49,9 +49,10 @@
                                 <Run Text="Version" /> <Run Text="{Binding AppVersion}" />
                             </TextBlock>
                             <TextBlock Classes="p Muted" Text="{Binding AppDescription}" TextWrapping="Wrap" />
-                            <HyperlinkButton Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppRepository}" HorizontalAlignment="Left">
-                                View on GitHub
-                            </HyperlinkButton>
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <HyperlinkButton Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppRepository}" HorizontalAlignment="Left" Content="View on GitHub" />
+                                <HyperlinkButton Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppWebsite}" HorizontalAlignment="Left" Content="Visit Website" />
+                            </StackPanel>
                         </StackPanel>
 
                     </Grid>
@@ -63,8 +64,8 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <icons:SymbolIcon Size="24" Symbol="PackageCheck" />
                             <StackPanel>
-                                <shadui:CardTitle>Updates</shadui:CardTitle>
-                                <shadui:CardDescription>Update ProseFlow to the latest version without any hassle.</shadui:CardDescription>
+                                <shadui:CardTitle Content="Updates" />
+                                <shadui:CardDescription Content="Update ProseFlow to the latest version without any hassle." />
                             </StackPanel>
                         </StackPanel>
                     </shadui:Card.Header>
@@ -73,9 +74,7 @@
                         <!-- State: Idle / Up-to-date -->
                         <StackPanel Spacing="12" IsVisible="{Binding UpdateStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:UpdateStatus.Idle}}">
                             <TextBlock Text="You are running the latest version." />
-                            <Button Classes="Outline" Command="{Binding CheckForUpdateCommand}" HorizontalAlignment="Left">
-                                Check for Updates
-                            </Button>
+                            <Button Classes="Outline" Content="Check for Updates" Command="{Binding CheckForUpdateCommand}" HorizontalAlignment="Left" />
                         </StackPanel>
                         
                         <!-- State: Checking -->
@@ -129,17 +128,13 @@
                         <!-- State: Ready to Install -->
                         <StackPanel Spacing="12" IsVisible="{Binding UpdateStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:UpdateStatus.ReadyToInstall}}">
                             <TextBlock Text="Update downloaded. The application will restart to complete the installation." TextWrapping="Wrap" />
-                            <Button Classes="Primary" Command="{Binding InstallUpdateCommand}" HorizontalAlignment="Left">
-                                Restart &amp; Install
-                            </Button>
+                            <Button Classes="Primary" Content="Restart &amp; Install" Command="{Binding InstallUpdateCommand}" HorizontalAlignment="Left" />
                         </StackPanel>
                         
                         <!-- State: Error -->
                         <StackPanel Spacing="12" IsVisible="{Binding UpdateStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static enums:UpdateStatus.Error}}">
                              <TextBlock Text="Failed to check for updates. Please check your internet connection." Classes="Destructive" />
-                            <Button Classes="Outline" Command="{Binding CheckForUpdateCommand}" HorizontalAlignment="Left">
-                                Retry
-                            </Button>
+                            <Button Classes="Outline" Content="Retry" Command="{Binding CheckForUpdateCommand}" HorizontalAlignment="Left" />
                         </StackPanel>
                     </Panel>
                 </shadui:Card>
@@ -150,8 +145,8 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <icons:SymbolIcon Size="24" Symbol="Heart" />
                             <StackPanel>
-                                <shadui:CardTitle>Support &amp; Contribute</shadui:CardTitle>
-                                <shadui:CardDescription>If you find ProseFlow useful, please consider supporting its development.</shadui:CardDescription>
+                                <shadui:CardTitle Content="Support &amp; Contribute" />
+                                <shadui:CardDescription Content="If you find ProseFlow useful, please consider supporting its development." />
                             </StackPanel>
                         </StackPanel>
                     </shadui:Card.Header>
@@ -174,6 +169,12 @@
                             </shadui:ButtonAssist.Icon>
                             Buy Me a Ko-fi
                         </Button>
+                        <Button Classes="Outline" Command="{Binding OpenLogFolderCommand}">
+                            <shadui:ButtonAssist.Icon>
+                                <icons:SymbolIcon Symbol="FileText" Size="16" />
+                            </shadui:ButtonAssist.Icon>
+                            Open Log Folder
+                        </Button>
                     </WrapPanel>
                 </shadui:Card>
 
@@ -183,7 +184,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <icons:SymbolIcon Size="24" Symbol="Library" />
                             <StackPanel>
-                                <shadui:CardTitle>Acknowledgements</shadui:CardTitle>
+                                <shadui:CardTitle Content="Acknowledgements" />
                             </StackPanel>
                         </StackPanel>
                     </shadui:Card.Header>
@@ -194,7 +195,11 @@
                         <TextBlock Text="ProseFlow is built with incredible open-source projects like Avalonia, Velopack, LLamaSharp, and many more." TextWrapping="Wrap" />
                          <Button Classes="Link" HorizontalAlignment="Left" Padding="0" 
                                  Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:Constants.AppLicenseUrl}">
-                            Licensed under the AGPL-v3 License.
+                            <TextBlock>
+                                <Run Text="Licensed under the " FontWeight="Medium" />
+                                <Run Text="{x:Static core:Constants.AppLicense}" FontWeight="Medium" />
+                                <Run Text=" License" />
+                            </TextBlock>
                         </Button>
                     </StackPanel>
                 </shadui:Card>
