@@ -30,7 +30,7 @@ public class AvaloniaClipboardService : IFallbackClipboardService
         return Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var clipboard = GetClipboard();
-            return clipboard is not null ? await clipboard.TryGetTextAsync() : null;
+            return clipboard is not null ? await clipboard.GetTextAsync() : null;
         });
     }
 
