@@ -94,6 +94,7 @@ jobs:
             -f ${{ matrix.tfm }} \
             -p:UseAppHost=true \
             -o "publish" \
+            -p:PublishDir=./publish \
             $PUBLISH_ARGS
           
       - name: Install 'tree' and List Directory (macOS)
@@ -167,7 +168,6 @@ jobs:
                 --mainExe ProseFlow.app/Contents/MacOS/ProseFlow `
                 --plist $generatedPListPath
               
-              & /bin/bash -c "brew install tree"
               tree -F
           } else {
             vpk pack `
