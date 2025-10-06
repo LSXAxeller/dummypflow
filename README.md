@@ -154,6 +154,24 @@ The website will automatically suggest the best download for your operating syst
 For advanced users who need access to all builds, portable versions, or detailed release notes, you can visit
 the [GitHub Releases page](https://github.com/LSXPrime/ProseFlow/releases).
 
+
+#### macOS Installation & Permissions
+
+Due to Apple's security policies, you will need to perform a few extra steps to run ProseFlow on macOS:
+
+1.  **Open the App for the First Time:**
+    *   After downloading, move `ProseFlow.app` to your `Applications` folder.
+    *   Right-click the app and select "Open".
+    *   You will see a warning that the developer is unidentified. This is expected. Click "Open" again to confirm. You only need to do this once.
+
+2.  **Grant Required Permissions:**
+    ProseFlow needs two critical permissions to function. When prompted, you must grant them.
+    *   Go to **System Settings > Privacy & Security**.
+    *   Find **Accessibility** in the list. Click it, and then enable the toggle for **ProseFlow**.
+    *   Find **Input Monitoring** in the list. Click it, and then enable the toggle for **ProseFlow**.
+
+*If ProseFlow is not in the list, click the `+` button and add it from your Applications folder.*
+
 ---
 
 ### 📖 How to Use
